@@ -1,0 +1,27 @@
+body {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    background: #777;
+}
+
+
+
+
+#toolbar {
+    float: left;
+    display: flex;
+    justify-content: center;
+    align-items: left;
+    flex-direction: column;
+    width: 20%;
+    padding: 1rem 1.5rem;
+    background: #4e4e4e;
+    height: 100vh;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.heading {
+    font-size: 2rem;
+    color: #51c0cc99;
+}
