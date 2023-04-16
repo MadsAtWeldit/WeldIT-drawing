@@ -218,7 +218,7 @@ class DrawingCanvas {
   private controller: HTMLElement;
 
   private isDrawing: boolean;
-  private lineWidth = 5;
+  private lineWidth: number;
   private strokeStyle: string;
 
   constructor(
@@ -237,10 +237,6 @@ class DrawingCanvas {
       this.controller = controller;
     }
 
-    //Set default values
-    context.lineWidth = this.lineWidth;
-    context.strokeStyle = "black";
-
     //Check if width and height has been set
     options?.width
       ? (canvas.width = options.width)
@@ -253,17 +249,49 @@ class DrawingCanvas {
     this.canvas = canvas;
     this.context = context;
 
+    //Default values
+    this.context.lineWidth = 5;
+    this.context.strokeStyle = "black";
     //Add eventlisteners to canvas
     this.listen();
   }
 
+  //Controller Change handler
+  private changeHandler = (e: Event) => {
+    const context = this.context;
+
+    const target = e.target as HTMLInputElement;
+    if (target.id === "stroke") {
+      context.strokeStyle = target.value;
+    }
+    if (target.id === "lineWidth") {
+      console.log(target.id);
+      context.lineWidth = Number(target.value);
+    }
+  };
+
+  //Controller Clear canvas
+  private clearCanvas = (e: MouseEvent) => {
+    const context = this.context;
+
+    const target = e.target as HTMLButtonElement;
+
+    if (target.id === "clear") {
+      context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+  };
+
   //Listen for events on given canvas
   private listen() {
     const canvas = this.canvas;
+    const controller = this.controller;
 
     canvas.addEventListener("mousedown", this.setDrawpoint);
     canvas.addEventListener("mouseup", this.stopDrawing);
     canvas.addEventListener("mousemove", this.draw);
+
+    controller.addEventListener("change", this.changeHandler);
+    controller.addEventListener("click", this.clearCanvas);
   }
 
   //Runs whenever mouse is clicked
@@ -303,7 +331,7 @@ class DrawingCanvas {
   }
 }
 
-const drawing = new DrawingCanvas("drawing-board");
+const drawing = new DrawingCanvas("drawing-board", { controllerId: "toolbar" });
 
 //////////////////////////////////////////////////////////////////////////////////
 

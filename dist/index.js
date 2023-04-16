@@ -170,7 +170,26 @@ const toolBar = document.getElementById("toolbar");
 // new DrawingCanvas("drawing-board");
 class DrawingCanvas {
     constructor(elementId, options) {
-        this.lineWidth = 5;
+        //Controller Change handler
+        this.changeHandler = (e) => {
+            const context = this.context;
+            const target = e.target;
+            if (target.id === "stroke") {
+                context.strokeStyle = target.value;
+            }
+            if (target.id === "lineWidth") {
+                console.log(target.id);
+                context.lineWidth = Number(target.value);
+            }
+        };
+        //Controller Clear canvas
+        this.clearCanvas = (e) => {
+            const context = this.context;
+            const target = e.target;
+            if (target.id === "clear") {
+                context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            }
+        };
         //Runs whenever mouse is clicked
         this.setDrawpoint = (e) => {
             this.isDrawing = true;
@@ -203,9 +222,6 @@ class DrawingCanvas {
             const controller = document.getElementById(options.controllerId);
             this.controller = controller;
         }
-        //Set default values
-        context.lineWidth = this.lineWidth;
-        context.strokeStyle = "black";
         //Check if width and height has been set
         (options === null || options === void 0 ? void 0 : options.width)
             ? (canvas.width = options.width)
@@ -216,21 +232,27 @@ class DrawingCanvas {
         //Assign private props
         this.canvas = canvas;
         this.context = context;
+        //Default values
+        this.context.lineWidth = 5;
+        this.context.strokeStyle = "black";
         //Add eventlisteners to canvas
         this.listen();
     }
     //Listen for events on given canvas
     listen() {
         const canvas = this.canvas;
+        const controller = this.controller;
         canvas.addEventListener("mousedown", this.setDrawpoint);
         canvas.addEventListener("mouseup", this.stopDrawing);
         canvas.addEventListener("mousemove", this.draw);
+        controller.addEventListener("change", this.changeHandler);
+        controller.addEventListener("click", this.clearCanvas);
     }
     setController() {
         return console.log(this.canvas);
     }
 }
-const drawing = new DrawingCanvas("drawing-board");
+const drawing = new DrawingCanvas("drawing-board", { controllerId: "toolbar" });
 //////////////////////////////////////////////////////////////////////////////////
 // class DrawingApp {
 //   private canvas: HTMLCanvasElement;
