@@ -214,25 +214,39 @@ class DrawingCanvas {
   private canvas: HTMLCanvasElement;
   private context: CanvasRenderingContext2D;
 
+  //For controlling the canvas context props
+  private controller: HTMLElement;
+
   private isDrawing: boolean;
   private lineWidth = 5;
   private strokeStyle: string;
 
-  constructor(elementId: string, width?: number, height?: number) {
+  constructor(
+    elementId: string,
+    options?: { controllerId?: string; width?: number; height?: number }
+  ) {
     //Get element access based on id passed
     const canvas = document.getElementById(elementId) as HTMLCanvasElement;
     const context = canvas.getContext("2d") as CanvasRenderingContext2D;
+
+    //IF a controller is passed
+    if (options?.controllerId) {
+      const controller = document.getElementById(
+        options.controllerId
+      ) as HTMLElement;
+      this.controller = controller;
+    }
 
     //Set default values
     context.lineWidth = this.lineWidth;
     context.strokeStyle = "black";
 
     //Check if width and height has been set
-    width
-      ? (canvas.width = width)
+    options?.width
+      ? (canvas.width = options.width)
       : (canvas.width = window.innerWidth - canvas.offsetLeft);
-    height
-      ? (canvas.height = height)
+    options?.height
+      ? (canvas.height = options.height)
       : (canvas.height = window.innerHeight - canvas.offsetTop);
 
     //Assign private props
@@ -243,21 +257,23 @@ class DrawingCanvas {
     this.listen();
   }
 
+  //Listen for events on given canvas
   private listen() {
     const canvas = this.canvas;
+
     canvas.addEventListener("mousedown", this.setDrawpoint);
-
     canvas.addEventListener("mouseup", this.stopDrawing);
-
     canvas.addEventListener("mousemove", this.draw);
   }
 
+  //Runs whenever mouse is clicked
   private setDrawpoint = (e: MouseEvent) => {
     this.isDrawing = true;
     const mouseX = e.clientX - this.canvas.offsetLeft;
     const mouseY = e.clientY - this.canvas.offsetTop;
   };
 
+  //Runs whenever mouse is released
   private stopDrawing = () => {
     this.isDrawing = false;
     //Save stroke
@@ -265,7 +281,8 @@ class DrawingCanvas {
     //New Path
     this.context.beginPath();
   };
-  //C
+
+  //Runs whenever mouse moves
   private draw = (e: MouseEvent) => {
     if (!this.isDrawing) return;
 
@@ -280,9 +297,13 @@ class DrawingCanvas {
     //Save stroke
     this.context.stroke();
   };
+
+  public setController() {
+    return console.log(this.canvas);
+  }
 }
 
-new DrawingCanvas("drawing-board");
+const drawing = new DrawingCanvas("drawing-board");
 
 //////////////////////////////////////////////////////////////////////////////////
 

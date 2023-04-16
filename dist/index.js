@@ -169,13 +169,15 @@ const toolBar = document.getElementById("toolbar");
 // // //Create new drawing canvas
 // new DrawingCanvas("drawing-board");
 class DrawingCanvas {
-    constructor(elementId, width, height) {
+    constructor(elementId, options) {
         this.lineWidth = 5;
+        //Runs whenever mouse is clicked
         this.setDrawpoint = (e) => {
             this.isDrawing = true;
             const mouseX = e.clientX - this.canvas.offsetLeft;
             const mouseY = e.clientY - this.canvas.offsetTop;
         };
+        //Runs whenever mouse is released
         this.stopDrawing = () => {
             this.isDrawing = false;
             //Save stroke
@@ -183,7 +185,7 @@ class DrawingCanvas {
             //New Path
             this.context.beginPath();
         };
-        //C
+        //Runs whenever mouse moves
         this.draw = (e) => {
             if (!this.isDrawing)
                 return;
@@ -196,15 +198,20 @@ class DrawingCanvas {
         //Get element access based on id passed
         const canvas = document.getElementById(elementId);
         const context = canvas.getContext("2d");
+        //IF a controller is passed
+        if (options === null || options === void 0 ? void 0 : options.controllerId) {
+            const controller = document.getElementById(options.controllerId);
+            this.controller = controller;
+        }
         //Set default values
         context.lineWidth = this.lineWidth;
         context.strokeStyle = "black";
         //Check if width and height has been set
-        width
-            ? (canvas.width = width)
+        (options === null || options === void 0 ? void 0 : options.width)
+            ? (canvas.width = options.width)
             : (canvas.width = window.innerWidth - canvas.offsetLeft);
-        height
-            ? (canvas.height = height)
+        (options === null || options === void 0 ? void 0 : options.height)
+            ? (canvas.height = options.height)
             : (canvas.height = window.innerHeight - canvas.offsetTop);
         //Assign private props
         this.canvas = canvas;
@@ -212,14 +219,18 @@ class DrawingCanvas {
         //Add eventlisteners to canvas
         this.listen();
     }
+    //Listen for events on given canvas
     listen() {
         const canvas = this.canvas;
         canvas.addEventListener("mousedown", this.setDrawpoint);
         canvas.addEventListener("mouseup", this.stopDrawing);
         canvas.addEventListener("mousemove", this.draw);
     }
+    setController() {
+        return console.log(this.canvas);
+    }
 }
-new DrawingCanvas("drawing-board");
+const drawing = new DrawingCanvas("drawing-board");
 //////////////////////////////////////////////////////////////////////////////////
 // class DrawingApp {
 //   private canvas: HTMLCanvasElement;
