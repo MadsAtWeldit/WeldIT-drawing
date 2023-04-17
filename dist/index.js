@@ -68,106 +68,6 @@ const toolBar = document.getElementById("toolbar");
 // });
 // //Listen for mousemove on canvas
 // canvas.addEventListener("mousemove", draw);
-// class DrawingCanvas {
-//   //Props
-//   private canvas: HTMLCanvasElement;
-//   private context: CanvasRenderingContext2D;
-//   private isDrawing: boolean;
-//   private dragging: boolean[] = [];
-//   private lineWidth = 5;
-//   //Canvas offset
-//   public offsetX: number;
-//   public offsetY: number;
-//   public clickX: number[] = [];
-//   public clickY: number[] = [];
-//   ///On init
-//   constructor(id: string, width?: number, height?: number) {
-//     const canvas = document.getElementById(
-//       "drawing-board"
-//     ) as HTMLCanvasElement;
-//     const context = canvas.getContext("2d") as CanvasRenderingContext2D;
-//     context.lineWidth = this.lineWidth;
-//     context.strokeStyle = "black";
-//     //Set offset props
-//     this.offsetX = canvas.offsetLeft;
-//     this.offsetY = canvas.offsetTop;
-//     width
-//       ? (canvas.width = width)
-//       : (canvas.width = window.innerWidth - this.offsetX);
-//     height
-//       ? (canvas.height = height)
-//       : (canvas.height = window.innerHeight - this.offsetY);
-//     //Set props
-//     this.canvas = canvas;
-//     this.context = context;
-//     this.redraw();
-//     this.init(width, height);
-//   }
-//   //Initialization function
-//   private init(width?: number, height?: number) {
-//     //Store provided canvas
-//     const canvas = this.canvas;
-//     //Listen for events on canvas
-//     canvas.addEventListener("mousedown", this.pressEventHandler);
-//     canvas.addEventListener("mousemove", this.dragEventHandler);
-//     canvas.addEventListener("mouseup", this.releaseEventHandler);
-//     //IF width is not set THEN
-//     //Set canvas width and height to full available space
-//   }
-//   private redraw() {
-//     const clickX = this.clickX;
-//     const clickY = this.clickY;
-//     const context = this.context;
-//     const dragging = this.dragging;
-//     for (let i = 0; i < clickX.length; i++) {
-//       context.beginPath();
-//       if (dragging[i] && i) {
-//         context.moveTo(clickX[i - 1], clickY[i - 1]);
-//       } else {
-//         context.moveTo(clickX[i] - 1, clickY[i]);
-//       }
-//       context.lineTo(clickX[i], clickY[i]);
-//       context.stroke();
-//     }
-//     context.closePath();
-//   }
-//   private storeClick(x: number, y: number, dragging: boolean) {
-//     //Add mouse position to array
-//     this.clickX.push(x);
-//     this.clickY.push(y);
-//     //Add boolean to dragging array
-//     this.dragging.push(dragging);
-//   }
-//   //Start Drawing
-//   private pressEventHandler = (e: MouseEvent) => {
-//     console.log("ye");
-//     let mouseX = (e as MouseEvent).pageX;
-//     let mouseY = (e as MouseEvent).pageY;
-//     mouseX -= this.offsetX;
-//     mouseY -= this.offsetY;
-//     this.isDrawing = true;
-//     this.storeClick(mouseX, mouseY, false);
-//     this.redraw();
-//   };
-//   private dragEventHandler = (e: MouseEvent | TouchEvent) => {
-//     let mouseX = (e as MouseEvent).pageX;
-//     let mouseY = (e as MouseEvent).pageY;
-//     mouseX -= this.offsetX;
-//     mouseY -= this.offsetY;
-//     if (this.isDrawing) {
-//       this.storeClick(mouseX, mouseY, true);
-//       this.redraw();
-//     }
-//     e.preventDefault();
-//   };
-//   private releaseEventHandler = () => {
-//     //Is no longer drawing
-//     this.isDrawing = false;
-//     this.redraw();
-//   };
-// }
-// // //Create new drawing canvas
-// new DrawingCanvas("drawing-board");
 class DrawingCanvas {
     constructor(elementId, options) {
         //Controller Change handler
@@ -178,7 +78,6 @@ class DrawingCanvas {
                 context.strokeStyle = target.value;
             }
             if (target.id === "lineWidth") {
-                console.log(target.id);
                 context.lineWidth = Number(target.value);
             }
         };
@@ -192,9 +91,12 @@ class DrawingCanvas {
         };
         //Runs whenever mouse is clicked
         this.setDrawpoint = (e) => {
+            const evtType = e.touches
+                ? e.touches[0]
+                : e;
             this.isDrawing = true;
-            const mouseX = e.clientX - this.canvas.offsetLeft;
-            const mouseY = e.clientY - this.canvas.offsetTop;
+            const mouseX = evtType.clientX - this.canvas.offsetLeft;
+            const mouseY = evtType.clientY - this.canvas.offsetTop;
         };
         //Runs whenever mouse is released
         this.stopDrawing = () => {
@@ -208,9 +110,13 @@ class DrawingCanvas {
         this.draw = (e) => {
             if (!this.isDrawing)
                 return;
+            //Check if event has touch or mouse and assign accordingly
+            const evtType = e.touches
+                ? e.touches[0]
+                : e;
             this.context.lineWidth = this.lineWidth;
             this.context.lineCap = "round";
-            this.context.lineTo(e.clientX - this.canvas.offsetLeft, e.clientY - this.canvas.offsetTop);
+            this.context.lineTo(evtType.clientX - this.canvas.offsetLeft, evtType.clientY - this.canvas.offsetTop);
             //Save stroke
             this.context.stroke();
         };
@@ -245,115 +151,17 @@ class DrawingCanvas {
         canvas.addEventListener("mousedown", this.setDrawpoint);
         canvas.addEventListener("mouseup", this.stopDrawing);
         canvas.addEventListener("mousemove", this.draw);
+        canvas.addEventListener("touchstart", this.setDrawpoint);
+        canvas.addEventListener("touchend", this.stopDrawing);
+        canvas.addEventListener("touchmove", this.draw);
         controller.addEventListener("change", this.changeHandler);
         controller.addEventListener("click", this.clearCanvas);
     }
-    setController() {
+    log() {
         return console.log(this.canvas);
     }
 }
-const drawing = new DrawingCanvas("drawing-board", { controllerId: "toolbar" });
-//////////////////////////////////////////////////////////////////////////////////
-// class DrawingApp {
-//   private canvas: HTMLCanvasElement;
-//   private context: CanvasRenderingContext2D;
-//   private paint: boolean;
-//   private clickX: number[] = [];
-//   private clickY: number[] = [];
-//   private clickDrag: boolean[] = [];
-//   constructor() {
-//     const canvas = document.getElementById(
-//       "drawing-board"
-//     ) as HTMLCanvasElement;
-//     const context = canvas.getContext("2d") as CanvasRenderingContext2D;
-//     context.lineCap = "round";
-//     context.lineJoin = "round";
-//     context.strokeStyle = "black";
-//     context.lineWidth = 1;
-//     this.canvas = canvas;
-//     this.context = context;
-//     this.redraw();
-//     this.createUserEvents();
-//   }
-//   private createUserEvents() {
-//     const canvas = this.canvas;
-//     canvas.addEventListener("mousedown", this.pressEventHandler);
-//     canvas.addEventListener("mousemove", this.dragEventHandler);
-//     canvas.addEventListener("mouseup", this.releaseEventHandler);
-//     canvas.addEventListener("mouseout", this.cancelEventHandler);
-//     canvas.addEventListener("touchstart", this.pressEventHandler);
-//     canvas.addEventListener("touchmove", this.dragEventHandler);
-//     canvas.addEventListener("touchend", this.releaseEventHandler);
-//     canvas.addEventListener("touchcancel", this.cancelEventHandler);
-//   }
-//   private redraw() {
-//     console.log("redraw");
-//     const clickX = this.clickX;
-//     const context = this.context;
-//     const clickDrag = this.clickDrag;
-//     const clickY = this.clickY;
-//     console.log(clickX);
-//     for (let i = 0; i < clickX.length; ++i) {
-//       context.beginPath();
-//       if (clickDrag[i] && i) {
-//         context.moveTo(clickX[i - 1], clickY[i - 1]);
-//       } else {
-//         context.moveTo(clickX[i] - 1, clickY[i]);
-//       }
-//       context.lineTo(clickX[i], clickY[i]);
-//       context.stroke();
-//     }
-//     context.closePath();
-//   }
-//   private addClick(x: number, y: number, dragging: boolean) {
-//     this.clickX.push(x);
-//     this.clickY.push(y);
-//     this.clickDrag.push(dragging);
-//   }
-//   private clearCanvas() {
-//     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-//     this.clickX = [];
-//     this.clickY = [];
-//     this.clickDrag = [];
-//   }
-//   private clearEventHandler = () => {
-//     this.clearCanvas();
-//   };
-//   private releaseEventHandler = () => {
-//     this.paint = false;
-//     this.redraw();
-//   };
-//   private cancelEventHandler = () => {
-//     this.paint = false;
-//   };
-//   private pressEventHandler = (e: MouseEvent | TouchEvent) => {
-//     let mouseX = (e as TouchEvent).changedTouches
-//       ? (e as TouchEvent).changedTouches[0].pageX
-//       : (e as MouseEvent).pageX;
-//     let mouseY = (e as TouchEvent).changedTouches
-//       ? (e as TouchEvent).changedTouches[0].pageY
-//       : (e as MouseEvent).pageY;
-//     mouseX -= this.canvas.offsetLeft;
-//     mouseY -= this.canvas.offsetTop;
-//     this.paint = true;
-//     this.addClick(mouseX, mouseY, false);
-//     this.redraw();
-//   };
-//   private dragEventHandler = (e: MouseEvent | TouchEvent) => {
-//     let mouseX = (e as TouchEvent).changedTouches
-//       ? (e as TouchEvent).changedTouches[0].pageX
-//       : (e as MouseEvent).pageX;
-//     let mouseY = (e as TouchEvent).changedTouches
-//       ? (e as TouchEvent).changedTouches[0].pageY
-//       : (e as MouseEvent).pageY;
-//     mouseX -= this.canvas.offsetLeft;
-//     mouseY -= this.canvas.offsetTop;
-//     if (this.paint) {
-//       this.addClick(mouseX, mouseY, true);
-//       this.redraw();
-//     }
-//     e.preventDefault();
-//   };
-// }
-// new DrawingApp();
+new DrawingCanvas("drawing-board", {
+    controllerId: "toolbar",
+});
 //# sourceMappingURL=index.js.map
