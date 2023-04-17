@@ -25,3 +25,8 @@ body {
     font-size: 2rem;
     color: #51c0cc99;
 }
+
+
+#eraser i {
+    pointer-events: none;
+}

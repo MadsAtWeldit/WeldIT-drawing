@@ -13,17 +13,23 @@
     <section class="container">
         <div id="toolbar">
             <h1 class="heading">Drawing Test</h1>
-            <label for="stroke">Stroke</label>
-            <input id="stroke" name="stroke" type="color">
+            <div class="toolbar-props">
+                <label for="color">Color</label>
+                <input id="color" name="color" type="color">
+                <label for="eraser">Eraser</label>
+                <button id="eraser"><i class="fa-solid fa-eraser"></i></button>
+            </div>
+
             <label for="lineWidth">Line Width</label>
             <input id="lineWidth" name="lineWidth" type="number" value="5">
             <button id="clear">Clear</button>
         </div>
         <div class="drawing-board">
-            <canvas id="drawing-board"></canvas>
+            <canvas id="drawing-board" style="touch-action: none;"></canvas>
         </div>
     </section>
-    <script src="./dist/index.js"></script>
+    <script src="../dist/index.js"></script>
+    <script src="https://kit.fontawesome.com/42c8b9ce55.js" crossorigin="anonymous"></script>
 </body>
 
 </html>

@@ -1,10 +1,13 @@
 {
   "name": "drawing-weldit",
   "version": "1.0.0",
+  "homepage": "https://MadsAtWeldit.github.io/Weldit-drawing",
   "description": "",
-  "main": "index.js",
+  
   "scripts": {
-   "lint": "eslint . --ext .ts" 
+    "lint": "eslint . --ext .ts",
+    "deploy": "gh-pages -d dist",
+    "build": "parcel build src/index.html --public-url ."
   },
   "author": "MadsAtWeldit",
   "license": "ISC",
@@ -12,6 +15,10 @@
     "@typescript-eslint/eslint-plugin": "^5.58.0",
     "@typescript-eslint/parser": "^5.58.0",
     "eslint": "^8.38.0",
+    "gh-pages": "^5.0.0",
     "typescript": "^5.0.4"
+  },
+  "dependencies": {
+    "parcel": "^2.8.3"
   }
 }

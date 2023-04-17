@@ -74,7 +74,7 @@ class DrawingCanvas {
         this.changeHandler = (e) => {
             const context = this.context;
             const target = e.target;
-            if (target.id === "stroke") {
+            if (target.id === "color") {
                 context.strokeStyle = target.value;
             }
             if (target.id === "lineWidth") {
@@ -88,19 +88,33 @@ class DrawingCanvas {
             if (target.id === "clear") {
                 context.clearRect(0, 0, this.canvas.width, this.canvas.height);
             }
+            if (target.id === "eraser") {
+                this.shouldErase = true;
+                // context.globalCompositeOperation = "destination-out";
+            }
         };
         //Runs whenever mouse is clicked
-        this.setDrawpoint = (e) => {
+        this.start = (e) => {
             const evtType = e.touches
                 ? e.touches[0]
                 : e;
-            this.isDrawing = true;
+            if (this.shouldErase) {
+                this.context.globalCompositeOperation = "destination-out";
+                this.isErasing = true;
+                this.isDrawing = false;
+            }
+            else {
+                this.context.globalCompositeOperation = "source-over";
+                this.isDrawing = true;
+                this.isErasing = false;
+            }
             const mouseX = evtType.clientX - this.canvas.offsetLeft;
             const mouseY = evtType.clientY - this.canvas.offsetTop;
         };
         //Runs whenever mouse is released
-        this.stopDrawing = () => {
+        this.stop = () => {
             this.isDrawing = false;
+            this.isErasing = false;
             //Save stroke
             this.context.stroke();
             //New Path
@@ -108,7 +122,8 @@ class DrawingCanvas {
         };
         //Runs whenever mouse moves
         this.draw = (e) => {
-            if (!this.isDrawing)
+            //IF we are not drawing or erasing
+            if (!this.isDrawing && !this.isErasing)
                 return;
             //Check if event has touch or mouse and assign accordingly
             const evtType = e.touches
@@ -148,11 +163,11 @@ class DrawingCanvas {
     listen() {
         const canvas = this.canvas;
         const controller = this.controller;
-        canvas.addEventListener("mousedown", this.setDrawpoint);
-        canvas.addEventListener("mouseup", this.stopDrawing);
+        canvas.addEventListener("mousedown", this.start);
+        canvas.addEventListener("mouseup", this.stop);
         canvas.addEventListener("mousemove", this.draw);
-        canvas.addEventListener("touchstart", this.setDrawpoint);
-        canvas.addEventListener("touchend", this.stopDrawing);
+        canvas.addEventListener("touchstart", this.start);
+        canvas.addEventListener("touchend", this.stop);
         canvas.addEventListener("touchmove", this.draw);
         controller.addEventListener("change", this.changeHandler);
         controller.addEventListener("click", this.clearCanvas);

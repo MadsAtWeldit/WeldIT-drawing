@@ -95,6 +95,9 @@ class DrawingCanvas {
   private controller: HTMLElement;
 
   private isDrawing: boolean;
+  private isErasing: boolean;
+  private shouldErase: boolean;
+
   private lineWidth: number;
   private strokeStyle: string;
 
@@ -138,7 +141,7 @@ class DrawingCanvas {
     const context = this.context;
 
     const target = e.target as HTMLInputElement;
-    if (target.id === "stroke") {
+    if (target.id === "color") {
       context.strokeStyle = target.value;
     }
     if (target.id === "lineWidth") {
@@ -155,6 +158,11 @@ class DrawingCanvas {
     if (target.id === "clear") {
       context.clearRect(0, 0, this.canvas.width, this.canvas.height);
     }
+    if (target.id === "eraser") {
+      this.shouldErase = true;
+
+      // context.globalCompositeOperation = "destination-out";
+    }
   };
 
   //Listen for events on given canvas
@@ -162,12 +170,12 @@ class DrawingCanvas {
     const canvas = this.canvas;
     const controller = this.controller;
 
-    canvas.addEventListener("mousedown", this.setDrawpoint);
-    canvas.addEventListener("mouseup", this.stopDrawing);
+    canvas.addEventListener("mousedown", this.start);
+    canvas.addEventListener("mouseup", this.stop);
     canvas.addEventListener("mousemove", this.draw);
 
-    canvas.addEventListener("touchstart", this.setDrawpoint);
-    canvas.addEventListener("touchend", this.stopDrawing);
+    canvas.addEventListener("touchstart", this.start);
+    canvas.addEventListener("touchend", this.stop);
     canvas.addEventListener("touchmove", this.draw);
 
     controller.addEventListener("change", this.changeHandler);
@@ -175,20 +183,29 @@ class DrawingCanvas {
   }
 
   //Runs whenever mouse is clicked
-  private setDrawpoint = (e: MouseEvent | TouchEvent) => {
+  private start = (e: MouseEvent | TouchEvent) => {
     const evtType = (e as TouchEvent).touches
       ? (e as TouchEvent).touches[0]
       : (e as MouseEvent);
 
-    this.isDrawing = true;
+    if (this.shouldErase) {
+      this.context.globalCompositeOperation = "destination-out";
+      this.isErasing = true;
+      this.isDrawing = false;
+    } else {
+      this.context.globalCompositeOperation = "source-over";
+      this.isDrawing = true;
+      this.isErasing = false;
+    }
 
     const mouseX = evtType.clientX - this.canvas.offsetLeft;
     const mouseY = evtType.clientY - this.canvas.offsetTop;
   };
 
   //Runs whenever mouse is released
-  private stopDrawing = () => {
+  private stop = () => {
     this.isDrawing = false;
+    this.isErasing = false;
     //Save stroke
     this.context.stroke();
     //New Path
@@ -197,7 +214,8 @@ class DrawingCanvas {
 
   //Runs whenever mouse moves
   private draw = (e: MouseEvent | TouchEvent) => {
-    if (!this.isDrawing) return;
+    //IF we are not drawing or erasing
+    if (!this.isDrawing && !this.isErasing) return;
 
     //Check if event has touch or mouse and assign accordingly
     const evtType = (e as TouchEvent).touches
