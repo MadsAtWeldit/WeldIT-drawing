@@ -68,15 +68,36 @@ const toolBar = document.getElementById("toolbar");
 // });
 // //Listen for mousemove on canvas
 // canvas.addEventListener("mousemove", draw);
+var DrawingElementType;
+(function (DrawingElementType) {
+    DrawingElementType["controller"] = "controller";
+    DrawingElementType["pencil"] = "pencil";
+    DrawingElementType["eraser"] = "eraser";
+    DrawingElementType["color"] = "color";
+    DrawingElementType["lineWidth"] = "lineWidth";
+})(DrawingElementType || (DrawingElementType = {}));
 class DrawingCanvas {
     constructor(elementId, options) {
         //Controller Change handler
         this.changeHandler = (e) => {
+            const colorPicker = this.colorPicker;
+            const pencilWidthPicker = this.pencilWidthPicker;
             const context = this.context;
             const target = e.target;
+            //Check if targetId matches the element id
+            if (colorPicker) {
+                if (target.id === colorPicker.id) {
+                    context.strokeStyle = target.value;
+                }
+            } //Default check value
             if (target.id === "color") {
                 context.strokeStyle = target.value;
             }
+            if (pencilWidthPicker) {
+                if (target.id === pencilWidthPicker.id) {
+                    context.lineWidth = Number(target.value);
+                }
+            } //Default check value
             if (target.id === "lineWidth") {
                 context.lineWidth = Number(target.value);
             }
@@ -148,11 +169,96 @@ class DrawingCanvas {
         //Get element access based on id passed
         const canvas = document.getElementById(elementId);
         const context = canvas.getContext("2d");
-        //IF a controller is passed
-        if (options === null || options === void 0 ? void 0 : options.controllerId) {
-            const controller = document.getElementById(options.controllerId);
-            this.controller = controller;
+        //Check if any elements are passed
+        if (options === null || options === void 0 ? void 0 : options.elements) {
+            //IF any elements are passed
+            //THEN look for identifier and execute query
+            options.elements.forEach((element) => {
+                switch (element.type) {
+                    case "controller":
+                        if (element.className) {
+                            const controller = document.querySelector(element.className);
+                            this.controller = controller;
+                        }
+                        if (element.id) {
+                            const controller = document.getElementById(element.id);
+                            this.controller = controller;
+                        }
+                        if (element.className && element.id) {
+                            const controller = document.getElementById(element.id);
+                            this.controller = controller;
+                        }
+                        break;
+                    case "pencil":
+                        if (element.className) {
+                            const pen = document.querySelector(element.className);
+                            this.pencil = pen;
+                        }
+                        if (element.id) {
+                            const pen = document.getElementById(element.id);
+                            this.pencil = pen;
+                        }
+                        if (element.className && element.id) {
+                            const pen = document.getElementById(element.id);
+                            this.pencil = pen;
+                        }
+                        break;
+                    case "eraser":
+                        if (element.className) {
+                            const eraser = document.querySelector(element.className);
+                            this.eraser = eraser;
+                        }
+                        if (element.id) {
+                            const eraser = document.getElementById(element.id);
+                            this.eraser = eraser;
+                        }
+                        if (element.className && element.id) {
+                            const eraser = document.getElementById(element.id);
+                            this.eraser = eraser;
+                        }
+                        break;
+                    case "color":
+                        if (element.className) {
+                            const colorPicker = document.querySelector(element.className);
+                            this.colorPicker = colorPicker;
+                        }
+                        if (element.id) {
+                            const colorPicker = document.getElementById(element.id);
+                            this.colorPicker = colorPicker;
+                        }
+                        if (element.className && element.id) {
+                            const colorPicker = document.getElementById(element.id);
+                            this.colorPicker = colorPicker;
+                        }
+                        break;
+                    case "lineWidth":
+                        if (element.className) {
+                            const pencilWidthPicker = document.querySelector(element.className);
+                            this.pencilWidthPicker = pencilWidthPicker;
+                        }
+                        if (element.id) {
+                            const pencilWidthPicker = document.getElementById(element.id);
+                            this.pencilWidthPicker = pencilWidthPicker;
+                        }
+                        if (element.className && element.id) {
+                            const pencilWidthPicker = document.getElementById(element.id);
+                            this.pencilWidthPicker = pencilWidthPicker;
+                        }
+                        break;
+                    default:
+                        break;
+                }
+            });
         }
+        console.log(this.controller.id);
+        //Query select them based on id or class
+        //IF a controller is passed
+        // if (options?.controllerId) {
+        //   const controller = document.getElementById(
+        //     options.controllerId
+        //   ) as HTMLElement;
+        //   this.controller = controller;
+        // }
         //Check if width and height has been set
         (options === null || options === void 0 ? void 0 : options.width)
             ? (canvas.width = options.width)
@@ -187,6 +293,22 @@ class DrawingCanvas {
     }
 }
 new DrawingCanvas("drawing-board", {
-    controllerId: "toolbar",
+    elements: [
+        {
+            type: DrawingElementType.controller,
+            id: "toolbar",
+        },
+        {
+            type: DrawingElementType.pencil,
+            id: "pen",
+        },
+        {
+            type: DrawingElementType.color,
+            id: "colorPicker",
+        },
+    ],
 });
+// type ElementTuple = [
+//   { type: DrawingElementType; className?: string; id?: string }
+// ];
 //# sourceMappingURL=index.js.map
