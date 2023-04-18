@@ -94,10 +94,13 @@ class DrawingCanvas {
   //For controlling the canvas context props
   private controller: HTMLElement;
 
+  //For state tracking
   private isDrawing: boolean;
   private isErasing: boolean;
+  private shouldDraw: boolean;
   private shouldErase: boolean;
 
+  //Props
   private lineWidth: number;
   private strokeStyle: string;
 
@@ -114,6 +117,7 @@ class DrawingCanvas {
       const controller = document.getElementById(
         options.controllerId
       ) as HTMLElement;
+
       this.controller = controller;
     }
 
@@ -125,13 +129,14 @@ class DrawingCanvas {
       ? (canvas.height = options.height)
       : (canvas.height = window.innerHeight - canvas.offsetTop);
 
-    //Assign private props
+    //Save canvas
     this.canvas = canvas;
     this.context = context;
 
     //Default values
     this.context.lineWidth = 5;
     this.context.strokeStyle = "black";
+
     //Add eventlisteners to canvas
     this.listen();
   }
@@ -141,9 +146,11 @@ class DrawingCanvas {
     const context = this.context;
 
     const target = e.target as HTMLInputElement;
+
     if (target.id === "color") {
       context.strokeStyle = target.value;
     }
+
     if (target.id === "lineWidth") {
       context.lineWidth = Number(target.value);
     }
@@ -153,15 +160,31 @@ class DrawingCanvas {
   private clearCanvas = (e: MouseEvent) => {
     const context = this.context;
 
+    const pen = document.getElementById("pen");
+    const eraser = document.getElementById("eraser");
+
     const target = e.target as HTMLButtonElement;
 
     if (target.id === "clear") {
       context.clearRect(0, 0, this.canvas.width, this.canvas.height);
     }
+
+    if (target.id === "pen") {
+      eraser?.classList.remove("active");
+
+      this.shouldErase = false;
+      this.shouldDraw = true;
+
+      pen?.classList.add("active");
+    }
+
     if (target.id === "eraser") {
+      pen?.classList.remove("active");
+
+      this.shouldDraw = false;
       this.shouldErase = true;
 
-      // context.globalCompositeOperation = "destination-out";
+      eraser?.classList.add("active");
     }
   };
 

@@ -27,6 +27,11 @@ body {
 }
 
 
-#eraser i {
+i {
     pointer-events: none;
+}
+
+
+.active {
+    color: red;
 }

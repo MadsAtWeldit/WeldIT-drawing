@@ -84,13 +84,23 @@ class DrawingCanvas {
         //Controller Clear canvas
         this.clearCanvas = (e) => {
             const context = this.context;
+            const pen = document.getElementById("pen");
+            const eraser = document.getElementById("eraser");
             const target = e.target;
             if (target.id === "clear") {
                 context.clearRect(0, 0, this.canvas.width, this.canvas.height);
             }
+            if (target.id === "pen") {
+                eraser === null || eraser === void 0 ? void 0 : eraser.classList.remove("active");
+                this.shouldErase = false;
+                this.shouldDraw = true;
+                pen === null || pen === void 0 ? void 0 : pen.classList.add("active");
+            }
             if (target.id === "eraser") {
+                pen === null || pen === void 0 ? void 0 : pen.classList.remove("active");
+                this.shouldDraw = false;
                 this.shouldErase = true;
-                // context.globalCompositeOperation = "destination-out";
+                eraser === null || eraser === void 0 ? void 0 : eraser.classList.add("active");
             }
         };
         //Runs whenever mouse is clicked
@@ -150,7 +160,7 @@ class DrawingCanvas {
         (options === null || options === void 0 ? void 0 : options.height)
             ? (canvas.height = options.height)
             : (canvas.height = window.innerHeight - canvas.offsetTop);
-        //Assign private props
+        //Save canvas
         this.canvas = canvas;
         this.context = context;
         //Default values
