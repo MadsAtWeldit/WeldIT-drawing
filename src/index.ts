@@ -91,8 +91,9 @@ enum DrawingElementType {
   controller = "controller",
   pencil = "pencil",
   eraser = "eraser",
-  color = "color",
+  colorPicker = "colorPicker",
   lineWidth = "lineWidth",
+  clearCanvas = "clearCanvas",
 }
 
 class DrawingCanvas {
@@ -105,6 +106,7 @@ class DrawingCanvas {
   private eraser: HTMLButtonElement;
   private colorPicker: HTMLInputElement;
   private pencilWidthPicker: HTMLInputElement;
+  private clearCanvas: HTMLButtonElement;
 
   //For state tracking
   private isDrawing: boolean;
@@ -202,7 +204,7 @@ class DrawingCanvas {
             }
             break;
 
-          case "color":
+          case "colorPicker":
             if (element.className) {
               const colorPicker = document.querySelector(
                 element.className
@@ -222,6 +224,7 @@ class DrawingCanvas {
               this.colorPicker = colorPicker;
             }
             break;
+
           case "lineWidth":
             if (element.className) {
               const pencilWidthPicker = document.querySelector(
@@ -243,24 +246,31 @@ class DrawingCanvas {
             }
             break;
 
+          case "clearCanvas":
+            if (element.className) {
+              const clearCanvas = document.querySelector(
+                element.className
+              ) as HTMLButtonElement;
+              this.clearCanvas = clearCanvas;
+            }
+            if (element.id) {
+              const clearCanvas = document.getElementById(
+                element.id
+              ) as HTMLButtonElement;
+              this.clearCanvas = clearCanvas;
+            }
+            if (element.className && element.id) {
+              const clearCanvas = document.getElementById(
+                element.id
+              ) as HTMLButtonElement;
+              this.clearCanvas = clearCanvas;
+            }
+            break;
           default:
             break;
         }
       });
     }
-
-    console.log(this.controller.id);
-
-    //Query select them based on id or class
-
-    //IF a controller is passed
-    // if (options?.controllerId) {
-    //   const controller = document.getElementById(
-    //     options.controllerId
-    //   ) as HTMLElement;
-
-    //   this.controller = controller;
-    // }
 
     //Check if width and height has been set
     options?.width
@@ -284,47 +294,61 @@ class DrawingCanvas {
 
   //Controller Change handler
   private changeHandler = (e: Event) => {
-    const colorPicker = this.colorPicker;
-    const pencilWidthPicker = this.pencilWidthPicker;
-
-    const context = this.context;
+    let colorPicker = document.getElementById("color") as HTMLInputElement;
+    let pencilWidthPicker = document.getElementById(
+      "lineWidth"
+    ) as HTMLInputElement;
 
     const target = e.target as HTMLInputElement;
+    const context = this.context;
+
+    if (this.colorPicker) {
+      colorPicker = this.colorPicker;
+    }
+
+    if (this.pencilWidthPicker) {
+      pencilWidthPicker = this.pencilWidthPicker;
+    }
 
     //Check if targetId matches the element id
-    if (colorPicker) {
-      if (target.id === colorPicker.id) {
-        context.strokeStyle = target.value;
-      }
-    } //Default check value
-    if (target.id === "color") {
+    if (target.id === colorPicker.id) {
       context.strokeStyle = target.value;
     }
 
-    if (pencilWidthPicker) {
-      if (target.id === pencilWidthPicker.id) {
-        context.lineWidth = Number(target.value);
-      }
-    } //Default check value
-    if (target.id === "lineWidth") {
+    if (target.id === pencilWidthPicker.id) {
       context.lineWidth = Number(target.value);
     }
   };
 
   //Controller Clear canvas
-  private clearCanvas = (e: MouseEvent) => {
+  private clickHandler = (e: MouseEvent) => {
+    let pen = document.getElementById("pen") as HTMLButtonElement;
+    let eraser = document.getElementById("eraser") as HTMLButtonElement;
+    let clearCanvas = document.getElementById("clear") as HTMLButtonElement;
+
     const context = this.context;
-
-    const pen = document.getElementById("pen");
-    const eraser = document.getElementById("eraser");
-
     const target = e.target as HTMLButtonElement;
 
-    if (target.id === "clear") {
+    if (this.pencil) {
+      pen = this.pencil;
+    }
+
+    if (this.eraser) {
+      eraser = this.eraser;
+    }
+
+    if (this.clearCanvas) {
+      clearCanvas = this.clearCanvas;
+    }
+
+    //Clear
+    if (target.id === clearCanvas.id) {
       context.clearRect(0, 0, this.canvas.width, this.canvas.height);
     }
 
-    if (target.id === "pen") {
+    //Pencil
+    if (target.id === pen.id) {
+      console.log(target.id);
       eraser?.classList.remove("active");
 
       this.shouldErase = false;
@@ -333,7 +357,8 @@ class DrawingCanvas {
       pen?.classList.add("active");
     }
 
-    if (target.id === "eraser") {
+    //Eraser
+    if (target.id === eraser.id) {
       pen?.classList.remove("active");
 
       this.shouldDraw = false;
@@ -346,7 +371,10 @@ class DrawingCanvas {
   //Listen for events on given canvas
   private listen() {
     const canvas = this.canvas;
-    const controller = this.controller;
+    let controller = document.getElementById("toolbar") as HTMLElement;
+    if (this.controller) {
+      controller = this.controller;
+    }
 
     canvas.addEventListener("mousedown", this.start);
     canvas.addEventListener("mouseup", this.stop);
@@ -357,7 +385,7 @@ class DrawingCanvas {
     canvas.addEventListener("touchmove", this.draw);
 
     controller.addEventListener("change", this.changeHandler);
-    controller.addEventListener("click", this.clearCanvas);
+    controller.addEventListener("click", this.clickHandler);
   }
 
   //Runs whenever mouse is clicked
@@ -417,22 +445,7 @@ class DrawingCanvas {
   }
 }
 
-new DrawingCanvas("drawing-board", {
-  elements: [
-    {
-      type: DrawingElementType.controller,
-      id: "toolbar",
-    },
-    {
-      type: DrawingElementType.pencil,
-      id: "pen",
-    },
-    {
-      type: DrawingElementType.color,
-      id: "colorPicker",
-    },
-  ],
-});
+new DrawingCanvas("drawing-board");
 
 interface CanvasElements {
   type: DrawingElementType;

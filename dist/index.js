@@ -73,51 +73,62 @@ var DrawingElementType;
     DrawingElementType["controller"] = "controller";
     DrawingElementType["pencil"] = "pencil";
     DrawingElementType["eraser"] = "eraser";
-    DrawingElementType["color"] = "color";
+    DrawingElementType["colorPicker"] = "colorPicker";
     DrawingElementType["lineWidth"] = "lineWidth";
+    DrawingElementType["clearCanvas"] = "clearCanvas";
 })(DrawingElementType || (DrawingElementType = {}));
 class DrawingCanvas {
     constructor(elementId, options) {
         //Controller Change handler
         this.changeHandler = (e) => {
-            const colorPicker = this.colorPicker;
-            const pencilWidthPicker = this.pencilWidthPicker;
-            const context = this.context;
+            let colorPicker = document.getElementById("color");
+            let pencilWidthPicker = document.getElementById("lineWidth");
             const target = e.target;
+            const context = this.context;
+            if (this.colorPicker) {
+                colorPicker = this.colorPicker;
+            }
+            if (this.pencilWidthPicker) {
+                pencilWidthPicker = this.pencilWidthPicker;
+            }
             //Check if targetId matches the element id
-            if (colorPicker) {
-                if (target.id === colorPicker.id) {
-                    context.strokeStyle = target.value;
-                }
-            } //Default check value
-            if (target.id === "color") {
+            if (target.id === colorPicker.id) {
                 context.strokeStyle = target.value;
             }
-            if (pencilWidthPicker) {
-                if (target.id === pencilWidthPicker.id) {
-                    context.lineWidth = Number(target.value);
-                }
-            } //Default check value
-            if (target.id === "lineWidth") {
+            if (target.id === pencilWidthPicker.id) {
                 context.lineWidth = Number(target.value);
             }
         };
         //Controller Clear canvas
-        this.clearCanvas = (e) => {
+        this.clickHandler = (e) => {
+            let pen = document.getElementById("pen");
+            let eraser = document.getElementById("eraser");
+            let clearCanvas = document.getElementById("clear");
             const context = this.context;
-            const pen = document.getElementById("pen");
-            const eraser = document.getElementById("eraser");
             const target = e.target;
-            if (target.id === "clear") {
+            if (this.pencil) {
+                pen = this.pencil;
+            }
+            if (this.eraser) {
+                eraser = this.eraser;
+            }
+            if (this.clearCanvas) {
+                clearCanvas = this.clearCanvas;
+            }
+            //Clear
+            if (target.id === clearCanvas.id) {
                 context.clearRect(0, 0, this.canvas.width, this.canvas.height);
             }
-            if (target.id === "pen") {
+            //Pencil
+            if (target.id === pen.id) {
+                console.log(target.id);
                 eraser === null || eraser === void 0 ? void 0 : eraser.classList.remove("active");
                 this.shouldErase = false;
                 this.shouldDraw = true;
                 pen === null || pen === void 0 ? void 0 : pen.classList.add("active");
             }
-            if (target.id === "eraser") {
+            //Eraser
+            if (target.id === eraser.id) {
                 pen === null || pen === void 0 ? void 0 : pen.classList.remove("active");
                 this.shouldDraw = false;
                 this.shouldErase = true;
@@ -217,7 +228,7 @@ class DrawingCanvas {
                             this.eraser = eraser;
                         }
                         break;
-                    case "color":
+                    case "colorPicker":
                         if (element.className) {
                             const colorPicker = document.querySelector(element.className);
                             this.colorPicker = colorPicker;
@@ -245,20 +256,25 @@ class DrawingCanvas {
                             this.pencilWidthPicker = pencilWidthPicker;
                         }
                         break;
+                    case "clearCanvas":
+                        if (element.className) {
+                            const clearCanvas = document.querySelector(element.className);
+                            this.clearCanvas = clearCanvas;
+                        }
+                        if (element.id) {
+                            const clearCanvas = document.getElementById(element.id);
+                            this.clearCanvas = clearCanvas;
+                        }
+                        if (element.className && element.id) {
+                            const clearCanvas = document.getElementById(element.id);
+                            this.clearCanvas = clearCanvas;
+                        }
+                        break;
                     default:
                         break;
                 }
             });
         }
-        console.log(this.controller.id);
-        //Query select them based on id or class
-        //IF a controller is passed
-        // if (options?.controllerId) {
-        //   const controller = document.getElementById(
-        //     options.controllerId
-        //   ) as HTMLElement;
-        //   this.controller = controller;
-        // }
         //Check if width and height has been set
         (options === null || options === void 0 ? void 0 : options.width)
             ? (canvas.width = options.width)
@@ -278,7 +294,10 @@ class DrawingCanvas {
     //Listen for events on given canvas
     listen() {
         const canvas = this.canvas;
-        const controller = this.controller;
+        let controller = document.getElementById("toolbar");
+        if (this.controller) {
+            controller = this.controller;
+        }
         canvas.addEventListener("mousedown", this.start);
         canvas.addEventListener("mouseup", this.stop);
         canvas.addEventListener("mousemove", this.draw);
@@ -286,28 +305,13 @@ class DrawingCanvas {
         canvas.addEventListener("touchend", this.stop);
         canvas.addEventListener("touchmove", this.draw);
         controller.addEventListener("change", this.changeHandler);
-        controller.addEventListener("click", this.clearCanvas);
+        controller.addEventListener("click", this.clickHandler);
     }
     log() {
         return console.log(this.canvas);
     }
 }
-new DrawingCanvas("drawing-board", {
-    elements: [
-        {
-            type: DrawingElementType.controller,
-            id: "toolbar",
-        },
-        {
-            type: DrawingElementType.pencil,
-            id: "pen",
-        },
-        {
-            type: DrawingElementType.color,
-            id: "colorPicker",
-        },
-    ],
-});
+new DrawingCanvas("drawing-board");
 // type ElementTuple = [
 //   { type: DrawingElementType; className?: string; id?: string }
 // ];
