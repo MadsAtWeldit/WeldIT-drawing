@@ -92,14 +92,19 @@ class DrawingCanvas {
             if (this.pencilWidthPicker) {
                 pencilWidthPicker = this.pencilWidthPicker;
             }
-            //Check which elements have been targeted
-            if ((target.id && target.id === colorPicker.id) ||
-                (target.className && target.className === colorPicker.className)) {
-                context.strokeStyle = target.value;
+            if (colorPicker) {
+                console.log("yes");
+                //Check which elements have been targeted
+                if ((target.id && target.id === colorPicker.id) ||
+                    (target.className && target.className === colorPicker.className)) {
+                    context.strokeStyle = target.value;
+                }
             }
-            if ((target.id && target.id === pencilWidthPicker.id) ||
-                (target.className && target.className === pencilWidthPicker.className)) {
-                context.lineWidth = Number(target.value);
+            if (pencilWidthPicker) {
+                if ((target.id && target.id === pencilWidthPicker.id) ||
+                    (target.className && target.className === pencilWidthPicker.className)) {
+                    context.lineWidth = Number(target.value);
+                }
             }
         };
         //Controller Clear canvas

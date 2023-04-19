@@ -296,10 +296,8 @@ class DrawingCanvas {
 
   //Controller Change handler
   private changeHandler = (e: Event) => {
-    let colorPicker = document.getElementById("color") as HTMLInputElement;
-    let pencilWidthPicker = document.getElementById(
-      "lineWidth"
-    ) as HTMLInputElement;
+    let colorPicker = document.getElementById("color");
+    let pencilWidthPicker = document.getElementById("lineWidth");
 
     const target = e.target as HTMLInputElement;
     const context = this.context;
@@ -313,19 +311,24 @@ class DrawingCanvas {
       pencilWidthPicker = this.pencilWidthPicker;
     }
 
-    //Check which elements have been targeted
-    if (
-      (target.id && target.id === colorPicker.id) ||
-      (target.className && target.className === colorPicker.className)
-    ) {
-      context.strokeStyle = target.value;
+    if (colorPicker) {
+      console.log("yes");
+      //Check which elements have been targeted
+      if (
+        (target.id && target.id === colorPicker.id) ||
+        (target.className && target.className === colorPicker.className)
+      ) {
+        context.strokeStyle = target.value;
+      }
     }
 
-    if (
-      (target.id && target.id === pencilWidthPicker.id) ||
-      (target.className && target.className === pencilWidthPicker.className)
-    ) {
-      context.lineWidth = Number(target.value);
+    if (pencilWidthPicker) {
+      if (
+        (target.id && target.id === pencilWidthPicker.id) ||
+        (target.className && target.className === pencilWidthPicker.className)
+      ) {
+        context.lineWidth = Number(target.value);
+      }
     }
   };
 
