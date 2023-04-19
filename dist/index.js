@@ -85,17 +85,20 @@ class DrawingCanvas {
             let pencilWidthPicker = document.getElementById("lineWidth");
             const target = e.target;
             const context = this.context;
+            //Check if elements have been passed in options
             if (this.colorPicker) {
                 colorPicker = this.colorPicker;
             }
             if (this.pencilWidthPicker) {
                 pencilWidthPicker = this.pencilWidthPicker;
             }
-            //Check if targetId matches the element id
-            if (target.id === colorPicker.id) {
+            //Check which elements have been targeted
+            if ((target.id && target.id === colorPicker.id) ||
+                (target.className && target.className === colorPicker.className)) {
                 context.strokeStyle = target.value;
             }
-            if (target.id === pencilWidthPicker.id) {
+            if ((target.id && target.id === pencilWidthPicker.id) ||
+                (target.className && target.className === pencilWidthPicker.className)) {
                 context.lineWidth = Number(target.value);
             }
         };
@@ -106,6 +109,7 @@ class DrawingCanvas {
             let clearCanvas = document.getElementById("clear");
             const context = this.context;
             const target = e.target;
+            //Check for elements from options
             if (this.pencil) {
                 pen = this.pencil;
             }
@@ -121,7 +125,6 @@ class DrawingCanvas {
             }
             //Pencil
             if (target.id === pen.id) {
-                console.log(target.id);
                 eraser === null || eraser === void 0 ? void 0 : eraser.classList.remove("active");
                 this.shouldErase = false;
                 this.shouldDraw = true;
@@ -188,7 +191,7 @@ class DrawingCanvas {
                 switch (element.type) {
                     case "controller":
                         if (element.className) {
-                            const controller = document.querySelector(element.className);
+                            const controller = document.querySelector("." + element.className);
                             this.controller = controller;
                         }
                         if (element.id) {
@@ -202,7 +205,7 @@ class DrawingCanvas {
                         break;
                     case "pencil":
                         if (element.className) {
-                            const pen = document.querySelector(element.className);
+                            const pen = document.querySelector("." + element.className);
                             this.pencil = pen;
                         }
                         if (element.id) {
@@ -216,7 +219,7 @@ class DrawingCanvas {
                         break;
                     case "eraser":
                         if (element.className) {
-                            const eraser = document.querySelector(element.className);
+                            const eraser = document.querySelector("." + element.className);
                             this.eraser = eraser;
                         }
                         if (element.id) {
@@ -230,7 +233,7 @@ class DrawingCanvas {
                         break;
                     case "colorPicker":
                         if (element.className) {
-                            const colorPicker = document.querySelector(element.className);
+                            const colorPicker = document.querySelector("." + element.className);
                             this.colorPicker = colorPicker;
                         }
                         if (element.id) {
@@ -244,7 +247,7 @@ class DrawingCanvas {
                         break;
                     case "lineWidth":
                         if (element.className) {
-                            const pencilWidthPicker = document.querySelector(element.className);
+                            const pencilWidthPicker = document.querySelector("." + element.className);
                             this.pencilWidthPicker = pencilWidthPicker;
                         }
                         if (element.id) {
@@ -258,7 +261,7 @@ class DrawingCanvas {
                         break;
                     case "clearCanvas":
                         if (element.className) {
-                            const clearCanvas = document.querySelector(element.className);
+                            const clearCanvas = document.querySelector("." + element.className);
                             this.clearCanvas = clearCanvas;
                         }
                         if (element.id) {
@@ -311,7 +314,9 @@ class DrawingCanvas {
         return console.log(this.canvas);
     }
 }
-new DrawingCanvas("drawing-board");
+new DrawingCanvas("drawing-board", {
+    elements: [{ type: DrawingElementType.pencil, className: "pencil" }],
+});
 // type ElementTuple = [
 //   { type: DrawingElementType; className?: string; id?: string }
 // ];
