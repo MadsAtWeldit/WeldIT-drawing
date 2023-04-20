@@ -100,7 +100,7 @@ class DrawingCanvas {
   private canvas: HTMLCanvasElement;
   private context: CanvasRenderingContext2D;
 
-  //For controlling the canvas context props
+  //Elements for controlling canvas props
   private controller: HTMLElement;
   private pencil: HTMLButtonElement;
   private eraser: HTMLButtonElement;
@@ -124,157 +124,21 @@ class DrawingCanvas {
     options?: {
       width?: number;
       height?: number;
-      elements?: CanvasElements[];
+      elements?: CanvasElement[];
     }
   ) {
     //Select canvas element
     const canvas = document.getElementById(elementId) as HTMLCanvasElement;
     const context = canvas.getContext("2d") as CanvasRenderingContext2D;
 
+    //Try to save elements using hardcoded defaults
+    this.defaultStore();
+
     //Check if any elements are passed
     if (options?.elements) {
       //IF any elements are passed
-      //THEN loop through each element
-      options.elements.forEach((element) => {
-        //Look for type
-        switch (element.type) {
-          //IF type is controller
-          //THEN check if element has classname or id and query based on that
-          case "controller":
-            if (element.className) {
-              const controller = document.querySelector(
-                "." + element.className
-              ) as HTMLElement;
-              this.controller = controller;
-            }
-
-            if (element.id) {
-              const controller = document.getElementById(
-                element.id
-              ) as HTMLElement;
-              this.controller = controller;
-            }
-
-            if (element.className && element.id) {
-              const controller = document.getElementById(
-                element.id
-              ) as HTMLElement;
-              this.controller = controller;
-            }
-
-            break;
-
-          case "pencil":
-            if (element.className) {
-              const pen = document.querySelector(
-                "." + element.className
-              ) as HTMLButtonElement;
-
-              this.pencil = pen;
-            }
-            if (element.id) {
-              const pen = document.getElementById(
-                element.id
-              ) as HTMLButtonElement;
-              this.pencil = pen;
-            }
-            if (element.className && element.id) {
-              const pen = document.getElementById(
-                element.id
-              ) as HTMLButtonElement;
-              this.pencil = pen;
-            }
-
-            break;
-
-          case "eraser":
-            if (element.className) {
-              const eraser = document.querySelector(
-                "." + element.className
-              ) as HTMLButtonElement;
-              this.eraser = eraser;
-            }
-            if (element.id) {
-              const eraser = document.getElementById(
-                element.id
-              ) as HTMLButtonElement;
-
-              this.eraser = eraser;
-            }
-            if (element.className && element.id) {
-              const eraser = document.getElementById(
-                element.id
-              ) as HTMLButtonElement;
-              this.eraser = eraser;
-            }
-            break;
-
-          case "colorPicker":
-            if (element.className) {
-              const colorPicker = document.querySelector(
-                "." + element.className
-              ) as HTMLInputElement;
-              this.colorPicker = colorPicker;
-            }
-            if (element.id) {
-              const colorPicker = document.getElementById(
-                element.id
-              ) as HTMLInputElement;
-              this.colorPicker = colorPicker;
-            }
-            if (element.className && element.id) {
-              const colorPicker = document.getElementById(
-                element.id
-              ) as HTMLInputElement;
-              this.colorPicker = colorPicker;
-            }
-            break;
-
-          case "lineWidth":
-            if (element.className) {
-              const lineWidthPicker = document.querySelector(
-                "." + element.className
-              ) as HTMLInputElement;
-              this.lineWidthPicker = lineWidthPicker;
-            }
-            if (element.id) {
-              const lineWidthPicker = document.getElementById(
-                element.id
-              ) as HTMLInputElement;
-              this.lineWidthPicker = lineWidthPicker;
-            }
-            if (element.className && element.id) {
-              const lineWidthPicker = document.getElementById(
-                element.id
-              ) as HTMLInputElement;
-              this.lineWidthPicker = lineWidthPicker;
-            }
-            break;
-
-          case "clearCanvas":
-            if (element.className) {
-              const clearCanvas = document.querySelector(
-                "." + element.className
-              ) as HTMLButtonElement;
-              this.clearCanvas = clearCanvas;
-            }
-            if (element.id) {
-              const clearCanvas = document.getElementById(
-                element.id
-              ) as HTMLButtonElement;
-              this.clearCanvas = clearCanvas;
-            }
-            if (element.className && element.id) {
-              const clearCanvas = document.getElementById(
-                element.id
-              ) as HTMLButtonElement;
-              this.clearCanvas = clearCanvas;
-            }
-            break;
-          default:
-            break;
-        }
-      });
+      //THEN loop through each element and reassign class props to fit
+      options.elements.forEach((element) => this.storeElements(element));
     }
 
     //Check if width and height has been set
@@ -292,10 +156,171 @@ class DrawingCanvas {
     //Assign default values
     this.context.lineWidth = 5;
     this.context.strokeStyle = "black";
-
     //Add eventlisteners to canvas
     this.listen();
   }
+
+  //Tries to select using default
+  private defaultStore = () => {
+    const controller = document.getElementById("toolbar");
+    if (controller) this.controller = controller;
+
+    const pen = <HTMLButtonElement | null>document.getElementById("pencil");
+    if (pen) this.pencil = pen;
+
+    const eraser = <HTMLButtonElement | null>document.getElementById("eraser");
+    if (eraser) this.eraser = eraser;
+
+    const colorPicker = <HTMLInputElement | null>(
+      document.getElementById("color")
+    );
+    if (colorPicker) this.colorPicker = colorPicker;
+
+    const lineWidthPicker = <HTMLInputElement | null>(
+      document.getElementById("lineWidth")
+    );
+    if (lineWidthPicker) this.lineWidthPicker = lineWidthPicker;
+
+    const clearCanvas = <HTMLButtonElement | null>(
+      document.getElementById("clear")
+    );
+    if (clearCanvas) this.clearCanvas = clearCanvas;
+  };
+
+  //Runs on each element in the options
+  private storeElements = (element: CanvasElement) => {
+    console.log("storing elements");
+    //Look for type
+    switch (element.type) {
+      //IF type is controller
+      //THEN check if element has classname or id and query based on that
+      case "controller":
+        if (element.className) {
+          const controller = document.querySelector(
+            "." + element.className
+          ) as HTMLElement;
+          this.controller = controller;
+        }
+
+        if (element.id) {
+          const controller = document.getElementById(element.id) as HTMLElement;
+          this.controller = controller;
+        }
+
+        if (element.className && element.id) {
+          const controller = document.getElementById(element.id) as HTMLElement;
+          this.controller = controller;
+        }
+
+        break;
+
+      case "pencil":
+        if (element.className) {
+          const pen = document.querySelector(
+            "." + element.className
+          ) as HTMLButtonElement;
+
+          this.pencil = pen;
+        }
+        if (element.id) {
+          const pen = document.getElementById(element.id) as HTMLButtonElement;
+          this.pencil = pen;
+        }
+        if (element.className && element.id) {
+          const pen = document.getElementById(element.id) as HTMLButtonElement;
+          this.pencil = pen;
+        }
+
+        break;
+
+      case "eraser":
+        if (element.className) {
+          const eraser = document.querySelector(
+            "." + element.className
+          ) as HTMLButtonElement;
+          this.eraser = eraser;
+        }
+        if (element.id) {
+          const eraser = document.getElementById(
+            element.id
+          ) as HTMLButtonElement;
+
+          this.eraser = eraser;
+        }
+        if (element.className && element.id) {
+          const eraser = document.getElementById(
+            element.id
+          ) as HTMLButtonElement;
+          this.eraser = eraser;
+        }
+        break;
+
+      case "colorPicker":
+        if (element.className) {
+          const colorPicker = document.querySelector(
+            "." + element.className
+          ) as HTMLInputElement;
+          this.colorPicker = colorPicker;
+        }
+        if (element.id) {
+          const colorPicker = document.getElementById(
+            element.id
+          ) as HTMLInputElement;
+          this.colorPicker = colorPicker;
+        }
+        if (element.className && element.id) {
+          const colorPicker = document.getElementById(
+            element.id
+          ) as HTMLInputElement;
+          this.colorPicker = colorPicker;
+        }
+        break;
+
+      case "lineWidth":
+        if (element.className) {
+          const lineWidthPicker = document.querySelector(
+            "." + element.className
+          ) as HTMLInputElement;
+          this.lineWidthPicker = lineWidthPicker;
+        }
+        if (element.id) {
+          const lineWidthPicker = document.getElementById(
+            element.id
+          ) as HTMLInputElement;
+          this.lineWidthPicker = lineWidthPicker;
+        }
+        if (element.className && element.id) {
+          const lineWidthPicker = document.getElementById(
+            element.id
+          ) as HTMLInputElement;
+          this.lineWidthPicker = lineWidthPicker;
+        }
+        break;
+
+      case "clearCanvas":
+        if (element.className) {
+          const clearCanvas = document.querySelector(
+            "." + element.className
+          ) as HTMLButtonElement;
+          this.clearCanvas = clearCanvas;
+        }
+        if (element.id) {
+          const clearCanvas = document.getElementById(
+            element.id
+          ) as HTMLButtonElement;
+          this.clearCanvas = clearCanvas;
+        }
+        if (element.className && element.id) {
+          const clearCanvas = document.getElementById(
+            element.id
+          ) as HTMLButtonElement;
+          this.clearCanvas = clearCanvas;
+        }
+        break;
+      default:
+        break;
+    }
+  };
 
   //Controller Change handler
   private changeHandler = (e: Event) => {
@@ -305,14 +330,9 @@ class DrawingCanvas {
     const target = e.target as HTMLInputElement;
     const context = this.context;
 
-    //Check if elements have been passed in options
-    this.colorPicker
-      ? (colorPicker = this.colorPicker)
-      : (colorPicker = document.getElementById("color"));
-
-    this.lineWidthPicker
-      ? (lineWidthPicker = this.lineWidthPicker)
-      : (lineWidthPicker = document.getElementById("lineWidth"));
+    //Check if elements exist
+    if (this.colorPicker) colorPicker = this.colorPicker;
+    if (this.lineWidthPicker) lineWidthPicker = this.lineWidthPicker;
 
     //IF any element can be found
     if (colorPicker) {
@@ -347,15 +367,10 @@ class DrawingCanvas {
 
     //Check if options elements exist
     //IF they do then store it in let ELSE use default selector
-    this.pencil ? (pen = this.pencil) : (pen = document.getElementById("pen"));
 
-    this.eraser
-      ? (eraser = this.eraser)
-      : (eraser = document.getElementById("eraser"));
-
-    this.clearCanvas
-      ? (clearCanvas = this.clearCanvas)
-      : (clearCanvas = document.getElementById("clear"));
+    if (this.pencil) pen = this.pencil;
+    if (this.eraser) eraser = this.eraser;
+    if (this.clearCanvas) clearCanvas = this.clearCanvas;
 
     //Check if any element could be found from either options or default
     if (clearCanvas) {
@@ -480,13 +495,10 @@ class DrawingCanvas {
 }
 
 new DrawingCanvas("drawing-board", {
-  elements: [
-    { type: DrawingElementType.pencil, className: "pencil" },
-    { type: DrawingElementType.colorPicker, className: "color" },
-  ],
+  elements: [{ type: DrawingElementType.controller, id: "toolbar" }],
 });
 
-interface CanvasElements {
+interface CanvasElement {
   type: DrawingElementType;
   className?: string;
   id?: string;
