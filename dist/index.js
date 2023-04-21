@@ -76,6 +76,7 @@ var DrawingElementType;
     DrawingElementType["colorPicker"] = "colorPicker";
     DrawingElementType["lineWidth"] = "lineWidth";
     DrawingElementType["clearCanvas"] = "clearCanvas";
+    DrawingElementType["moveAndResize"] = "moveAndResize";
 })(DrawingElementType || (DrawingElementType = {}));
 class DrawingCanvas {
     constructor(elementId, options) {
@@ -99,6 +100,9 @@ class DrawingCanvas {
             const clearCanvas = (document.getElementById("clear"));
             if (clearCanvas)
                 this.clearCanvas = clearCanvas;
+            const moveAndResize = (document.getElementById("mv-rz"));
+            if (moveAndResize)
+                this.moveAndResize = moveAndResize;
         };
         //Runs on each element in the options
         this.storeElements = (element) => {
@@ -190,6 +194,20 @@ class DrawingCanvas {
                         this.clearCanvas = clearCanvas;
                     }
                     break;
+                case "moveAndResize":
+                    if (element.className) {
+                        const moveAndResize = document.querySelector("." + element.className);
+                        this.moveAndResize = moveAndResize;
+                    }
+                    if (element.id) {
+                        const moveAndResize = document.getElementById(element.id);
+                        this.moveAndResize = moveAndResize;
+                    }
+                    if (element.className && element.id) {
+                        const moveAndResize = document.getElementById(element.id);
+                        this.moveAndResize = moveAndResize;
+                    }
+                    break;
                 default:
                     break;
             }
@@ -219,6 +237,7 @@ class DrawingCanvas {
             const pen = this.pencil;
             const eraser = this.eraser;
             const clearCanvas = this.clearCanvas;
+            const moveAndResize = this.moveAndResize;
             const context = this.context;
             //We know that controller expects buttons for click functions
             const target = e.target;
@@ -234,7 +253,9 @@ class DrawingCanvas {
                 if ((target.id && target.id === pen.id) ||
                     (target.className && target.className === pen.className)) {
                     eraser === null || eraser === void 0 ? void 0 : eraser.classList.remove("active");
+                    moveAndResize === null || moveAndResize === void 0 ? void 0 : moveAndResize.classList.remove("active");
                     this.shouldErase = false;
+                    this.shouldMoveAndResize = false;
                     this.shouldDraw = true;
                     //Add classList to indicate active tool
                     pen === null || pen === void 0 ? void 0 : pen.classList.add("active");
@@ -244,9 +265,22 @@ class DrawingCanvas {
                 if ((target.id && target.id === eraser.id) ||
                     (target.className && target.className === eraser.className)) {
                     pen === null || pen === void 0 ? void 0 : pen.classList.remove("active");
+                    moveAndResize === null || moveAndResize === void 0 ? void 0 : moveAndResize.classList.remove("active");
                     this.shouldDraw = false;
+                    this.shouldMoveAndResize = false;
                     this.shouldErase = true;
                     eraser === null || eraser === void 0 ? void 0 : eraser.classList.add("active");
+                }
+            }
+            if (moveAndResize) {
+                if ((target.id && target.id === moveAndResize.id) ||
+                    (target.className && target.className === moveAndResize.className)) {
+                    pen === null || pen === void 0 ? void 0 : pen.classList.remove("active");
+                    eraser === null || eraser === void 0 ? void 0 : eraser.classList.remove("active");
+                    this.shouldErase = false;
+                    this.shouldDraw = false;
+                    this.shouldMoveAndResize = true;
+                    moveAndResize === null || moveAndResize === void 0 ? void 0 : moveAndResize.classList.add("active");
                 }
             }
         };
@@ -256,24 +290,32 @@ class DrawingCanvas {
             const evtType = e.touches
                 ? e.touches[0]
                 : e;
+            const mouseY = evtType.clientY - this.canvas.offsetTop;
+            const mouseX = evtType.clientX - this.canvas.offsetLeft;
             //If eraser has been selected
             if (this.shouldErase) {
                 this.context.globalCompositeOperation = "destination-out";
                 this.isErasing = true;
                 this.isDrawing = false;
+                this.isMovingAndResizing = false;
             }
-            else {
+            else if (this.shouldDraw) {
                 this.context.globalCompositeOperation = "source-over";
                 this.isDrawing = true;
                 this.isErasing = false;
+                this.isMovingAndResizing = false;
             }
-            const mouseX = evtType.clientX - this.canvas.offsetLeft;
-            const mouseY = evtType.clientY - this.canvas.offsetTop;
+            else {
+                this.isMovingAndResizing = true;
+                this.isDrawing = false;
+                this.isErasing = false;
+            }
         };
         //Runs whenever mouse is released
         this.stop = () => {
             this.isDrawing = false;
             this.isErasing = false;
+            this.isMovingAndResizing = false;
             //Save stroke
             this.context.stroke();
             //New Path
@@ -317,6 +359,9 @@ class DrawingCanvas {
         //Assign default values
         this.context.lineWidth = 5;
         this.context.strokeStyle = "black";
+        this.canvas.style.cursor = "crosshair";
+        this.pencil.classList.add("active");
+        this.shouldDraw = true;
         //Add eventlisteners to canvas
         this.listen();
     }
@@ -330,10 +375,8 @@ class DrawingCanvas {
         canvas.addEventListener("touchstart", this.start);
         canvas.addEventListener("touchend", this.stop);
         canvas.addEventListener("touchmove", this.draw);
-        if (controller) {
-            controller.addEventListener("change", this.changeHandler);
-            controller.addEventListener("click", this.clickHandler);
-        }
+        controller === null || controller === void 0 ? void 0 : controller.addEventListener("change", this.changeHandler);
+        controller === null || controller === void 0 ? void 0 : controller.addEventListener("click", this.clickHandler);
     }
     log() {
         return console.log(this.canvas);

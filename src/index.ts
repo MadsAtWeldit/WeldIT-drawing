@@ -94,6 +94,7 @@ enum DrawingElementType {
   colorPicker = "colorPicker",
   lineWidth = "lineWidth",
   clearCanvas = "clearCanvas",
+  moveAndResize = "moveAndResize",
 }
 
 class DrawingCanvas {
@@ -107,12 +108,16 @@ class DrawingCanvas {
   private colorPicker: HTMLInputElement;
   private lineWidthPicker: HTMLInputElement;
   private clearCanvas: HTMLButtonElement;
+  private moveAndResize: HTMLButtonElement;
 
   //For state tracking
   private isDrawing: boolean;
   private isErasing: boolean;
+  private isMovingAndResizing: boolean;
+
   private shouldDraw: boolean;
   private shouldErase: boolean;
+  private shouldMoveAndResize: boolean;
 
   //Props
   private lineWidth: number;
@@ -156,6 +161,10 @@ class DrawingCanvas {
     //Assign default values
     this.context.lineWidth = 5;
     this.context.strokeStyle = "black";
+    this.canvas.style.cursor = "crosshair";
+    this.pencil.classList.add("active");
+    this.shouldDraw = true;
+
     //Add eventlisteners to canvas
     this.listen();
   }
@@ -185,6 +194,12 @@ class DrawingCanvas {
       document.getElementById("clear")
     );
     if (clearCanvas) this.clearCanvas = clearCanvas;
+
+    const moveAndResize = <HTMLButtonElement | null>(
+      document.getElementById("mv-rz")
+    );
+
+    if (moveAndResize) this.moveAndResize = moveAndResize;
   };
 
   //Runs on each element in the options
@@ -316,6 +331,28 @@ class DrawingCanvas {
           this.clearCanvas = clearCanvas;
         }
         break;
+
+      case "moveAndResize":
+        if (element.className) {
+          const moveAndResize = document.querySelector(
+            "." + element.className
+          ) as HTMLButtonElement;
+          this.moveAndResize = moveAndResize;
+        }
+        if (element.id) {
+          const moveAndResize = document.getElementById(
+            element.id
+          ) as HTMLButtonElement;
+          this.moveAndResize = moveAndResize;
+        }
+        if (element.className && element.id) {
+          const moveAndResize = document.getElementById(
+            element.id
+          ) as HTMLButtonElement;
+          this.moveAndResize = moveAndResize;
+        }
+        break;
+
       default:
         break;
     }
@@ -354,6 +391,7 @@ class DrawingCanvas {
     const pen = this.pencil;
     const eraser = this.eraser;
     const clearCanvas = this.clearCanvas;
+    const moveAndResize = this.moveAndResize;
 
     const context = this.context;
 
@@ -377,8 +415,11 @@ class DrawingCanvas {
         (target.className && target.className === pen.className)
       ) {
         eraser?.classList.remove("active");
+        moveAndResize?.classList.remove("active");
 
         this.shouldErase = false;
+        this.shouldMoveAndResize = false;
+
         this.shouldDraw = true;
 
         //Add classList to indicate active tool
@@ -392,11 +433,31 @@ class DrawingCanvas {
         (target.className && target.className === eraser.className)
       ) {
         pen?.classList.remove("active");
+        moveAndResize?.classList.remove("active");
 
         this.shouldDraw = false;
+        this.shouldMoveAndResize = false;
+
         this.shouldErase = true;
 
         eraser?.classList.add("active");
+      }
+    }
+
+    if (moveAndResize) {
+      if (
+        (target.id && target.id === moveAndResize.id) ||
+        (target.className && target.className === moveAndResize.className)
+      ) {
+        pen?.classList.remove("active");
+        eraser?.classList.remove("active");
+
+        this.shouldErase = false;
+        this.shouldDraw = false;
+
+        this.shouldMoveAndResize = true;
+
+        moveAndResize?.classList.add("active");
       }
     }
   };
@@ -415,10 +476,8 @@ class DrawingCanvas {
     canvas.addEventListener("touchend", this.stop);
     canvas.addEventListener("touchmove", this.draw);
 
-    if (controller) {
-      controller.addEventListener("change", this.changeHandler);
-      controller.addEventListener("click", this.clickHandler);
-    }
+    controller?.addEventListener("change", this.changeHandler);
+    controller?.addEventListener("click", this.clickHandler);
   }
 
   //Runs whenever mouse is clicked
@@ -428,25 +487,37 @@ class DrawingCanvas {
       ? (e as TouchEvent).touches[0]
       : (e as MouseEvent);
 
+    const mouseY = evtType.clientY - this.canvas.offsetTop;
+    const mouseX = evtType.clientX - this.canvas.offsetLeft;
+
     //If eraser has been selected
     if (this.shouldErase) {
       this.context.globalCompositeOperation = "destination-out";
+
       this.isErasing = true;
+
       this.isDrawing = false;
-    } else {
+      this.isMovingAndResizing = false;
+    } else if (this.shouldDraw) {
       this.context.globalCompositeOperation = "source-over";
+
       this.isDrawing = true;
+
+      this.isErasing = false;
+      this.isMovingAndResizing = false;
+    } else {
+      this.isMovingAndResizing = true;
+
+      this.isDrawing = false;
       this.isErasing = false;
     }
-
-    const mouseX = evtType.clientX - this.canvas.offsetLeft;
-    const mouseY = evtType.clientY - this.canvas.offsetTop;
   };
 
   //Runs whenever mouse is released
   private stop = () => {
     this.isDrawing = false;
     this.isErasing = false;
+    this.isMovingAndResizing = false;
     //Save stroke
     this.context.stroke();
     //New Path
