@@ -137,7 +137,7 @@ class DrawingCanvas {
     //Check if any elements are passed
     if (options?.elements) {
       //IF any elements are passed
-      //THEN loop through each element and reassign class props to fit
+      //THEN loop through each element and reassign element props
       options.elements.forEach((element) => this.storeElements(element));
     }
 
@@ -162,7 +162,7 @@ class DrawingCanvas {
 
   //Tries to select using default
   private defaultStore = () => {
-    const controller = document.getElementById("toolbar");
+    const controller = <HTMLElement | null>document.getElementById("toolbar");
     if (controller) this.controller = controller;
 
     const pen = <HTMLButtonElement | null>document.getElementById("pencil");
@@ -189,7 +189,6 @@ class DrawingCanvas {
 
   //Runs on each element in the options
   private storeElements = (element: CanvasElement) => {
-    console.log("storing elements");
     //Look for type
     switch (element.type) {
       //IF type is controller
@@ -324,15 +323,11 @@ class DrawingCanvas {
 
   //Controller Change handler
   private changeHandler = (e: Event) => {
-    let colorPicker;
-    let lineWidthPicker;
+    const colorPicker = this.colorPicker;
+    const lineWidthPicker = this.lineWidthPicker;
 
     const target = e.target as HTMLInputElement;
     const context = this.context;
-
-    //Check if elements exist
-    if (this.colorPicker) colorPicker = this.colorPicker;
-    if (this.lineWidthPicker) lineWidthPicker = this.lineWidthPicker;
 
     //IF any element can be found
     if (colorPicker) {
@@ -356,21 +351,14 @@ class DrawingCanvas {
 
   //Controller click handler
   private clickHandler = (e: MouseEvent) => {
-    let pen;
-    let eraser;
-    let clearCanvas;
+    const pen = this.pencil;
+    const eraser = this.eraser;
+    const clearCanvas = this.clearCanvas;
 
     const context = this.context;
 
     //We know that controller expects buttons for click functions
     const target = e.target as HTMLButtonElement;
-
-    //Check if options elements exist
-    //IF they do then store it in let ELSE use default selector
-
-    if (this.pencil) pen = this.pencil;
-    if (this.eraser) eraser = this.eraser;
-    if (this.clearCanvas) clearCanvas = this.clearCanvas;
 
     //Check if any element could be found from either options or default
     if (clearCanvas) {
@@ -417,10 +405,7 @@ class DrawingCanvas {
   private listen() {
     const canvas = this.canvas;
 
-    let controller;
-    this.controller
-      ? (controller = this.controller)
-      : (controller = document.getElementById("toolbar"));
+    const controller = this.controller;
 
     canvas.addEventListener("mousedown", this.start);
     canvas.addEventListener("mouseup", this.stop);
@@ -495,7 +480,7 @@ class DrawingCanvas {
 }
 
 new DrawingCanvas("drawing-board", {
-  elements: [{ type: DrawingElementType.controller, id: "toolbar" }],
+  elements: [{ type: DrawingElementType.pencil, className: "pen" }],
 });
 
 interface CanvasElement {
