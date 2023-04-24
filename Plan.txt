@@ -1,0 +1,6 @@
+///1 Done.
+Store stroke values in an array.
+
+///2
+On mouseup push the current array to a new array and set the array value back to empty
+

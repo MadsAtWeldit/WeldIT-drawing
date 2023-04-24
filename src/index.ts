@@ -101,6 +101,8 @@ class DrawingCanvas {
   private canvas: HTMLCanvasElement;
   private context: CanvasRenderingContext2D;
 
+  private DrawingObjects: CanvasDrawing[];
+
   //Elements for controlling canvas props
   private controller: HTMLElement;
   private pencil: HTMLButtonElement;
@@ -114,10 +116,14 @@ class DrawingCanvas {
   private isDrawing: boolean;
   private isErasing: boolean;
   private isMovingAndResizing: boolean;
+  private isDragging: boolean[] = [];
 
   private shouldDraw: boolean;
   private shouldErase: boolean;
   private shouldMoveAndResize: boolean;
+
+  private mousePosX: number[] = [];
+  private mousePosY: number[] = [];
 
   //Props
   private lineWidth: number;
@@ -164,7 +170,7 @@ class DrawingCanvas {
     this.canvas.style.cursor = "crosshair";
     this.pencil.classList.add("active");
     this.shouldDraw = true;
-
+    this.loopAndDraw();
     //Add eventlisteners to canvas
     this.listen();
   }
@@ -406,6 +412,10 @@ class DrawingCanvas {
         (target.className && target.className === clearCanvas.className)
       ) {
         context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+        this.mousePosX = [];
+        this.mousePosY = [];
+        this.isDragging = [];
       }
     }
 
@@ -468,27 +478,33 @@ class DrawingCanvas {
 
     const controller = this.controller;
 
-    canvas.addEventListener("mousedown", this.start);
-    canvas.addEventListener("mouseup", this.stop);
-    canvas.addEventListener("mousemove", this.draw);
+    canvas.addEventListener("mousedown", this.pressDownHandler);
+    canvas.addEventListener("mouseup", this.releaseHandler);
+    canvas.addEventListener("mousemove", this.moveHandler);
 
-    canvas.addEventListener("touchstart", this.start);
-    canvas.addEventListener("touchend", this.stop);
-    canvas.addEventListener("touchmove", this.draw);
+    canvas.addEventListener("touchstart", this.pressDownHandler);
+    canvas.addEventListener("touchend", this.releaseHandler);
+    canvas.addEventListener("touchmove", this.moveHandler);
 
     controller?.addEventListener("change", this.changeHandler);
     controller?.addEventListener("click", this.clickHandler);
   }
 
   //Runs whenever mouse is clicked
-  private start = (e: MouseEvent | TouchEvent) => {
+  private pressDownHandler = (e: MouseEvent | TouchEvent) => {
     //Check if event is touch or mouse
     const evtType = (e as TouchEvent).touches
       ? (e as TouchEvent).touches[0]
       : (e as MouseEvent);
 
-    const mouseY = evtType.clientY - this.canvas.offsetTop;
-    const mouseX = evtType.clientX - this.canvas.offsetLeft;
+    const startX = evtType.clientX - this.canvas.offsetLeft;
+    const startY = evtType.clientY - this.canvas.offsetTop;
+
+    this.isDragging.push(false);
+
+    //Store client mouse positions
+    this.mousePosX.push(startX);
+    this.mousePosY.push(startY);
 
     //If eraser has been selected
     if (this.shouldErase) {
@@ -514,39 +530,57 @@ class DrawingCanvas {
   };
 
   //Runs whenever mouse is released
-  private stop = () => {
+  private releaseHandler = () => {
     this.isDrawing = false;
     this.isErasing = false;
     this.isMovingAndResizing = false;
-    //Save stroke
-    this.context.stroke();
-    //New Path
-    this.context.beginPath();
+
+    this.loopAndDraw();
   };
 
   //Runs whenever mouse moves
-  private draw = (e: MouseEvent | TouchEvent) => {
+  private moveHandler = (e: MouseEvent | TouchEvent) => {
     //IF we are not drawing or erasing
-    if (!this.isDrawing && !this.isErasing) return;
+    if (!this.isDrawing && !this.isErasing && !this.isMovingAndResizing) return;
 
     //Check if event is touch or mouse
     const evtType = (e as TouchEvent).touches
       ? (e as TouchEvent).touches[0]
       : (e as MouseEvent);
 
+    const mouseX = evtType.clientX - this.canvas.offsetLeft;
+    const mouseY = evtType.clientY - this.canvas.offsetTop;
+
+    this.isDragging.push(true);
+    this.mousePosX.push(mouseX);
+    this.mousePosY.push(mouseY);
+
     this.context.lineCap = "round";
 
-    this.context.lineTo(
-      evtType.clientX - this.canvas.offsetLeft,
-      evtType.clientY - this.canvas.offsetTop
-    );
-
-    //Save stroke
-    this.context.stroke();
+    this.loopAndDraw();
   };
 
-  public log() {
-    return console.log(this.canvas);
+  //Loop through current mouse position
+  private loopAndDraw() {
+    const mousePosX = this.mousePosX;
+    const mousePosY = this.mousePosY;
+    const isDragging = this.isDragging;
+    const context = this.context;
+    console.log(mousePosX);
+    //Loop through each mouse position
+    for (let i = 0; i < mousePosX.length; i++) {
+      context.beginPath();
+      //IF the current array value is true
+      if (isDragging[i]) {
+        //THEN move to position from array with always 1 behind current index
+        context.moveTo(mousePosX[i - 1], mousePosY[i - 1]);
+      }
+      //AND Finally make a line and save
+      context.lineTo(mousePosX[i], mousePosY[i]);
+
+      context.stroke();
+    }
+    context.closePath();
   }
 }
 
@@ -558,4 +592,10 @@ interface CanvasElement {
   type: DrawingElementType;
   className?: string;
   id?: string;
+}
+
+interface CanvasDrawing {
+  strokeStyle: string;
+  lineWidth: number;
+  position: number[];
 }
