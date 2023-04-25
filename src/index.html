@@ -14,8 +14,8 @@
         <div id="toolbar">
             <h1 class="heading">Drawing Test</h1>
             <div class="toolbar-props">
-                <label for="pencil">Pencil</label>
-                <button class="pen"><i class="fa-solid fa-pen"></i></button>
+                <label for="pen">Pencil</label>
+                <button id="pencil"><i class="fa-solid fa-pen"></i></button>
                 <label for="eraser">Eraser</label>
                 <button id="eraser"><i class="fa-solid fa-eraser"></i></button>
                 <label for="mv-rz">Move/Resize</label>
@@ -28,6 +28,8 @@
             <label for="lineWidth">Line Width</label>
             <input id="lineWidth" name="lineWidth" type="range" value="5">
             <button id="clear">Clear</button>
+
+            <button id="undo">Undo</button>
         </div>
         <div class="drawing-board">
             <canvas id="drawing-board" style="touch-action: none;"></canvas>

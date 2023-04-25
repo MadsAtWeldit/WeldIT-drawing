@@ -95,6 +95,7 @@ enum DrawingElementType {
   lineWidth = "lineWidth",
   clearCanvas = "clearCanvas",
   moveAndResize = "moveAndResize",
+  undo = "undo",
 }
 
 class DrawingCanvas {
@@ -109,6 +110,7 @@ class DrawingCanvas {
   private lineWidthPicker: HTMLInputElement;
   private clearCanvas: HTMLButtonElement;
   private moveAndResize: HTMLButtonElement;
+  private undo: HTMLButtonElement;
 
   //For state tracking
   private isDrawing: boolean;
@@ -118,6 +120,10 @@ class DrawingCanvas {
   private shouldDraw: boolean;
   private shouldErase: boolean;
   private shouldMoveAndResize: boolean;
+
+  //States for tracking drawing data
+  private index = -1;
+  private drawingData: ImageData[] = [];
 
   //Props
   private lineWidth: number;
@@ -200,6 +206,9 @@ class DrawingCanvas {
     );
 
     if (moveAndResize) this.moveAndResize = moveAndResize;
+
+    const undo = <HTMLButtonElement | null>document.getElementById("undo");
+    if (undo) this.undo = undo;
   };
 
   //Runs on each element in the options
@@ -343,6 +352,7 @@ class DrawingCanvas {
           const moveAndResize = document.getElementById(
             element.id
           ) as HTMLButtonElement;
+
           this.moveAndResize = moveAndResize;
         }
         if (element.className && element.id) {
@@ -350,6 +360,24 @@ class DrawingCanvas {
             element.id
           ) as HTMLButtonElement;
           this.moveAndResize = moveAndResize;
+        }
+        break;
+
+      case "undo":
+        if (element.className) {
+          const undo = document.querySelector(
+            "." + element.className
+          ) as HTMLButtonElement;
+          this.undo = undo;
+        }
+        if (element.id) {
+          const undo = document.getElementById(element.id) as HTMLButtonElement;
+
+          this.undo = undo;
+        }
+        if (element.className && element.id) {
+          const undo = document.getElementById(element.id) as HTMLButtonElement;
+          this.undo = undo;
         }
         break;
 
@@ -392,6 +420,7 @@ class DrawingCanvas {
     const eraser = this.eraser;
     const clearCanvas = this.clearCanvas;
     const moveAndResize = this.moveAndResize;
+    const undo = this.undo;
 
     const context = this.context;
 
@@ -406,6 +435,27 @@ class DrawingCanvas {
         (target.className && target.className === clearCanvas.className)
       ) {
         context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+      }
+    }
+
+    if (undo) {
+      if (
+        (target.id && target.id === undo.id) ||
+        (target.className && target.className === undo.className)
+      ) {
+        //IF index is at 0 when we undo
+        console.log(this.index);
+        if (this.index <= 0) {
+          //Then make canvas clean
+          context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+          this.index = -1;
+          this.drawingData = [];
+        } else {
+          //Remove last data and re render
+          this.index -= 1;
+          this.drawingData.pop();
+          context.putImageData(this.drawingData[this.index], 0, 0);
+        }
       }
     }
 
@@ -486,7 +536,6 @@ class DrawingCanvas {
     const evtType = (e as TouchEvent).touches
       ? (e as TouchEvent).touches[0]
       : (e as MouseEvent);
-
     const mouseY = evtType.clientY - this.canvas.offsetTop;
     const mouseX = evtType.clientX - this.canvas.offsetLeft;
 
@@ -511,6 +560,8 @@ class DrawingCanvas {
       this.isDrawing = false;
       this.isErasing = false;
     }
+    //Begin new path
+    this.context.beginPath();
   };
 
   //Runs whenever mouse is released
@@ -518,29 +569,41 @@ class DrawingCanvas {
     this.isDrawing = false;
     this.isErasing = false;
     this.isMovingAndResizing = false;
+
+    //Get index and data from current stroke and save
+    this.index++;
+    this.drawingData.push(
+      this.context.getImageData(0, 0, this.canvas.width, this.canvas.height)
+    );
+
     //Save stroke
     this.context.stroke();
-    //New Path
-    this.context.beginPath();
+    this.context.closePath();
   };
 
   //Runs whenever mouse moves
   private draw = (e: MouseEvent | TouchEvent) => {
-    //IF we are not drawing or erasing
-    if (!this.isDrawing && !this.isErasing) return;
-
     //Check if event is touch or mouse
     const evtType = (e as TouchEvent).touches
       ? (e as TouchEvent).touches[0]
       : (e as MouseEvent);
 
-    this.context.lineCap = "round";
+    const mouseX = evtType.clientX - this.canvas.offsetLeft;
+    const mouseY = evtType.clientY - this.canvas.offsetTop;
 
+    // if (this.context.isPointInPath(mouseX, mouseY)) {
+    //   console.log("yes");
+    // } else {
+    //   console.log("no");
+    // }
+    //IF we are not drawing or erasing
+    if (!this.isDrawing && !this.isErasing && !this.isMovingAndResizing) return;
+
+    this.context.lineCap = "round";
     this.context.lineTo(
       evtType.clientX - this.canvas.offsetLeft,
       evtType.clientY - this.canvas.offsetTop
     );
-
     //Save stroke
     this.context.stroke();
   };
@@ -550,9 +613,7 @@ class DrawingCanvas {
   }
 }
 
-new DrawingCanvas("drawing-board", {
-  elements: [{ type: DrawingElementType.pencil, className: "pen" }],
-});
+new DrawingCanvas("drawing-board");
 
 interface CanvasElement {
   type: DrawingElementType;
