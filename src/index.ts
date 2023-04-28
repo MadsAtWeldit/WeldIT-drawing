@@ -1,92 +1,3 @@
-// const canvas = <HTMLCanvasElement>document.getElementById("drawing-board");
-const toolBar = <HTMLElement>document.getElementById("toolbar");
-
-//Get context of canvas
-// const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
-
-// //Offset of canvas
-// enum Offset {
-//   X = canvas.offsetLeft,
-//   Y = canvas.offsetTop,
-// }
-
-// //Set canvas width and height
-// canvas.width = window.innerWidth - Offset.X;
-// canvas.height = window.innerHeight - Offset.Y;
-
-// let isDrawing: boolean;
-// let lineWidth = 5;
-
-// let startX: number;
-// let startY: number;
-
-// //Function runs whenever the mouse moves
-// const draw = (e: MouseEvent) => {
-//   if (!isDrawing) return;
-
-//   console.log("drawing");
-
-//   //Set linewidth and cap
-//   ctx.lineWidth = lineWidth;
-
-//   ctx.lineCap = "round";
-//   //Create line based on client mouse position
-//   ctx.lineTo(e.clientX - Offset.X, e.clientY);
-//   //Set stroke
-//   ctx.stroke();
-// };
-
-// //Listen for changes
-// toolBar.addEventListener("change", (e) => {
-//   //We know that target will be Input element so we type cast
-//   const target = e.target as HTMLInputElement;
-
-//   //IF Stroke
-//   if (target.id === "stroke") {
-//     //Set strokestyle
-//     ctx.strokeStyle = target.value;
-//   }
-
-//   //IF Linewidth
-//   if (target.id === "lineWidth") {
-//     //Set linewidth
-//     lineWidth = Number(target.value);
-//   }
-// });
-
-// toolBar.addEventListener("click", (e) => {
-//   const target = e.target as HTMLButtonElement;
-//   if (target.id === "clear") {
-//     ctx.clearRect(0, 0, canvas.width, canvas.height);
-//   }
-// });
-
-// //When mouse is held down
-// canvas.addEventListener("mousedown", (e) => {
-//   //Set drawing to true
-//   isDrawing = true;
-
-//   //Store starting point
-//   startX = e.clientX;
-//   startY = e.clientY;
-//   console.log("starting point set");
-// });
-
-// //Whenever we let go of mouse
-// canvas.addEventListener("mouseup", (e) => {
-//   //No longer painting
-//   isDrawing = false;
-
-//   //Save stroke
-//   ctx?.stroke();
-
-//   //Set or begin new path
-//   ctx?.beginPath();
-// });
-
-// //Listen for mousemove on canvas
-// canvas.addEventListener("mousemove", draw);
-
 enum DrawingElementType {
   controller = "controller",
   pencil = "pencil",
@@ -96,21 +7,59 @@ enum DrawingElementType {
   clearCanvas = "clearCanvas",
   moveAndResize = "moveAndResize",
   undo = "undo",
+  rectangle = "rectangle",
 }
 
-class DrawingCanvas {
+interface OptionElementsI {
+  readonly controller: HTMLElement | null;
+  readonly pencil: HTMLButtonElement | null;
+  readonly eraser: HTMLButtonElement | null;
+  readonly colorPicker: HTMLInputElement | null;
+  readonly lineWidthPicker: HTMLInputElement | null;
+  readonly clearCanvas: HTMLButtonElement | null;
+  readonly moveAndResize: HTMLButtonElement | null;
+  readonly undo: HTMLButtonElement | null;
+  readonly rectangle: HTMLButtonElement | null;
+}
+
+type PropKey = keyof OptionElementsI;
+
+//Type that removes readonly so we can assign values inside class
+type Writable<T> = { -readonly [K in keyof T]: T[K] };
+type WritableDrawingCanvas = Writable<DrawingCanvas>;
+
+class DrawingCanvas implements OptionElementsI {
   private canvas: HTMLCanvasElement;
   private context: CanvasRenderingContext2D;
 
   //Elements for controlling canvas props
-  private controller: HTMLElement;
-  private pencil: HTMLButtonElement;
-  private eraser: HTMLButtonElement;
-  private colorPicker: HTMLInputElement;
-  private lineWidthPicker: HTMLInputElement;
-  private clearCanvas: HTMLButtonElement;
-  private moveAndResize: HTMLButtonElement;
-  private undo: HTMLButtonElement;
+  readonly controller: HTMLElement | null = document.getElementById(
+    "toolbar"
+  ) as HTMLElement;
+  readonly pencil: HTMLButtonElement | null = document.getElementById(
+    "pencil"
+  ) as HTMLButtonElement;
+  readonly eraser: HTMLButtonElement | null = document.getElementById(
+    "eraser"
+  ) as HTMLButtonElement;
+  readonly colorPicker: HTMLInputElement | null = document.getElementById(
+    "color"
+  ) as HTMLInputElement;
+  readonly lineWidthPicker: HTMLInputElement | null = document.getElementById(
+    "lineWidth"
+  ) as HTMLInputElement;
+  readonly clearCanvas: HTMLButtonElement | null = document.getElementById(
+    "clear"
+  ) as HTMLButtonElement;
+  readonly moveAndResize: HTMLButtonElement | null = document.getElementById(
+    "mv-rz"
+  ) as HTMLButtonElement;
+  readonly undo: HTMLButtonElement | null = document.getElementById(
+    "undo"
+  ) as HTMLButtonElement;
+  readonly rectangle: HTMLButtonElement | null = document.getElementById(
+    "rectangle"
+  ) as HTMLButtonElement;
 
   //For state tracking
   private isDrawing: boolean;
@@ -142,13 +91,11 @@ class DrawingCanvas {
     const canvas = document.getElementById(elementId) as HTMLCanvasElement;
     const context = canvas.getContext("2d") as CanvasRenderingContext2D;
 
-    //Try to save elements using hardcoded defaults
-    this.defaultStore();
-
     //Check if any elements are passed
     if (options?.elements) {
       //IF any elements are passed
       //THEN loop through each element and reassign element props
+      // options.elements.forEach((element) => this.storeElements(element));
       options.elements.forEach((element) => this.storeElements(element));
     }
 
@@ -168,222 +115,48 @@ class DrawingCanvas {
     this.context.lineWidth = 5;
     this.context.strokeStyle = "black";
     this.canvas.style.cursor = "crosshair";
-    this.pencil.classList.add("active");
+    this.pencil?.classList.add("active");
     this.shouldDraw = true;
 
     //Add eventlisteners to canvas
     this.listen();
   }
 
-  //Tries to select using default
-  private defaultStore = () => {
-    const controller = <HTMLElement | null>document.getElementById("toolbar");
-    if (controller) this.controller = controller;
+  //Since element props are read only we have to have method
+  private setElement(
+    propName: PropKey,
+    element: HTMLElement & HTMLButtonElement & HTMLInputElement
+  ) {
+    (this as WritableDrawingCanvas)[propName] = element;
+  }
 
-    const pen = <HTMLButtonElement | null>document.getElementById("pencil");
-    if (pen) this.pencil = pen;
+  //Runs for each element passed to options
+  private storeElements = (currentElement: CanvasElement) => {
+    //Loop through class props
+    Object.keys(this).map((currentProp) => {
+      //IF elements type is same as prop
+      if (currentElement.type === currentProp) {
+        //THEN store THAT prop to be used as a index accessor when assigning value to this.(prop)
+        const propName = currentProp as PropKey;
 
-    const eraser = <HTMLButtonElement | null>document.getElementById("eraser");
-    if (eraser) this.eraser = eraser;
+        //Check if current has a classname and query corresponding element
+        if (currentElement.className) {
+          const element = document.querySelector(
+            "." + currentElement.className
+          ) as HTMLElement & HTMLButtonElement & HTMLInputElement;
 
-    const colorPicker = <HTMLInputElement | null>(
-      document.getElementById("color")
-    );
-    if (colorPicker) this.colorPicker = colorPicker;
-
-    const lineWidthPicker = <HTMLInputElement | null>(
-      document.getElementById("lineWidth")
-    );
-    if (lineWidthPicker) this.lineWidthPicker = lineWidthPicker;
-
-    const clearCanvas = <HTMLButtonElement | null>(
-      document.getElementById("clear")
-    );
-    if (clearCanvas) this.clearCanvas = clearCanvas;
-
-    const moveAndResize = <HTMLButtonElement | null>(
-      document.getElementById("mv-rz")
-    );
-
-    if (moveAndResize) this.moveAndResize = moveAndResize;
-
-    const undo = <HTMLButtonElement | null>document.getElementById("undo");
-    if (undo) this.undo = undo;
-  };
-
-  //Runs on each element in the options
-  private storeElements = (element: CanvasElement) => {
-    //Look for type
-    switch (element.type) {
-      //IF type is controller
-      //THEN check if element has classname or id and query based on that
-      case "controller":
-        if (element.className) {
-          const controller = document.querySelector(
-            "." + element.className
-          ) as HTMLElement;
-          this.controller = controller;
+          //Same as saying this.element = element
+          this.setElement(propName, element);
         }
+        if (currentElement.id) {
+          const element = document.getElementById(
+            currentElement.id
+          ) as HTMLElement & HTMLButtonElement & HTMLInputElement;
 
-        if (element.id) {
-          const controller = document.getElementById(element.id) as HTMLElement;
-          this.controller = controller;
+          this.setElement(propName, element);
         }
-
-        if (element.className && element.id) {
-          const controller = document.getElementById(element.id) as HTMLElement;
-          this.controller = controller;
-        }
-
-        break;
-
-      case "pencil":
-        if (element.className) {
-          const pen = document.querySelector(
-            "." + element.className
-          ) as HTMLButtonElement;
-
-          this.pencil = pen;
-        }
-        if (element.id) {
-          const pen = document.getElementById(element.id) as HTMLButtonElement;
-          this.pencil = pen;
-        }
-        if (element.className && element.id) {
-          const pen = document.getElementById(element.id) as HTMLButtonElement;
-          this.pencil = pen;
-        }
-
-        break;
-
-      case "eraser":
-        if (element.className) {
-          const eraser = document.querySelector(
-            "." + element.className
-          ) as HTMLButtonElement;
-          this.eraser = eraser;
-        }
-        if (element.id) {
-          const eraser = document.getElementById(
-            element.id
-          ) as HTMLButtonElement;
-
-          this.eraser = eraser;
-        }
-        if (element.className && element.id) {
-          const eraser = document.getElementById(
-            element.id
-          ) as HTMLButtonElement;
-          this.eraser = eraser;
-        }
-        break;
-
-      case "colorPicker":
-        if (element.className) {
-          const colorPicker = document.querySelector(
-            "." + element.className
-          ) as HTMLInputElement;
-          this.colorPicker = colorPicker;
-        }
-        if (element.id) {
-          const colorPicker = document.getElementById(
-            element.id
-          ) as HTMLInputElement;
-          this.colorPicker = colorPicker;
-        }
-        if (element.className && element.id) {
-          const colorPicker = document.getElementById(
-            element.id
-          ) as HTMLInputElement;
-          this.colorPicker = colorPicker;
-        }
-        break;
-
-      case "lineWidth":
-        if (element.className) {
-          const lineWidthPicker = document.querySelector(
-            "." + element.className
-          ) as HTMLInputElement;
-          this.lineWidthPicker = lineWidthPicker;
-        }
-        if (element.id) {
-          const lineWidthPicker = document.getElementById(
-            element.id
-          ) as HTMLInputElement;
-          this.lineWidthPicker = lineWidthPicker;
-        }
-        if (element.className && element.id) {
-          const lineWidthPicker = document.getElementById(
-            element.id
-          ) as HTMLInputElement;
-          this.lineWidthPicker = lineWidthPicker;
-        }
-        break;
-
-      case "clearCanvas":
-        if (element.className) {
-          const clearCanvas = document.querySelector(
-            "." + element.className
-          ) as HTMLButtonElement;
-          this.clearCanvas = clearCanvas;
-        }
-        if (element.id) {
-          const clearCanvas = document.getElementById(
-            element.id
-          ) as HTMLButtonElement;
-          this.clearCanvas = clearCanvas;
-        }
-        if (element.className && element.id) {
-          const clearCanvas = document.getElementById(
-            element.id
-          ) as HTMLButtonElement;
-          this.clearCanvas = clearCanvas;
-        }
-        break;
-
-      case "moveAndResize":
-        if (element.className) {
-          const moveAndResize = document.querySelector(
-            "." + element.className
-          ) as HTMLButtonElement;
-          this.moveAndResize = moveAndResize;
-        }
-        if (element.id) {
-          const moveAndResize = document.getElementById(
-            element.id
-          ) as HTMLButtonElement;
-
-          this.moveAndResize = moveAndResize;
-        }
-        if (element.className && element.id) {
-          const moveAndResize = document.getElementById(
-            element.id
-          ) as HTMLButtonElement;
-          this.moveAndResize = moveAndResize;
-        }
-        break;
-
-      case "undo":
-        if (element.className) {
-          const undo = document.querySelector(
-            "." + element.className
-          ) as HTMLButtonElement;
-          this.undo = undo;
-        }
-        if (element.id) {
-          const undo = document.getElementById(element.id) as HTMLButtonElement;
-
-          this.undo = undo;
-        }
-        if (element.className && element.id) {
-          const undo = document.getElementById(element.id) as HTMLButtonElement;
-          this.undo = undo;
-        }
-        break;
-
-      default:
-        break;
-    }
+      }
+    });
   };
 
   //Controller Change handler
@@ -421,6 +194,7 @@ class DrawingCanvas {
     const clearCanvas = this.clearCanvas;
     const moveAndResize = this.moveAndResize;
     const undo = this.undo;
+    const rectangle = this.rectangle;
 
     const context = this.context;
 
@@ -429,22 +203,17 @@ class DrawingCanvas {
 
     //Check if any element could be found from either options or default
     if (clearCanvas) {
-      //IF it can THEN check if it has id or class that is equal to the target
-      if (
-        (target.id && target.id === clearCanvas.id) ||
-        (target.className && target.className === clearCanvas.className)
-      ) {
+      //Returns true if target is equal to element
+      this.compareTargetToElement(target, clearCanvas, () => {
         context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-      }
+        this.index = -1;
+        this.drawingData = [];
+      });
     }
 
     if (undo) {
-      if (
-        (target.id && target.id === undo.id) ||
-        (target.className && target.className === undo.className)
-      ) {
+      this.compareTargetToElement(target, undo, () => {
         //IF index is at 0 when we undo
-        console.log(this.index);
         if (this.index <= 0) {
           //Then make canvas clean
           context.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -456,16 +225,14 @@ class DrawingCanvas {
           this.drawingData.pop();
           context.putImageData(this.drawingData[this.index], 0, 0);
         }
-      }
+      });
     }
 
     if (pen) {
-      if (
-        (target.id && target.id === pen.id) ||
-        (target.className && target.className === pen.className)
-      ) {
+      this.compareTargetToElement(target, pen, () => {
         eraser?.classList.remove("active");
         moveAndResize?.classList.remove("active");
+        rectangle?.classList.remove("active");
 
         this.shouldErase = false;
         this.shouldMoveAndResize = false;
@@ -474,16 +241,14 @@ class DrawingCanvas {
 
         //Add classList to indicate active tool
         pen?.classList.add("active");
-      }
+      });
     }
 
     if (eraser) {
-      if (
-        (target.id && target.id === eraser.id) ||
-        (target.className && target.className === eraser.className)
-      ) {
+      this.compareTargetToElement(target, eraser, () => {
         pen?.classList.remove("active");
         moveAndResize?.classList.remove("active");
+        rectangle?.classList.remove("active");
 
         this.shouldDraw = false;
         this.shouldMoveAndResize = false;
@@ -491,16 +256,14 @@ class DrawingCanvas {
         this.shouldErase = true;
 
         eraser?.classList.add("active");
-      }
+      });
     }
 
     if (moveAndResize) {
-      if (
-        (target.id && target.id === moveAndResize.id) ||
-        (target.className && target.className === moveAndResize.className)
-      ) {
+      this.compareTargetToElement(target, moveAndResize, () => {
         pen?.classList.remove("active");
         eraser?.classList.remove("active");
+        rectangle?.classList.remove("active");
 
         this.shouldErase = false;
         this.shouldDraw = false;
@@ -508,7 +271,21 @@ class DrawingCanvas {
         this.shouldMoveAndResize = true;
 
         moveAndResize?.classList.add("active");
-      }
+      });
+    }
+
+    if (rectangle) {
+      this.compareTargetToElement(target, rectangle, () => {
+        pen?.classList.remove("active");
+        eraser?.classList.remove("active");
+        moveAndResize?.classList.remove("active");
+
+        this.shouldErase = false;
+        this.shouldDraw = false;
+        this.shouldMoveAndResize = true;
+
+        rectangle?.classList.add("active");
+      });
     }
   };
 
@@ -536,6 +313,7 @@ class DrawingCanvas {
     const evtType = (e as TouchEvent).touches
       ? (e as TouchEvent).touches[0]
       : (e as MouseEvent);
+
     const mouseY = evtType.clientY - this.canvas.offsetTop;
     const mouseX = evtType.clientX - this.canvas.offsetLeft;
 
@@ -608,15 +386,35 @@ class DrawingCanvas {
     this.context.stroke();
   };
 
-  public log() {
-    return console.log(this.canvas);
+  private compareTargetToElement(
+    target: HTMLButtonElement,
+    element: HTMLButtonElement,
+    callBack: () => void
+  ) {
+    if (
+      (target.id && target.id === element.id) ||
+      (target.className && target.className === element.className)
+    ) {
+      callBack();
+    }
   }
 }
-
-new DrawingCanvas("drawing-board");
-
 interface CanvasElement {
   type: DrawingElementType;
   className?: string;
   id?: string;
 }
+
+new DrawingCanvas("drawing-board", {
+  elements: [
+    {
+      type: DrawingElementType.rectangle,
+      className: "rectanglea",
+    },
+    {
+      type: DrawingElementType.pencil,
+      id: "pencilID",
+      className: "pencil",
+    },
+  ],
+});

@@ -1,0 +1,197 @@
+  //Runs on each element in the options
+  // private storeElements = (element: CanvasElement) => {
+  //   //Look for type
+  //   switch (element.type) {
+  //     //IF type is controller
+  //     //THEN check if element has classname or id and query based on that
+  //     case "controller":
+  //       if (element.className) {
+  //         const controller = document.querySelector(
+  //           "." + element.className
+  //         ) as HTMLElement;
+  //         this.controller = controller;
+  //       }
+
+  //       if (element.id) {
+  //         const controller = document.getElementById(element.id) as HTMLElement;
+  //         this.controller = controller;
+  //       }
+
+  //       if (element.className && element.id) {
+  //         const controller = document.getElementById(element.id) as HTMLElement;
+  //         this.controller = controller;
+  //       }
+
+  //       break;
+
+  //     case "pencil":
+  //       if (element.className) {
+  //         const pen = document.querySelector(
+  //           "." + element.className
+  //         ) as HTMLButtonElement;
+
+  //         this.pencil = pen;
+  //       }
+  //       if (element.id) {
+  //         const pen = document.getElementById(element.id) as HTMLButtonElement;
+  //         this.pencil = pen;
+  //       }
+  //       if (element.className && element.id) {
+  //         const pen = document.getElementById(element.id) as HTMLButtonElement;
+  //         this.pencil = pen;
+  //       }
+
+  //       break;
+
+  //     case "eraser":
+  //       if (element.className) {
+  //         const eraser = document.querySelector(
+  //           "." + element.className
+  //         ) as HTMLButtonElement;
+  //         this.eraser = eraser;
+  //       }
+  //       if (element.id) {
+  //         const eraser = document.getElementById(
+  //           element.id
+  //         ) as HTMLButtonElement;
+
+  //         this.eraser = eraser;
+  //       }
+  //       if (element.className && element.id) {
+  //         const eraser = document.getElementById(
+  //           element.id
+  //         ) as HTMLButtonElement;
+  //         this.eraser = eraser;
+  //       }
+  //       break;
+
+  //     case "colorPicker":
+  //       if (element.className) {
+  //         const colorPicker = document.querySelector(
+  //           "." + element.className
+  //         ) as HTMLInputElement;
+  //         this.colorPicker = colorPicker;
+  //       }
+  //       if (element.id) {
+  //         const colorPicker = document.getElementById(
+  //           element.id
+  //         ) as HTMLInputElement;
+  //         this.colorPicker = colorPicker;
+  //       }
+  //       if (element.className && element.id) {
+  //         const colorPicker = document.getElementById(
+  //           element.id
+  //         ) as HTMLInputElement;
+  //         this.colorPicker = colorPicker;
+  //       }
+  //       break;
+
+  //     case "lineWidth":
+  //       if (element.className) {
+  //         const lineWidthPicker = document.querySelector(
+  //           "." + element.className
+  //         ) as HTMLInputElement;
+  //         this.lineWidthPicker = lineWidthPicker;
+  //       }
+  //       if (element.id) {
+  //         const lineWidthPicker = document.getElementById(
+  //           element.id
+  //         ) as HTMLInputElement;
+  //         this.lineWidthPicker = lineWidthPicker;
+  //       }
+  //       if (element.className && element.id) {
+  //         const lineWidthPicker = document.getElementById(
+  //           element.id
+  //         ) as HTMLInputElement;
+  //         this.lineWidthPicker = lineWidthPicker;
+  //       }
+  //       break;
+
+  //     case "clearCanvas":
+  //       if (element.className) {
+  //         const clearCanvas = document.querySelector(
+  //           "." + element.className
+  //         ) as HTMLButtonElement;
+  //         this.clearCanvas = clearCanvas;
+  //       }
+  //       if (element.id) {
+  //         const clearCanvas = document.getElementById(
+  //           element.id
+  //         ) as HTMLButtonElement;
+  //         this.clearCanvas = clearCanvas;
+  //       }
+  //       if (element.className && element.id) {
+  //         const clearCanvas = document.getElementById(
+  //           element.id
+  //         ) as HTMLButtonElement;
+  //         this.clearCanvas = clearCanvas;
+  //       }
+  //       break;
+
+  //     case "moveAndResize":
+  //       if (element.className) {
+  //         const moveAndResize = document.querySelector(
+  //           "." + element.className
+  //         ) as HTMLButtonElement;
+  //         this.moveAndResize = moveAndResize;
+  //       }
+  //       if (element.id) {
+  //         const moveAndResize = document.getElementById(
+  //           element.id
+  //         ) as HTMLButtonElement;
+
+  //         this.moveAndResize = moveAndResize;
+  //       }
+  //       if (element.className && element.id) {
+  //         const moveAndResize = document.getElementById(
+  //           element.id
+  //         ) as HTMLButtonElement;
+  //         this.moveAndResize = moveAndResize;
+  //       }
+  //       break;
+
+  //     case "undo":
+  //       if (element.className) {
+  //         const undo = document.querySelector(
+  //           "." + element.className
+  //         ) as HTMLButtonElement;
+  //         this.undo = undo;
+  //       }
+  //       if (element.id) {
+  //         const undo = document.getElementById(element.id) as HTMLButtonElement;
+
+  //         this.undo = undo;
+  //       }
+  //       if (element.className && element.id) {
+  //         const undo = document.getElementById(element.id) as HTMLButtonElement;
+  //         this.undo = undo;
+  //       }
+  //       break;
+
+  //     case "rectangle":
+  //       if (element.className) {
+  //         const rectangle = document.querySelector(
+  //           "." + element.className
+  //         ) as HTMLButtonElement;
+  //         this.rectangle = rectangle;
+  //       }
+  //       if (element.id) {
+  //         const rectangle = document.getElementById(
+  //           element.id
+  //         ) as HTMLButtonElement;
+
+  //         this.rectangle = rectangle;
+  //       }
+  //       if (element.className && element.id) {
+  //         const rectangle = document.getElementById(
+  //           element.id
+  //         ) as HTMLButtonElement;
+  //         this.rectangle = rectangle;
+  //       }
+  //       break;
+
+  //     default:
+  //       break;
+  //   }
+  // };
+

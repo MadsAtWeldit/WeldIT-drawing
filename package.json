@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "homepage": "https://MadsAtWeldit.github.io/Weldit-drawing",
   "description": "",
-  
   "scripts": {
     "lint": "eslint . --ext .ts",
     "deploy": "gh-pages -d dist",
@@ -12,13 +11,21 @@
   "author": "MadsAtWeldit",
   "license": "ISC",
   "devDependencies": {
+    "@types/node": "^18.16.1",
     "@typescript-eslint/eslint-plugin": "^5.58.0",
     "@typescript-eslint/parser": "^5.58.0",
     "eslint": "^8.38.0",
     "gh-pages": "^5.0.0",
+    "reflect-metadata": "^0.1.13",
     "typescript": "^5.0.4"
   },
   "dependencies": {
     "parcel": "^2.8.3"
+  },
+  "exports": {
+    "import": "./node_modules/reflect-metadata/Reflect.js",
+    "require": "./node_modules/reflect-metadata/Reflect.js"
+    
   }
+  
 }

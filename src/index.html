@@ -13,29 +13,34 @@
     <section class="container">
         <div id="toolbar">
             <h1 class="heading">Drawing Test</h1>
-            <div class="toolbar-props">
-                <label for="pen">Pencil</label>
-                <button id="pencil"><i class="fa-solid fa-pen"></i></button>
-                <label for="eraser">Eraser</label>
-                <button id="eraser"><i class="fa-solid fa-eraser"></i></button>
-                <label for="mv-rz">Move/Resize</label>
-                <button id="mv-rz"><i class="fa-solid fa-up-down-left-right"></i></button>
-            </div>
+
+            <label for="pen">Pencil</label>
+            <button id="pencilID" class="pencil"><i class="fa-solid fa-pen"></i></button>
+            <label for="eraser">Eraser</label>
+            <button id="eraser"><i class="fa-solid fa-eraser"></i></button>
+            <label for="mv-rz">Move/Resize</label>
+            <button id="mv-rz"><i class="fa-solid fa-up-down-left-right"></i></button>
+            <label for="rectangle">Rectangle</label>
+            <button id="rectanglea" class="rectanglea"><i class="fa-duotone fa-square"></i></button>
+
 
             <label for="color">Color</label>
             <input id="color" name="color" type="color">
-
             <label for="lineWidth">Line Width</label>
             <input id="lineWidth" name="lineWidth" type="range" value="5">
-            <button id="clear">Clear</button>
 
+
+            <button id="clear">Clear</button>
             <button id="undo">Undo</button>
         </div>
         <div class="drawing-board">
             <canvas id="drawing-board" style="touch-action: none;"></canvas>
         </div>
     </section>
-    <script src="../dist/index.js"></script>
+    <script src="../node_modules/reflect-metadata/Reflect.js"></script>
+    <script src="../dist/index.js">
+
+    </script>
     <script src="https://kit.fontawesome.com/42c8b9ce55.js" crossorigin="anonymous"></script>
 </body>
 
