@@ -33,45 +33,36 @@ class DrawingCanvas {
         this.storeElements = (currentElement) => {
             //Loop through class props
             Object.keys(this).map((currentProp) => {
-                //IF elements type is same as prop
                 if (currentElement.type === currentProp) {
-                    //THEN store THAT prop to be used as a index accessor when assigning value to this.(prop)
-                    const propName = currentProp;
-                    //Check if current has a classname and query corresponding element
+                    const classProp = currentProp;
                     if (currentElement.className) {
-                        const element = document.querySelector("." + currentElement.className);
+                        const element = document.querySelector("." + currentElement.className); //Needs to be intersection to safely assign to lhs
                         //Same as saying this.element = element
-                        this.setElement(propName, element);
+                        this.assignToProp(classProp, element);
                     }
                     if (currentElement.id) {
                         const element = document.getElementById(currentElement.id);
-                        this.setElement(propName, element);
+                        this.assignToProp(classProp, element);
                     }
                 }
             });
         };
         //Controller Change handler
         this.changeHandler = (e) => {
+            const target = e.target;
             const colorPicker = this.colorPicker;
             const lineWidthPicker = this.lineWidthPicker;
-            const target = e.target;
             const context = this.context;
-            //IF any element can be found
-            if (colorPicker) {
-                if ((target.id && target.id === colorPicker.id) ||
-                    (target.className && target.className === colorPicker.className)) {
-                    context.strokeStyle = target.value;
-                }
+            if (colorPicker && this.targetIs(colorPicker, target)) {
+                context.strokeStyle = target.value;
             }
-            if (lineWidthPicker) {
-                if ((target.id && target.id === lineWidthPicker.id) ||
-                    (target.className && target.className === lineWidthPicker.className)) {
-                    context.lineWidth = Number(target.value);
-                }
+            if (lineWidthPicker && this.targetIs(lineWidthPicker, target)) {
+                context.lineWidth = Number(target.value);
             }
         };
         //Controller click handler
-        this.clickHandler = (e) => {
+        this.toolSelectHandler = (e) => {
+            const target = e.target;
             const pen = this.pencil;
             const eraser = this.eraser;
             const clearCanvas = this.clearCanvas;
@@ -79,86 +70,70 @@ class DrawingCanvas {
             const undo = this.undo;
             const text = this.text;
             const context = this.context;
-            //We know that controller expects buttons for click functions
-            const target = e.target;
-            //Check if any element could be found from either options or default
-            if (clearCanvas) {
-                //Returns true if target is equal to element
-                this.compareTargetToElement(target, clearCanvas, () => {
+            if (clearCanvas && this.targetIs(clearCanvas, target)) {
+                context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                this.index = -1;
+                this.drawingData = [];
+            }
+            if (undo && this.targetIs(undo, target)) {
+                //IF index is at 0 when we undo
+                if (this.index <= 0) {
+                    //Then make canvas clean
                     context.clearRect(0, 0, this.canvas.width, this.canvas.height);
                     this.index = -1;
                     this.drawingData = [];
-                });
+                }
+                else {
+                    //Remove last data
+                    this.index -= 1;
+                    this.drawingData.pop();
+                    //RE render
+                    context.putImageData(this.drawingData[this.index], 0, 0);
+                }
             }
-            if (undo) {
-                this.compareTargetToElement(target, undo, () => {
-                    //IF index is at 0 when we undo
-                    if (this.index <= 0) {
-                        //Then make canvas clean
-                        context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-                        this.index = -1;
-                        this.drawingData = [];
-                    }
-                    else {
-                        //Remove last data and re render
-                        this.index -= 1;
-                        this.drawingData.pop();
-                        context.putImageData(this.drawingData[this.index], 0, 0);
-                    }
-                });
+            if (pen && this.targetIs(pen, target)) {
+                eraser === null || eraser === void 0 ? void 0 : eraser.classList.remove("active");
+                moveAndResize === null || moveAndResize === void 0 ? void 0 : moveAndResize.classList.remove("active");
+                text === null || text === void 0 ? void 0 : text.classList.remove("active");
+                this.shouldErase = false;
+                this.shouldMoveAndResize = false;
+                this.shouldWrite = false;
+                this.shouldDraw = true;
+                pen === null || pen === void 0 ? void 0 : pen.classList.add("active");
             }
-            if (pen) {
-                this.compareTargetToElement(target, pen, () => {
-                    eraser === null || eraser === void 0 ? void 0 : eraser.classList.remove("active");
-                    moveAndResize === null || moveAndResize === void 0 ? void 0 : moveAndResize.classList.remove("active");
-                    text === null || text === void 0 ? void 0 : text.classList.remove("active");
-                    this.shouldErase = false;
-                    this.shouldMoveAndResize = false;
-                    this.shouldWrite = false;
-                    this.shouldDraw = true;
-                    //Add classList to indicate active tool
-                    pen === null || pen === void 0 ? void 0 : pen.classList.add("active");
-                });
+            if (eraser && this.targetIs(eraser, target)) {
+                pen === null || pen === void 0 ? void 0 : pen.classList.remove("active");
+                moveAndResize === null || moveAndResize === void 0 ? void 0 : moveAndResize.classList.remove("active");
+                text === null || text === void 0 ? void 0 : text.classList.remove("active");
+                this.shouldDraw = false;
+                this.shouldMoveAndResize = false;
+                this.shouldWrite = false;
+                this.shouldErase = true;
+                eraser === null || eraser === void 0 ? void 0 : eraser.classList.add("active");
             }
-            if (eraser) {
-                this.compareTargetToElement(target, eraser, () => {
-                    pen === null || pen === void 0 ? void 0 : pen.classList.remove("active");
-                    moveAndResize === null || moveAndResize === void 0 ? void 0 : moveAndResize.classList.remove("active");
-                    text === null || text === void 0 ? void 0 : text.classList.remove("active");
-                    this.shouldDraw = false;
-                    this.shouldMoveAndResize = false;
-                    this.shouldWrite = false;
-                    this.shouldErase = true;
-                    eraser === null || eraser === void 0 ? void 0 : eraser.classList.add("active");
-                });
+            if (moveAndResize && this.targetIs(moveAndResize, target)) {
+                pen === null || pen === void 0 ? void 0 : pen.classList.remove("active");
+                eraser === null || eraser === void 0 ? void 0 : eraser.classList.remove("active");
+                text === null || text === void 0 ? void 0 : text.classList.remove("active");
+                this.shouldErase = false;
+                this.shouldDraw = false;
+                this.shouldWrite = false;
+                this.shouldMoveAndResize = true;
+                moveAndResize === null || moveAndResize === void 0 ? void 0 : moveAndResize.classList.add("active");
             }
-            if (moveAndResize) {
-                this.compareTargetToElement(target, moveAndResize, () => {
-                    pen === null || pen === void 0 ? void 0 : pen.classList.remove("active");
-                    eraser === null || eraser === void 0 ? void 0 : eraser.classList.remove("active");
-                    text === null || text === void 0 ? void 0 : text.classList.remove("active");
-                    this.shouldErase = false;
-                    this.shouldDraw = false;
-                    this.shouldWrite = false;
-                    this.shouldMoveAndResize = true;
-                    moveAndResize === null || moveAndResize === void 0 ? void 0 : moveAndResize.classList.add("active");
-                });
-            }
-            if (text) {
-                this.compareTargetToElement(target, text, () => {
-                    pen === null || pen === void 0 ? void 0 : pen.classList.remove("active");
-                    eraser === null || eraser === void 0 ? void 0 : eraser.classList.remove("active");
-                    moveAndResize === null || moveAndResize === void 0 ? void 0 : moveAndResize.classList.remove("active");
-                    this.shouldDraw = false;
-                    this.shouldErase = false;
-                    this.shouldMoveAndResize = false;
-                    this.shouldWrite = true;
-                    text === null || text === void 0 ? void 0 : text.classList.add("active");
-                });
+            if (text && this.targetIs(text, target)) {
+                pen === null || pen === void 0 ? void 0 : pen.classList.remove("active");
+                eraser === null || eraser === void 0 ? void 0 : eraser.classList.remove("active");
+                moveAndResize === null || moveAndResize === void 0 ? void 0 : moveAndResize.classList.remove("active");
+                this.shouldDraw = false;
+                this.shouldErase = false;
+                this.shouldMoveAndResize = false;
+                this.shouldWrite = true;
+                text === null || text === void 0 ? void 0 : text.classList.add("active");
             }
         };
         //Runs whenever mouse is clicked
-        this.start = (e) => {
+        this.pressDownHandler = (e) => {
             if (!this.isErasing)
                 this.context.globalCompositeOperation = "source-over";
             if (this.isWriting)
@@ -197,31 +172,26 @@ class DrawingCanvas {
                 this.isWriting = false;
             }
             else if (this.shouldWrite) {
-                this.isWriting = true;
+                //Set focus on textInput
+                window.setTimeout(() => textInput.focus(), 0);
                 const canvasContainer = (document.querySelector(".drawing-board"));
                 const textInput = document.createElement("input");
-                //IF there is already a text input remove the text input
-                if (canvasContainer.children.length >= 2) {
-                    canvasContainer.removeChild(canvasContainer.lastChild);
-                    window.setTimeout(() => textInput.focus(), 0);
-                }
                 //Give proper styles and attr
                 textInput.setAttribute("type", "text");
-                textInput.setAttribute("autofocus", "true");
                 textInput.style.position = "fixed";
                 textInput.style.top = `${evtType.clientY}px`;
                 textInput.style.left = `${evtType.clientX}px`;
                 textInput.id = "textInput";
                 //Runs whenever we save text
                 textInput.addEventListener("blur", () => {
-                    this.isWriting = false;
+                    this.context.textBaseline = "top";
                     this.context.font = "30px sans-serif";
                     this.context.fillText(textInput.value, mouseX, mouseY);
                     canvasContainer.removeChild(textInput);
-                    console.log("yes");
+                    this.isWriting = false;
                 });
                 canvasContainer === null || canvasContainer === void 0 ? void 0 : canvasContainer.appendChild(textInput);
-                // this.context.fillText("Hello World!", mouseX, mouseY);
+                this.isWriting = true;
                 this.isDrawing = false;
                 this.isErasing = false;
                 this.isMovingAndResizing = false;
@@ -230,7 +200,7 @@ class DrawingCanvas {
             this.context.beginPath();
         };
         //Runs whenever mouse is released
-        this.stop = () => {
+        this.mouseUpHandler = () => {
             if (this.isWriting)
                 return;
             console.log("not writing");
@@ -246,7 +216,7 @@ class DrawingCanvas {
             this.context.closePath();
         };
         //Runs whenever mouse moves
-        this.draw = (e) => {
+        this.mouseMoveHandler = (e) => {
             if (!this.isDrawing && !this.isErasing)
                 return;
             //Check if event is touch or mouse
@@ -293,27 +263,30 @@ class DrawingCanvas {
         //Add eventlisteners to canvas
         this.listen();
     }
-    //Since element props are read only we have to have method
-    setElement(propName, element) {
-        this[propName] = element;
-    }
     //Listen for events on given canvas
     listen() {
         const canvas = this.canvas;
         const controller = this.controller;
-        canvas.addEventListener("mousedown", this.start);
-        canvas.addEventListener("mouseup", this.stop);
-        canvas.addEventListener("mousemove", this.draw);
-        canvas.addEventListener("touchstart", this.start);
-        canvas.addEventListener("touchend", this.stop);
-        canvas.addEventListener("touchmove", this.draw);
+        canvas.addEventListener("mousedown", this.pressDownHandler);
+        canvas.addEventListener("mouseup", this.mouseUpHandler);
+        canvas.addEventListener("mousemove", this.mouseMoveHandler);
+        canvas.addEventListener("touchstart", this.pressDownHandler);
+        canvas.addEventListener("touchend", this.mouseUpHandler);
+        canvas.addEventListener("touchmove", this.mouseMoveHandler);
         controller === null || controller === void 0 ? void 0 : controller.addEventListener("change", this.changeHandler);
-        controller === null || controller === void 0 ? void 0 : controller.addEventListener("click", this.clickHandler);
+        controller === null || controller === void 0 ? void 0 : controller.addEventListener("click", this.toolSelectHandler);
     }
-    compareTargetToElement(target, element, callBack) {
+    //Since element props are read only we have to have method
+    assignToProp(propName, element) {
+        this[propName] = element;
+    }
+    targetIs(element, target) {
         if ((target.id && target.id === element.id) ||
             (target.className && target.className === element.className)) {
-            callBack();
+            return true;
+        }
+        else {
+            return false;
         }
     }
 }
@@ -322,6 +295,10 @@ new DrawingCanvas("drawing-board", {
         {
             type: DrawingElementType.rectangle,
             className: "rectanglea",
+        },
+        {
+            type: DrawingElementType.pencil,
+            id: "pencilID",
         },
     ],
 });
