@@ -7,6 +7,7 @@ enum DrawingElementType {
   clearCanvas = "clearCanvas",
   moveAndResize = "moveAndResize",
   undo = "undo",
+  text = "text",
   rectangle = "rectangle",
 }
 
@@ -19,6 +20,7 @@ interface OptionElementsI {
   readonly clearCanvas: HTMLButtonElement | null;
   readonly moveAndResize: HTMLButtonElement | null;
   readonly undo: HTMLButtonElement | null;
+  readonly text: HTMLButtonElement | null;
   readonly rectangle: HTMLButtonElement | null;
 }
 
@@ -33,31 +35,20 @@ class DrawingCanvas implements OptionElementsI {
   private context: CanvasRenderingContext2D;
 
   //Elements for controlling canvas props
-  readonly controller: HTMLElement | null = document.getElementById(
-    "toolbar"
-  ) as HTMLElement;
-  readonly pencil: HTMLButtonElement | null = document.getElementById(
-    "pencil"
-  ) as HTMLButtonElement;
-  readonly eraser: HTMLButtonElement | null = document.getElementById(
-    "eraser"
-  ) as HTMLButtonElement;
-  readonly colorPicker: HTMLInputElement | null = document.getElementById(
-    "color"
-  ) as HTMLInputElement;
-  readonly lineWidthPicker: HTMLInputElement | null = document.getElementById(
+  readonly controller = document.getElementById("toolbar") as HTMLElement;
+  readonly pencil = document.getElementById("pencil") as HTMLButtonElement;
+  readonly eraser = document.getElementById("eraser") as HTMLButtonElement;
+  readonly colorPicker = document.getElementById("color") as HTMLInputElement;
+  readonly lineWidthPicker = document.getElementById(
     "lineWidth"
   ) as HTMLInputElement;
-  readonly clearCanvas: HTMLButtonElement | null = document.getElementById(
-    "clear"
-  ) as HTMLButtonElement;
-  readonly moveAndResize: HTMLButtonElement | null = document.getElementById(
+  readonly clearCanvas = document.getElementById("clear") as HTMLButtonElement;
+  readonly moveAndResize = document.getElementById(
     "mv-rz"
   ) as HTMLButtonElement;
-  readonly undo: HTMLButtonElement | null = document.getElementById(
-    "undo"
-  ) as HTMLButtonElement;
-  readonly rectangle: HTMLButtonElement | null = document.getElementById(
+  readonly undo = document.getElementById("undo") as HTMLButtonElement;
+  readonly text = document.getElementById("text") as HTMLButtonElement;
+  readonly rectangle = document.getElementById(
     "rectangle"
   ) as HTMLButtonElement;
 
@@ -65,10 +56,12 @@ class DrawingCanvas implements OptionElementsI {
   private isDrawing: boolean;
   private isErasing: boolean;
   private isMovingAndResizing: boolean;
+  private isWriting: boolean;
 
   private shouldDraw: boolean;
   private shouldErase: boolean;
   private shouldMoveAndResize: boolean;
+  private shouldWrite: boolean;
 
   //States for tracking drawing data
   private index = -1;
@@ -93,9 +86,7 @@ class DrawingCanvas implements OptionElementsI {
 
     //Check if any elements are passed
     if (options?.elements) {
-      //IF any elements are passed
       //THEN loop through each element and reassign element props
-      // options.elements.forEach((element) => this.storeElements(element));
       options.elements.forEach((element) => this.storeElements(element));
     }
 
@@ -194,7 +185,7 @@ class DrawingCanvas implements OptionElementsI {
     const clearCanvas = this.clearCanvas;
     const moveAndResize = this.moveAndResize;
     const undo = this.undo;
-    const rectangle = this.rectangle;
+    const text = this.text;
 
     const context = this.context;
 
@@ -232,10 +223,11 @@ class DrawingCanvas implements OptionElementsI {
       this.compareTargetToElement(target, pen, () => {
         eraser?.classList.remove("active");
         moveAndResize?.classList.remove("active");
-        rectangle?.classList.remove("active");
+        text?.classList.remove("active");
 
         this.shouldErase = false;
         this.shouldMoveAndResize = false;
+        this.shouldWrite = false;
 
         this.shouldDraw = true;
 
@@ -248,10 +240,11 @@ class DrawingCanvas implements OptionElementsI {
       this.compareTargetToElement(target, eraser, () => {
         pen?.classList.remove("active");
         moveAndResize?.classList.remove("active");
-        rectangle?.classList.remove("active");
+        text?.classList.remove("active");
 
         this.shouldDraw = false;
         this.shouldMoveAndResize = false;
+        this.shouldWrite = false;
 
         this.shouldErase = true;
 
@@ -263,10 +256,11 @@ class DrawingCanvas implements OptionElementsI {
       this.compareTargetToElement(target, moveAndResize, () => {
         pen?.classList.remove("active");
         eraser?.classList.remove("active");
-        rectangle?.classList.remove("active");
+        text?.classList.remove("active");
 
         this.shouldErase = false;
         this.shouldDraw = false;
+        this.shouldWrite = false;
 
         this.shouldMoveAndResize = true;
 
@@ -274,17 +268,19 @@ class DrawingCanvas implements OptionElementsI {
       });
     }
 
-    if (rectangle) {
-      this.compareTargetToElement(target, rectangle, () => {
+    if (text) {
+      this.compareTargetToElement(target, text, () => {
         pen?.classList.remove("active");
         eraser?.classList.remove("active");
         moveAndResize?.classList.remove("active");
 
-        this.shouldErase = false;
         this.shouldDraw = false;
-        this.shouldMoveAndResize = true;
+        this.shouldErase = false;
+        this.shouldMoveAndResize = false;
 
-        rectangle?.classList.add("active");
+        this.shouldWrite = true;
+
+        text?.classList.add("active");
       });
     }
   };
@@ -309,6 +305,8 @@ class DrawingCanvas implements OptionElementsI {
 
   //Runs whenever mouse is clicked
   private start = (e: MouseEvent | TouchEvent) => {
+    if (!this.isErasing) this.context.globalCompositeOperation = "source-over";
+    if (this.isWriting) return;
     //Check if event is touch or mouse
     const evtType = (e as TouchEvent).touches
       ? (e as TouchEvent).touches[0]
@@ -317,7 +315,7 @@ class DrawingCanvas implements OptionElementsI {
     const mouseY = evtType.clientY - this.canvas.offsetTop;
     const mouseX = evtType.clientX - this.canvas.offsetLeft;
 
-    //If eraser has been selected
+    //IF element has been selected when we click on canvas
     if (this.shouldErase) {
       this.context.globalCompositeOperation = "destination-out";
 
@@ -325,6 +323,7 @@ class DrawingCanvas implements OptionElementsI {
 
       this.isDrawing = false;
       this.isMovingAndResizing = false;
+      this.isWriting = false;
     } else if (this.shouldDraw) {
       this.context.globalCompositeOperation = "source-over";
 
@@ -332,11 +331,55 @@ class DrawingCanvas implements OptionElementsI {
 
       this.isErasing = false;
       this.isMovingAndResizing = false;
-    } else {
+      this.isWriting = false;
+    } else if (this.shouldMoveAndResize) {
       this.isMovingAndResizing = true;
+      if (this.context.isPointInPath(mouseX, mouseY)) {
+        console.log("yes");
+      } else {
+        console.log("no");
+      }
 
       this.isDrawing = false;
       this.isErasing = false;
+      this.isWriting = false;
+    } else if (this.shouldWrite) {
+      this.isWriting = true;
+
+      const canvasContainer = <HTMLElement>(
+        document.querySelector(".drawing-board")
+      );
+
+      const textInput = document.createElement("input");
+
+      //IF there is already a text input remove the text input
+      if (canvasContainer.children.length >= 2) {
+        canvasContainer.removeChild(canvasContainer.lastChild as ChildNode);
+        window.setTimeout(() => textInput.focus(), 0);
+      }
+
+      //Give proper styles and attr
+      textInput.setAttribute("type", "text");
+      textInput.setAttribute("autofocus", "true");
+      textInput.style.position = "fixed";
+      textInput.style.top = `${evtType.clientY}px`;
+      textInput.style.left = `${evtType.clientX}px`;
+      textInput.id = "textInput";
+      //Runs whenever we save text
+      textInput.addEventListener("blur", () => {
+        this.isWriting = false;
+        this.context.font = "30px sans-serif";
+
+        this.context.fillText(textInput.value, mouseX, mouseY);
+        canvasContainer.removeChild(textInput);
+        console.log("yes");
+      });
+
+      canvasContainer?.appendChild(textInput);
+      // this.context.fillText("Hello World!", mouseX, mouseY);
+      this.isDrawing = false;
+      this.isErasing = false;
+      this.isMovingAndResizing = false;
     }
     //Begin new path
     this.context.beginPath();
@@ -344,10 +387,12 @@ class DrawingCanvas implements OptionElementsI {
 
   //Runs whenever mouse is released
   private stop = () => {
+    if (this.isWriting) return;
+    console.log("not writing");
     this.isDrawing = false;
     this.isErasing = false;
     this.isMovingAndResizing = false;
-
+    this.isWriting = false;
     //Get index and data from current stroke and save
     this.index++;
     this.drawingData.push(
@@ -361,6 +406,7 @@ class DrawingCanvas implements OptionElementsI {
 
   //Runs whenever mouse moves
   private draw = (e: MouseEvent | TouchEvent) => {
+    if (!this.isDrawing && !this.isErasing) return;
     //Check if event is touch or mouse
     const evtType = (e as TouchEvent).touches
       ? (e as TouchEvent).touches[0]
@@ -375,7 +421,6 @@ class DrawingCanvas implements OptionElementsI {
     //   console.log("no");
     // }
     //IF we are not drawing or erasing
-    if (!this.isDrawing && !this.isErasing && !this.isMovingAndResizing) return;
 
     this.context.lineCap = "round";
     this.context.lineTo(
@@ -410,11 +455,6 @@ new DrawingCanvas("drawing-board", {
     {
       type: DrawingElementType.rectangle,
       className: "rectanglea",
-    },
-    {
-      type: DrawingElementType.pencil,
-      id: "pencilID",
-      className: "pencil",
     },
   ],
 });
