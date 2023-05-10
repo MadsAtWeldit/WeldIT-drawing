@@ -146,6 +146,7 @@ class DrawingCanvas {
             const mouseX = evtType.clientX - this.canvas.offsetLeft;
             //IF element has been selected when we click on canvas
             if (this.shouldErase) {
+                //console.log("should erase")
                 this.context.globalCompositeOperation = "destination-out";
                 this.isErasing = true;
                 this.isDrawing = false;
@@ -175,13 +176,16 @@ class DrawingCanvas {
                 //Set focus on textInput
                 window.setTimeout(() => textInput.focus(), 0);
                 const canvasContainer = (document.querySelector(".drawing-board"));
-                const textInput = document.createElement("input");
-                //Give proper styles and attr
-                textInput.setAttribute("type", "text");
-                textInput.style.position = "fixed";
-                textInput.style.top = `${evtType.clientY}px`;
-                textInput.style.left = `${evtType.clientX}px`;
-                textInput.id = "textInput";
+                const textInput = this.createPersonalElement("input", "text", {
+                    position: "fixed",
+                    top: `${evtType.clientY}px`,
+                    left: `${evtType.clientX}px`,
+                    background: "transparent",
+                    outline: "none",
+                    border: "none",
+                    "font-size": "30px",
+                    "font-family": "sans-serif",
+                });
                 //Runs whenever we save text
                 textInput.addEventListener("blur", () => {
                     this.context.textBaseline = "top";
@@ -189,6 +193,15 @@ class DrawingCanvas {
                     this.context.fillText(textInput.value, mouseX, mouseY);
                     canvasContainer.removeChild(textInput);
                     this.isWriting = false;
+                });
+                textInput.addEventListener("keypress", (e) => {
+                    if (e.key === "Enter") {
+                        this.context.textBaseline = "top";
+                        this.context.font = "30px sans-serif";
+                        this.context.fillText(textInput.value, mouseX, mouseY);
+                        canvasContainer.removeChild(textInput);
+                        this.isWriting = false;
+                    }
                 });
                 canvasContainer === null || canvasContainer === void 0 ? void 0 : canvasContainer.appendChild(textInput);
                 this.isWriting = true;
@@ -235,6 +248,22 @@ class DrawingCanvas {
             this.context.lineTo(evtType.clientX - this.canvas.offsetLeft, evtType.clientY - this.canvas.offsetTop);
             //Save stroke
             this.context.stroke();
+        };
+        this.createPersonalElement = (tagName, type, styles) => {
+            const element = document.createElement(tagName);
+            if (type)
+                element.setAttribute("type", type);
+            if (styles) {
+                const keys = [];
+                //THEN loop through key and values
+                for (const [k, v] of Object.entries(styles)) {
+                    keys.push(k + ":");
+                    keys.push(v + ";");
+                }
+                //Apply styles
+                element.setAttribute("style", keys.join(" "));
+            }
+            return element;
         };
         //Select canvas element
         const canvas = document.getElementById(elementId);
