@@ -37,7 +37,7 @@ class DrawingCanvas {
         this.shouldWrite = false;
         //States for tracking drawing data
         this.index = -1;
-        this.drawingData = [];
+        this.selectedPathIndex = null;
         //Create default path object
         this.pathObject = {
             path: new Path2D(),
@@ -46,6 +46,8 @@ class DrawingCanvas {
             operation: "source-over",
         };
         this.pathData = [];
+        this.startX = 0;
+        this.startY = 0;
         //Runs for each element passed to options
         this.storeElements = (currentElement) => {
             //Loop through class props
@@ -71,13 +73,10 @@ class DrawingCanvas {
             const lineWidthPicker = this.lineWidthPicker;
             const context = this.context;
             if (colorPicker && this.targetIs(colorPicker, target)) {
-                console.log(this.pathObject);
-                // this.context.strokeStyle = target.value;
                 //Change current path object strokeStyle
                 this.pathObject.strokeStyle = target.value;
             }
             if (lineWidthPicker && this.targetIs(lineWidthPicker, target)) {
-                // this.context.lineWidth = Number(target.value);
                 this.pathObject.lineWidth = Number(target.value);
             }
         };
@@ -107,18 +106,9 @@ class DrawingCanvas {
                 else {
                     //Remove last data
                     this.index -= 1;
-                    // this.drawingData.pop();
                     this.pathData.pop();
-                    //Clear previous canvas and redraw
-                    context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-                    this.pathData.forEach((path) => {
-                        this.context.lineWidth = path.lineWidth;
-                        this.context.strokeStyle = path.strokeStyle;
-                        this.context.globalCompositeOperation = path.operation;
-                        this.context.stroke(path.path);
-                    });
-                    // //RE render
-                    // context.putImageData(this.drawingData[this.index], 0, 0);
+                    //Clear and redraw paths
+                    this.redraw(this.pathData);
                 }
             }
             if (pen && this.targetIs(pen, target)) {
@@ -163,11 +153,13 @@ class DrawingCanvas {
                 : e;
             const mouseY = evtType.clientY - this.canvas.offsetTop;
             const mouseX = evtType.clientX - this.canvas.offsetLeft;
+            //Store starting positions
+            this.startX = mouseX;
+            this.startY = mouseY;
             //Start path at click position
             (_a = this.pathObject.path) === null || _a === void 0 ? void 0 : _a.moveTo(mouseX, mouseY);
             //IF element has been selected when we click on canvas
             if (this.shouldErase) {
-                this.context.globalCompositeOperation = "destination-out";
                 this.pathObject.operation = "destination-out";
                 this.isErasing = true;
                 this.isDrawing = false;
@@ -175,7 +167,7 @@ class DrawingCanvas {
                 this.isWriting = false;
             }
             if (this.shouldDraw) {
-                this.context.globalCompositeOperation = "source-over";
+                this.pathObject.operation = "source-over";
                 this.isDrawing = true;
                 this.isErasing = false;
                 this.isMovingAndResizing = false;
@@ -186,6 +178,17 @@ class DrawingCanvas {
                 this.isDrawing = false;
                 this.isErasing = false;
                 this.isWriting = false;
+                //IF no paths
+                if (this.pathData.length <= 0)
+                    return;
+                this.pathData.forEach((path, i) => {
+                    if (this.context.isPointInPath(path.path, mouseX, mouseY)) {
+                        this.selectedPathIndex = i;
+                    }
+                    else {
+                        return;
+                    }
+                });
             }
             if (this.shouldWrite) {
                 const canvasContainer = (document.querySelector(".drawing-board"));
@@ -219,7 +222,14 @@ class DrawingCanvas {
                     if (e.key === "Enter") {
                         textInput.blur();
                         this.index = this.incOrDec(this.index, "increment", 1);
-                        this.drawingData.push(this.context.getImageData(0, 0, this.canvas.width, this.canvas.height));
+                        // this.drawingData.push(
+                        //   this.context.getImageData(
+                        //     0,
+                        //     0,
+                        //     this.canvas.width,
+                        //     this.canvas.height
+                        //   )
+                        // );
                     }
                 });
                 canvasContainer === null || canvasContainer === void 0 ? void 0 : canvasContainer.appendChild(textInput);
@@ -231,6 +241,11 @@ class DrawingCanvas {
         this.mouseUpHandler = () => {
             if (this.isWriting)
                 return;
+            if (this.isMovingAndResizing) {
+                this.isMovingAndResizing = false;
+                this.selectedPathIndex = null;
+                return;
+            }
             this.isDrawing = false;
             this.isErasing = false;
             this.isMovingAndResizing = false;
@@ -246,12 +261,7 @@ class DrawingCanvas {
                 strokeStyle: String(this.context.strokeStyle),
                 operation: "source-over",
             };
-            this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-            this.pathData.forEach((path) => {
-                this.context.lineWidth = path.lineWidth;
-                this.context.strokeStyle = path.strokeStyle;
-                this.context.stroke(path.path);
-            });
+            this.redraw(this.pathData);
             //Save stroke
             // this.context.stroke();
             // this.context.closePath();
@@ -262,29 +272,30 @@ class DrawingCanvas {
             const evtType = e.touches
                 ? e.touches[0]
                 : e;
+            //Current mouse positions
             const mouseX = evtType.clientX - this.canvas.offsetLeft;
             const mouseY = evtType.clientY - this.canvas.offsetTop;
-            //IF there is pathdata
-            if (this.pathData.length > 0) {
-                this.pathData.forEach((path, i) => {
-                    if (path.path &&
-                        this.context.isPointInPath(path.path, mouseX, mouseY)) {
-                        console.log(i);
-                    }
-                    else {
-                        console.log("not in path");
-                    }
-                });
+            if (this.isMovingAndResizing) {
+                //IF there is no selected element
+                if (this.selectedPathIndex === null)
+                    return;
+                const dx = mouseX - this.startX;
+                const dy = mouseY - this.startY;
+                //Get current path
+                const selectedPath = this.pathData[this.selectedPathIndex];
+                //Create new path from existing path
+                const newPath = new Path2D();
+                const m = new DOMMatrix().translate(dx, dy);
+                newPath.addPath(selectedPath.path, m);
+                selectedPath.path = newPath;
+                this.redraw(this.pathData);
+                //Set start positions to current
+                this.startX = mouseX;
+                this.startY = mouseY;
             }
             if (!this.isDrawing && !this.isErasing)
                 return;
-            this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-            this.pathData.forEach((path) => {
-                this.context.lineWidth = path.lineWidth;
-                this.context.strokeStyle = path.strokeStyle;
-                this.context.globalCompositeOperation = path.operation;
-                this.context.stroke(path.path);
-            });
+            this.redraw(this.pathData);
             //Before stroking set lineWidth and color
             this.context.lineCap = "round";
             this.context.lineWidth = this.pathObject.lineWidth;
@@ -341,8 +352,6 @@ class DrawingCanvas {
         this.canvas = canvas;
         this.context = context;
         //Assign default values
-        this.context.lineWidth = 5;
-        this.context.strokeStyle = "black";
         this.canvas.style.cursor = "crosshair";
         (_a = this.pencil) === null || _a === void 0 ? void 0 : _a.classList.add("active");
         this.shouldDraw = true;
@@ -362,13 +371,18 @@ class DrawingCanvas {
         controller === null || controller === void 0 ? void 0 : controller.addEventListener("change", this.changeHandler);
         controller === null || controller === void 0 ? void 0 : controller.addEventListener("click", this.toolSelectHandler);
     }
-    // private redraw() {
-    //   for (let i = 0; i < this.pathData.length; i++) {
-    //     this.context.strokeStyle = this.pathData[i].strokeStyle;
-    //     this.context.lineWidth = this.pathData[i].lineWidth;
-    //     this.context.stroke(this.pathData[i].path as Path2D);
-    //   }
-    // }
+    //Loop each pathObject and redraw corresponding Path2D
+    redraw(pathData) {
+        this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        if (pathData.length <= 0)
+            return;
+        pathData.forEach((path) => {
+            this.context.lineWidth = path.lineWidth;
+            this.context.strokeStyle = path.strokeStyle;
+            this.context.globalCompositeOperation = path.operation;
+            this.context.stroke(path.path);
+        });
+    }
     assignToProp(propName, element) {
         this[propName] = element;
     }
