@@ -243,6 +243,7 @@ class DrawingCanvas implements OptionElementsI {
     }
 
     if (pen && this.targetIs(pen, target)) {
+      this.canvas.style.cursor = "crosshair";
       this.handleToggle(
         [{ element: pen, stateName: "shouldDraw" }],
         [
@@ -254,6 +255,7 @@ class DrawingCanvas implements OptionElementsI {
     }
 
     if (eraser && this.targetIs(eraser, target)) {
+      this.canvas.style.cursor = "crosshair";
       this.handleToggle(
         [{ element: eraser, stateName: "shouldErase" }],
         [
@@ -440,6 +442,7 @@ class DrawingCanvas implements OptionElementsI {
     };
 
     this.redraw(this.pathData);
+    console.log("stored and redrawn");
     //Save stroke
     // this.context.stroke();
     // this.context.closePath();
@@ -454,6 +457,16 @@ class DrawingCanvas implements OptionElementsI {
     //Current mouse positions
     const mouseX = evtType.clientX - this.canvas.offsetLeft;
     const mouseY = evtType.clientY - this.canvas.offsetTop;
+
+    if (this.shouldMoveAndResize) {
+      this.canvas.style.cursor = "default";
+
+      this.pathData.forEach((path) => {
+        if (this.context.isPointInPath(path.path, mouseX, mouseY)) {
+          this.canvas.style.cursor = "move";
+        }
+      });
+    }
 
     if (this.isMovingAndResizing) {
       //IF there is no selected element

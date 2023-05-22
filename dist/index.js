@@ -112,6 +112,7 @@ class DrawingCanvas {
                 }
             }
             if (pen && this.targetIs(pen, target)) {
+                this.canvas.style.cursor = "crosshair";
                 this.handleToggle([{ element: pen, stateName: "shouldDraw" }], [
                     { element: eraser, stateName: "shouldErase" },
                     { element: moveAndResize, stateName: "shouldMoveAndResize" },
@@ -119,6 +120,7 @@ class DrawingCanvas {
                 ]);
             }
             if (eraser && this.targetIs(eraser, target)) {
+                this.canvas.style.cursor = "crosshair";
                 this.handleToggle([{ element: eraser, stateName: "shouldErase" }], [
                     { element: pen, stateName: "shouldDraw" },
                     { element: moveAndResize, stateName: "shouldMoveAndResize" },
@@ -262,6 +264,7 @@ class DrawingCanvas {
                 operation: "source-over",
             };
             this.redraw(this.pathData);
+            console.log("stored and redrawn");
             //Save stroke
             // this.context.stroke();
             // this.context.closePath();
@@ -275,6 +278,14 @@ class DrawingCanvas {
             //Current mouse positions
             const mouseX = evtType.clientX - this.canvas.offsetLeft;
             const mouseY = evtType.clientY - this.canvas.offsetTop;
+            if (this.shouldMoveAndResize) {
+                this.canvas.style.cursor = "default";
+                this.pathData.forEach((path) => {
+                    if (this.context.isPointInPath(path.path, mouseX, mouseY)) {
+                        this.canvas.style.cursor = "move";
+                    }
+                });
+            }
             if (this.isMovingAndResizing) {
                 //IF there is no selected element
                 if (this.selectedPathIndex === null)
