@@ -50,8 +50,10 @@ interface TextElement {
   text: string;
   font: string;
   baseline: string;
-  x: number;
-  y: number;
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
   operation: "source-over" | "destination-out";
 }
 
@@ -114,8 +116,10 @@ class DrawingCanvas implements OptionElementsI {
     text: "",
     font: "30px sans-serif",
     baseline: "top",
-    x: 0,
-    y: 0,
+    x1: 0,
+    y1: 0,
+    x2: 0,
+    y2: 0,
     operation: "source-over",
   };
 
@@ -301,6 +305,7 @@ class DrawingCanvas implements OptionElementsI {
     }
 
     if (text && this.targetIs(text, target)) {
+      this.canvas.style.cursor = "text";
       this.handleToggle(
         [{ element: text, stateName: "shouldWrite" }],
         [
@@ -360,12 +365,27 @@ class DrawingCanvas implements OptionElementsI {
       //IF no paths
       if (this.drawingData.length <= 0) return;
 
-      this.drawingData.forEach((path, i) => {
-        if (path.type === "stroke") {
-          if (this.context.isPointInPath(path.path, mouseX, mouseY)) {
+      this.drawingData.forEach((drawing, i) => {
+        if (drawing.type === "stroke") {
+          if (this.context.isPointInPath(drawing.path, mouseX, mouseY)) {
             this.selectedDrawingIndex = i;
           } else {
             return;
+          }
+        }
+
+        if (drawing.type === "text") {
+          if (
+            this.mouseInShape(
+              mouseX,
+              mouseY,
+              drawing.x1,
+              drawing.x2,
+              drawing.y1,
+              drawing.y2
+            )
+          ) {
+            this.selectedDrawingIndex = i;
           }
         }
       });
@@ -404,20 +424,33 @@ class DrawingCanvas implements OptionElementsI {
 
       //Runs whenever we unfocus input
       textInput.addEventListener("blur", () => {
-        // this.context.textBaseline = "top";
-        // this.context.font = "30px sans-serif";
-
-        // this.context.fillText(textInput.value, mouseX, mouseY);
-        // const textMeasure = this.context.measureText(textInput.value);
-
-        // canvasContainer.removeChild(textInput);
-        // this.isWriting = false;
-
+        this.redraw(this.drawingData);
         //Store values
-        this.textObject.x = mouseX;
-        this.textObject.y = mouseY;
+        this.textObject.x1 = mouseX;
+        this.textObject.y1 = mouseY;
         this.textObject.text = textInput.value;
 
+        //Set context props
+        this.context.textBaseline = this.textObject
+          .baseline as CanvasTextBaseline;
+        this.context.font = this.textObject.font;
+        this.context.globalCompositeOperation = this.textObject.operation;
+        //Draw text
+        this.context.fillText(
+          this.textObject.text,
+          this.textObject.x1,
+          this.textObject.y1
+        );
+        //Measure the drawn text
+        const textWidth = this.context.measureText(textInput.value).width;
+        const textHeight =
+          this.context.measureText(textInput.value).actualBoundingBoxAscent +
+          this.context.measureText(textInput.value).actualBoundingBoxDescent;
+
+        this.textObject.x2 = Math.round(this.textObject.x1 + textWidth);
+        this.textObject.y2 = Math.round(this.textObject.y1 + textHeight);
+
+        // console.log(this.textObject.x1, this.textObject.x2);
         //Save and store index
         this.index = this.incOrDec(this.index, "increment", 1);
         this.drawingData.push(this.textObject);
@@ -433,12 +466,12 @@ class DrawingCanvas implements OptionElementsI {
           text: "",
           font: "30px sans-serif",
           baseline: "top",
-          x: 0,
-          y: 0,
+          x1: 0,
+          y1: 0,
+          x2: 0,
+          y2: 0,
           operation: "source-over",
         };
-
-        this.redraw(this.drawingData);
       });
 
       textInput.addEventListener("keypress", (e: KeyboardEvent) => {
@@ -516,6 +549,20 @@ class DrawingCanvas implements OptionElementsI {
             this.canvas.style.cursor = "move";
           }
         }
+        if (drawing.type === "text") {
+          if (
+            this.mouseInShape(
+              mouseX,
+              mouseY,
+              drawing.x1,
+              drawing.x2,
+              drawing.y1,
+              drawing.y2
+            )
+          ) {
+            this.canvas.style.cursor = "move";
+          }
+        }
       });
     }
 
@@ -536,6 +583,15 @@ class DrawingCanvas implements OptionElementsI {
         newPath.addPath(selectedPath.path, m);
 
         selectedPath.path = newPath;
+      }
+
+      if (selectedPath.type === "text") {
+        //Assign new coordinates
+        selectedPath.x1 += dx;
+        selectedPath.y1 += dy;
+
+        selectedPath.x2 += dx;
+        selectedPath.y2 += dy;
       }
 
       this.redraw(this.drawingData);
@@ -561,6 +617,20 @@ class DrawingCanvas implements OptionElementsI {
     this.context.stroke(this.pathObject.path);
   };
 
+  //Checks if given point is in given shape
+  private mouseInShape(
+    mouseX: number,
+    mouseY: number,
+    x1: number,
+    x2: number,
+    y1: number,
+    y2: number
+  ) {
+    if (mouseX >= x1 && mouseX <= x2 && mouseY >= y1 && mouseY <= y2)
+      return true;
+
+    return false;
+  }
   //Loop each pathObject and redraw corresponding Path2D
   private redraw(drawingData: DrawingElements[]) {
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -579,7 +649,8 @@ class DrawingCanvas implements OptionElementsI {
         this.context.textBaseline = drawing.baseline as CanvasTextBaseline;
         this.context.font = drawing.font;
         this.context.globalCompositeOperation = drawing.operation;
-        this.context.fillText(drawing.text, drawing.x, drawing.y);
+
+        this.context.fillText(drawing.text, drawing.x1, drawing.y1);
       }
     });
   }
