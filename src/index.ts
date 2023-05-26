@@ -103,8 +103,6 @@ class DrawingCanvas implements OptionElementsI {
   private shouldMoveAndResize = false;
   private shouldWrite = false;
 
-  private hasWritten = false;
-
   private index = -1;
   private selectedDrawingIndex: number | null = null;
 
@@ -127,7 +125,7 @@ class DrawingCanvas implements OptionElementsI {
   private textObject: TextElement = {
     type: "text",
     text: "",
-    font: "30px sans-serif",
+    font: "30pt sans-serif",
     baseline: "top",
     x1: 0,
     y1: 0,
@@ -249,6 +247,7 @@ class DrawingCanvas implements OptionElementsI {
 
   //Controller click handler
   private toolSelectHandler = (e: MouseEvent) => {
+    this.selectedDrawingIndex = null;
     const target = e.target as HTMLButtonElement;
 
     const pen = this.pencil;
@@ -381,17 +380,60 @@ class DrawingCanvas implements OptionElementsI {
       //IF no paths
       if (this.drawingData.length <= 0) return;
 
-      //Check if cursor is in path
+      //IF there is a selected drawing
+      if (this.selectedDrawingIndex !== null) {
+        const selected = this.drawingData[this.selectedDrawingIndex];
+
+        if (
+          this.mouseInShape(
+            mouseX,
+            mouseY,
+            selected.x1,
+            selected.x2,
+            selected.y1,
+            selected.y2
+          )
+        )
+          return;
+
+        //THEN loop each drawing
+        this.drawingData.forEach((drawing, i) => {
+          if (drawing.type === "stroke") {
+            if (this.context.isPointInPath(drawing.path, mouseX, mouseY)) {
+              this.selectedDrawingIndex = i;
+              this.redraw(this.drawingData);
+            } else {
+              this.selectedDrawingIndex = null;
+              this.redraw(this.drawingData);
+            }
+          }
+          if (drawing.type === "text") {
+            if (
+              this.mouseInShape(
+                mouseX,
+                mouseY,
+                drawing.x1,
+                drawing.x2,
+                drawing.y1,
+                drawing.y2
+              )
+            ) {
+              this.selectedDrawingIndex = i;
+              this.redraw(this.drawingData);
+            } else {
+              this.selectedDrawingIndex = null;
+              this.redraw(this.drawingData);
+            }
+          }
+        });
+      }
+
+      //IF there is no selected drawing
       this.drawingData.forEach((drawing, i) => {
         if (drawing.type === "stroke") {
           if (this.context.isPointInPath(drawing.path, mouseX, mouseY)) {
             this.selectedDrawingIndex = i;
-
-            //Redraw and draw rect on the selected drawing
             this.redraw(this.drawingData);
-          } else {
-            this.redraw(this.drawingData);
-            return;
           }
         }
 
@@ -407,6 +449,7 @@ class DrawingCanvas implements OptionElementsI {
             )
           ) {
             this.selectedDrawingIndex = i;
+            this.redraw(this.drawingData);
           }
         }
       });
@@ -428,7 +471,7 @@ class DrawingCanvas implements OptionElementsI {
           background: "transparent",
           outline: "none",
           border: "none",
-          "font-size": "30px",
+          "font-size": "30pt",
           "font-family": "sans-serif",
         }
       );
@@ -446,32 +489,32 @@ class DrawingCanvas implements OptionElementsI {
       //Runs whenever we unfocus input
       textInput.addEventListener("blur", () => {
         this.redraw(this.drawingData);
-        //Store values
+        //Set start cords and text
         this.textObject.x1 = mouseX;
         this.textObject.y1 = mouseY;
         this.textObject.text = textInput.value;
 
-        //Set context props
+        //Set context props based on current text
         this.context.textBaseline = this.textObject
           .baseline as CanvasTextBaseline;
         this.context.font = this.textObject.font;
         this.context.globalCompositeOperation = this.textObject.operation;
+
         //Draw text
         this.context.fillText(
           this.textObject.text,
           this.textObject.x1,
           this.textObject.y1
         );
+
         //Measure the drawn text
         const textWidth = this.context.measureText(textInput.value).width;
-        const textHeight =
-          this.context.measureText(textInput.value).actualBoundingBoxAscent +
-          this.context.measureText(textInput.value).actualBoundingBoxDescent;
+        const textHeight = parseInt(this.context.font);
 
+        //Assign right and bottom coords
         this.textObject.x2 = Math.round(this.textObject.x1 + textWidth);
         this.textObject.y2 = Math.round(this.textObject.y1 + textHeight);
 
-        // console.log(this.textObject.x1, this.textObject.x2);
         //Save and store index
         this.index = this.incOrDec(this.index, "increment", 1);
         this.drawingData.push(this.textObject);
@@ -479,13 +522,12 @@ class DrawingCanvas implements OptionElementsI {
         canvasContainer.removeChild(textInput);
 
         this.isWriting = false;
-        this.hasWritten = true;
 
         //Set new text object
         this.textObject = {
           type: "text",
           text: "",
-          font: "30px sans-serif",
+          font: "30pt sans-serif",
           baseline: "top",
           x1: 0,
           y1: 0,
@@ -498,6 +540,7 @@ class DrawingCanvas implements OptionElementsI {
       textInput.addEventListener("keypress", (e: KeyboardEvent) => {
         if (e.key === "Enter") {
           textInput.blur();
+          console.log(this.isWriting);
         }
       });
 
@@ -510,19 +553,11 @@ class DrawingCanvas implements OptionElementsI {
 
   //Runs whenever mouse is released
   private mouseUpHandler = () => {
-    if (this.isWriting) return;
-
-    //IF we have written some text we return so it doesnt add another pathobject
-    if (this.hasWritten) {
-      this.hasWritten = false;
-      return;
-    }
-
     if (this.isMovingAndResizing) {
       this.isMovingAndResizing = false;
 
       //No longer selecting anything
-      this.selectedDrawingIndex = null;
+      // this.selectedDrawingIndex = null;
       return;
     }
 
@@ -572,11 +607,9 @@ class DrawingCanvas implements OptionElementsI {
         xCords: [],
         yCords: [],
       };
-
-      this.redraw(this.drawingData);
     }
-
     this.redraw(this.drawingData);
+
     //Save stroke
     // this.context.stroke();
     // this.context.closePath();
@@ -595,9 +628,20 @@ class DrawingCanvas implements OptionElementsI {
     if (this.shouldMoveAndResize) {
       this.canvas.style.cursor = "default";
 
-      this.drawingData.forEach((drawing) => {
+      this.drawingData.forEach((drawing, i) => {
         if (drawing.type === "stroke") {
-          if (this.context.isPointInPath(drawing.path, mouseX, mouseY)) {
+          if (
+            this.context.isPointInPath(drawing.path, mouseX, mouseY) ||
+            (this.selectedDrawingIndex === i &&
+              this.mouseInShape(
+                mouseX,
+                mouseY,
+                drawing.x1,
+                drawing.x2,
+                drawing.y1,
+                drawing.y2
+              ))
+          ) {
             this.canvas.style.cursor = "move";
           }
         }
@@ -713,14 +757,13 @@ class DrawingCanvas implements OptionElementsI {
         this.context.stroke(drawing.path);
 
         //Check if there is a selected drawing
-        if (
-          this.selectedDrawingIndex !== null &&
-          this.selectedDrawingIndex === i
-        ) {
+        if (this.selectedDrawingIndex === i) {
           const shapeWidth = drawing.x2 - drawing.x1;
           const shapeHeight = drawing.y2 - drawing.y1;
+
           this.context.strokeStyle = "#7678ed";
           this.context.lineWidth = 1;
+
           this.context.strokeRect(
             drawing.x1,
             drawing.y1,
@@ -735,6 +778,21 @@ class DrawingCanvas implements OptionElementsI {
         this.context.globalCompositeOperation = drawing.operation;
 
         this.context.fillText(drawing.text, drawing.x1, drawing.y1);
+
+        if (this.selectedDrawingIndex === i) {
+          const shapeWidth = drawing.x2 - drawing.x1;
+          const shapeHeight = drawing.y2 - drawing.y1;
+
+          this.context.strokeStyle = "#7678ed";
+          this.context.lineWidth = 1;
+
+          this.context.strokeRect(
+            drawing.x1,
+            drawing.y1,
+            shapeWidth,
+            shapeHeight
+          );
+        }
       }
     });
   }

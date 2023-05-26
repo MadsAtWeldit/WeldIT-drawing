@@ -35,7 +35,6 @@ class DrawingCanvas {
         this.shouldErase = false;
         this.shouldMoveAndResize = false;
         this.shouldWrite = false;
-        this.hasWritten = false;
         this.index = -1;
         this.selectedDrawingIndex = null;
         //Create default path object
@@ -56,7 +55,7 @@ class DrawingCanvas {
         this.textObject = {
             type: "text",
             text: "",
-            font: "30px sans-serif",
+            font: "30pt sans-serif",
             baseline: "top",
             x1: 0,
             y1: 0,
@@ -101,6 +100,7 @@ class DrawingCanvas {
         };
         //Controller click handler
         this.toolSelectHandler = (e) => {
+            this.selectedDrawingIndex = null;
             const target = e.target;
             const pen = this.pencil;
             const eraser = this.eraser;
@@ -201,22 +201,47 @@ class DrawingCanvas {
                 //IF no paths
                 if (this.drawingData.length <= 0)
                     return;
-                //Check if cursor is in path
+                //IF there is a selected drawing
+                if (this.selectedDrawingIndex !== null) {
+                    const selected = this.drawingData[this.selectedDrawingIndex];
+                    if (this.mouseInShape(mouseX, mouseY, selected.x1, selected.x2, selected.y1, selected.y2))
+                        return;
+                    //THEN loop each drawing
+                    this.drawingData.forEach((drawing, i) => {
+                        if (drawing.type === "stroke") {
+                            if (this.context.isPointInPath(drawing.path, mouseX, mouseY)) {
+                                this.selectedDrawingIndex = i;
+                                this.redraw(this.drawingData);
+                            }
+                            else {
+                                this.selectedDrawingIndex = null;
+                                this.redraw(this.drawingData);
+                            }
+                        }
+                        if (drawing.type === "text") {
+                            if (this.mouseInShape(mouseX, mouseY, drawing.x1, drawing.x2, drawing.y1, drawing.y2)) {
+                                this.selectedDrawingIndex = i;
+                                this.redraw(this.drawingData);
+                            }
+                            else {
+                                this.selectedDrawingIndex = null;
+                                this.redraw(this.drawingData);
+                            }
+                        }
+                    });
+                }
+                //IF there is no selected drawing
                 this.drawingData.forEach((drawing, i) => {
                     if (drawing.type === "stroke") {
                         if (this.context.isPointInPath(drawing.path, mouseX, mouseY)) {
                             this.selectedDrawingIndex = i;
-                            //Redraw and draw rect on the selected drawing
                             this.redraw(this.drawingData);
-                        }
-                        else {
-                            this.redraw(this.drawingData);
-                            return;
                         }
                     }
                     if (drawing.type === "text") {
                         if (this.mouseInShape(mouseX, mouseY, drawing.x1, drawing.x2, drawing.y1, drawing.y2)) {
                             this.selectedDrawingIndex = i;
+                            this.redraw(this.drawingData);
                         }
                     }
                 });
@@ -231,7 +256,7 @@ class DrawingCanvas {
                     background: "transparent",
                     outline: "none",
                     border: "none",
-                    "font-size": "30px",
+                    "font-size": "30pt",
                     "font-family": "sans-serif",
                 });
                 //We are now writing
@@ -244,11 +269,11 @@ class DrawingCanvas {
                 //Runs whenever we unfocus input
                 textInput.addEventListener("blur", () => {
                     this.redraw(this.drawingData);
-                    //Store values
+                    //Set start cords and text
                     this.textObject.x1 = mouseX;
                     this.textObject.y1 = mouseY;
                     this.textObject.text = textInput.value;
-                    //Set context props
+                    //Set context props based on current text
                     this.context.textBaseline = this.textObject
                         .baseline;
                     this.context.font = this.textObject.font;
@@ -257,22 +282,20 @@ class DrawingCanvas {
                     this.context.fillText(this.textObject.text, this.textObject.x1, this.textObject.y1);
                     //Measure the drawn text
                     const textWidth = this.context.measureText(textInput.value).width;
-                    const textHeight = this.context.measureText(textInput.value).actualBoundingBoxAscent +
-                        this.context.measureText(textInput.value).actualBoundingBoxDescent;
+                    const textHeight = parseInt(this.context.font);
+                    //Assign right and bottom coords
                     this.textObject.x2 = Math.round(this.textObject.x1 + textWidth);
                     this.textObject.y2 = Math.round(this.textObject.y1 + textHeight);
-                    // console.log(this.textObject.x1, this.textObject.x2);
                     //Save and store index
                     this.index = this.incOrDec(this.index, "increment", 1);
                     this.drawingData.push(this.textObject);
                     canvasContainer.removeChild(textInput);
                     this.isWriting = false;
-                    this.hasWritten = true;
                     //Set new text object
                     this.textObject = {
                         type: "text",
                         text: "",
-                        font: "30px sans-serif",
+                        font: "30pt sans-serif",
                         baseline: "top",
                         x1: 0,
                         y1: 0,
@@ -284,6 +307,7 @@ class DrawingCanvas {
                 textInput.addEventListener("keypress", (e) => {
                     if (e.key === "Enter") {
                         textInput.blur();
+                        console.log(this.isWriting);
                     }
                 });
                 canvasContainer === null || canvasContainer === void 0 ? void 0 : canvasContainer.appendChild(textInput);
@@ -293,17 +317,10 @@ class DrawingCanvas {
         };
         //Runs whenever mouse is released
         this.mouseUpHandler = () => {
-            if (this.isWriting)
-                return;
-            //IF we have written some text we return so it doesnt add another pathobject
-            if (this.hasWritten) {
-                this.hasWritten = false;
-                return;
-            }
             if (this.isMovingAndResizing) {
                 this.isMovingAndResizing = false;
                 //No longer selecting anything
-                this.selectedDrawingIndex = null;
+                // this.selectedDrawingIndex = null;
                 return;
             }
             if (this.isDrawing || this.isErasing) {
@@ -348,7 +365,6 @@ class DrawingCanvas {
                     xCords: [],
                     yCords: [],
                 };
-                this.redraw(this.drawingData);
             }
             this.redraw(this.drawingData);
             //Save stroke
@@ -365,9 +381,11 @@ class DrawingCanvas {
             //IF moving tool is toggled
             if (this.shouldMoveAndResize) {
                 this.canvas.style.cursor = "default";
-                this.drawingData.forEach((drawing) => {
+                this.drawingData.forEach((drawing, i) => {
                     if (drawing.type === "stroke") {
-                        if (this.context.isPointInPath(drawing.path, mouseX, mouseY)) {
+                        if (this.context.isPointInPath(drawing.path, mouseX, mouseY) ||
+                            (this.selectedDrawingIndex === i &&
+                                this.mouseInShape(mouseX, mouseY, drawing.x1, drawing.x2, drawing.y1, drawing.y2))) {
                             this.canvas.style.cursor = "move";
                         }
                     }
@@ -514,8 +532,7 @@ class DrawingCanvas {
                 this.context.globalCompositeOperation = drawing.operation;
                 this.context.stroke(drawing.path);
                 //Check if there is a selected drawing
-                if (this.selectedDrawingIndex !== null &&
-                    this.selectedDrawingIndex === i) {
+                if (this.selectedDrawingIndex === i) {
                     const shapeWidth = drawing.x2 - drawing.x1;
                     const shapeHeight = drawing.y2 - drawing.y1;
                     this.context.strokeStyle = "#7678ed";
@@ -528,6 +545,13 @@ class DrawingCanvas {
                 this.context.font = drawing.font;
                 this.context.globalCompositeOperation = drawing.operation;
                 this.context.fillText(drawing.text, drawing.x1, drawing.y1);
+                if (this.selectedDrawingIndex === i) {
+                    const shapeWidth = drawing.x2 - drawing.x1;
+                    const shapeHeight = drawing.y2 - drawing.y1;
+                    this.context.strokeStyle = "#7678ed";
+                    this.context.lineWidth = 1;
+                    this.context.strokeRect(drawing.x1, drawing.y1, shapeWidth, shapeHeight);
+                }
             }
         });
     }
