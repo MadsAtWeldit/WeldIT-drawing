@@ -33,7 +33,7 @@ class DrawingCanvas {
         this.isWriting = false;
         this.shouldDraw = false;
         this.shouldErase = false;
-        this.shouldMoveAndResize = false;
+        this.shouldMove = false;
         this.shouldWrite = false;
         this.index = -1;
         this.selectedDrawingIndex = null;
@@ -130,7 +130,7 @@ class DrawingCanvas {
                 this.canvas.style.cursor = "crosshair";
                 this.handleToggle([{ element: pen, stateName: "shouldDraw" }], [
                     { element: eraser, stateName: "shouldErase" },
-                    { element: moveAndResize, stateName: "shouldMoveAndResize" },
+                    { element: moveAndResize, stateName: "shouldMove" },
                     { element: text, stateName: "shouldWrite" },
                 ]);
             }
@@ -138,13 +138,13 @@ class DrawingCanvas {
                 this.canvas.style.cursor = "crosshair";
                 this.handleToggle([{ element: eraser, stateName: "shouldErase" }], [
                     { element: pen, stateName: "shouldDraw" },
-                    { element: moveAndResize, stateName: "shouldMoveAndResize" },
+                    { element: moveAndResize, stateName: "shouldMove" },
                     { element: text, stateName: "shouldWrite" },
                 ]);
             }
             if (moveAndResize && this.targetIs(moveAndResize, target)) {
                 this.canvas.style.cursor = "default";
-                this.handleToggle([{ element: moveAndResize, stateName: "shouldMoveAndResize" }], [
+                this.handleToggle([{ element: moveAndResize, stateName: "shouldMove" }], [
                     { element: pen, stateName: "shouldDraw" },
                     { element: eraser, stateName: "shouldErase" },
                     { element: text, stateName: "shouldWrite" },
@@ -155,7 +155,7 @@ class DrawingCanvas {
                 this.handleToggle([{ element: text, stateName: "shouldWrite" }], [
                     { element: pen, stateName: "shouldDraw" },
                     { element: eraser, stateName: "shouldErase" },
-                    { element: moveAndResize, stateName: "shouldMoveAndResize" },
+                    { element: moveAndResize, stateName: "shouldMove" },
                 ]);
             }
         };
@@ -193,7 +193,7 @@ class DrawingCanvas {
                 this.pathObject.yCords.push(mouseY);
                 this.pathObject.path.moveTo(mouseX, mouseY);
             }
-            if (this.shouldMoveAndResize) {
+            if (this.shouldMove) {
                 this.isMovingAndResizing = true;
                 this.isDrawing = false;
                 this.isErasing = false;
@@ -204,8 +204,23 @@ class DrawingCanvas {
                 //IF there is a selected drawing
                 if (this.selectedDrawingIndex !== null) {
                     const selected = this.drawingData[this.selectedDrawingIndex];
-                    if (this.mouseInShape(mouseX, mouseY, selected.x1, selected.x2, selected.y1, selected.y2))
+                    if (this.mouseInSelection(mouseX, mouseY, selected.x1, selected.x2, selected.y1, selected.y2)) {
+                        switch (this.mouseInSelectionCorner(mouseX, mouseY, selected.x1, selected.x2, selected.y1, selected.y2)) {
+                            case "top-left":
+                                console.log("top-left");
+                                break;
+                            case "top-right":
+                                console.log("top-right");
+                                break;
+                            case "bottom-right":
+                                console.log("bottom-right");
+                                break;
+                            case "bottom-left":
+                                console.log("bottom-left");
+                                break;
+                        }
                         return;
+                    }
                     //THEN loop each drawing
                     this.drawingData.forEach((drawing, i) => {
                         if (drawing.type === "stroke") {
@@ -219,7 +234,7 @@ class DrawingCanvas {
                             }
                         }
                         if (drawing.type === "text") {
-                            if (this.mouseInShape(mouseX, mouseY, drawing.x1, drawing.x2, drawing.y1, drawing.y2)) {
+                            if (this.mouseInSelection(mouseX, mouseY, drawing.x1, drawing.x2, drawing.y1, drawing.y2)) {
                                 this.selectedDrawingIndex = i;
                                 this.redraw(this.drawingData);
                             }
@@ -239,7 +254,7 @@ class DrawingCanvas {
                         }
                     }
                     if (drawing.type === "text") {
-                        if (this.mouseInShape(mouseX, mouseY, drawing.x1, drawing.x2, drawing.y1, drawing.y2)) {
+                        if (this.mouseInSelection(mouseX, mouseY, drawing.x1, drawing.x2, drawing.y1, drawing.y2)) {
                             this.selectedDrawingIndex = i;
                             this.redraw(this.drawingData);
                         }
@@ -307,7 +322,6 @@ class DrawingCanvas {
                 textInput.addEventListener("keypress", (e) => {
                     if (e.key === "Enter") {
                         textInput.blur();
-                        console.log(this.isWriting);
                     }
                 });
                 canvasContainer === null || canvasContainer === void 0 ? void 0 : canvasContainer.appendChild(textInput);
@@ -379,19 +393,50 @@ class DrawingCanvas {
             const mouseX = evtType.clientX - this.canvas.offsetLeft;
             const mouseY = evtType.clientY - this.canvas.offsetTop;
             //IF moving tool is toggled
-            if (this.shouldMoveAndResize) {
+            if (this.shouldMove) {
                 this.canvas.style.cursor = "default";
                 this.drawingData.forEach((drawing, i) => {
                     if (drawing.type === "stroke") {
                         if (this.context.isPointInPath(drawing.path, mouseX, mouseY) ||
-                            (this.selectedDrawingIndex === i &&
-                                this.mouseInShape(mouseX, mouseY, drawing.x1, drawing.x2, drawing.y1, drawing.y2))) {
-                            this.canvas.style.cursor = "move";
+                            this.selectedDrawingIndex === i) {
+                            //IF mouse is in selection rectangle
+                            if (this.mouseInSelection(mouseX, mouseY, drawing.x1, drawing.x2, drawing.y1, drawing.y2)) {
+                                this.canvas.style.cursor = "move";
+                            }
+                            //IF mouse is in any of the corners
+                            switch (this.mouseInSelectionCorner(mouseX, mouseY, drawing.x1, drawing.x2, drawing.y1, drawing.y2)) {
+                                case "top-left":
+                                    this.canvas.style.cursor = "nwse-resize";
+                                    break;
+                                case "top-right":
+                                    this.canvas.style.cursor = "nesw-resize";
+                                    break;
+                                case "bottom-right":
+                                    this.canvas.style.cursor = "nwse-resize";
+                                    break;
+                                case "bottom-left":
+                                    this.canvas.style.cursor = "nesw-resize";
+                                    break;
+                            }
                         }
                     }
                     if (drawing.type === "text") {
-                        if (this.mouseInShape(mouseX, mouseY, drawing.x1, drawing.x2, drawing.y1, drawing.y2)) {
+                        if (this.mouseInSelection(mouseX, mouseY, drawing.x1, drawing.x2, drawing.y1, drawing.y2)) {
                             this.canvas.style.cursor = "move";
+                        }
+                        switch (this.mouseInSelectionCorner(mouseX, mouseY, drawing.x1, drawing.x2, drawing.y1, drawing.y2)) {
+                            case "top-left":
+                                this.canvas.style.cursor = "nwse-resize";
+                                break;
+                            case "top-right":
+                                this.canvas.style.cursor = "nesw-resize";
+                                break;
+                            case "bottom-right":
+                                this.canvas.style.cursor = "nwse-resize";
+                                break;
+                            case "bottom-left":
+                                this.canvas.style.cursor = "nesw-resize";
+                                break;
                         }
                     }
                 });
@@ -514,8 +559,49 @@ class DrawingCanvas {
         controller === null || controller === void 0 ? void 0 : controller.addEventListener("change", this.changeHandler);
         controller === null || controller === void 0 ? void 0 : controller.addEventListener("click", this.toolSelectHandler);
     }
+    mouseInSelectionCorner(x, y, x1, x2, y1, y2) {
+        //Top left rectangle
+        const topLeftX1 = x1;
+        const topLeftX2 = x1 + 10;
+        const topLeftY1 = y1;
+        const topLeftY2 = y1 + 10;
+        //Top right rectangle
+        const topRightX1 = x2 - 10;
+        const topRightX2 = x2;
+        const topRightY1 = y1;
+        const topRightY2 = y1 + 10;
+        //Bottom right rectangle
+        const bottomRightX1 = x2 - 10;
+        const bottomRightX2 = x2;
+        const bottomRightY1 = y2 - 10;
+        const bottomRightY2 = y2;
+        //Bottom left rectangle
+        const bottomLeftX1 = x1;
+        const bottomLeftX2 = x1 + 10;
+        const bottomLeftY1 = y2 - 10;
+        const bottomLeftY2 = y2;
+        const mouseIsIn = x >= topLeftX1 && x <= topLeftX2 && y >= topLeftY1 && y <= topLeftY2
+            ? "top-left"
+            : x >= topRightX1 &&
+                x <= topRightX2 &&
+                y >= topRightY1 &&
+                y <= topRightY2
+                ? "top-right"
+                : x >= bottomRightX1 &&
+                    x <= bottomRightX2 &&
+                    y >= bottomRightY1 &&
+                    y <= bottomRightY2
+                    ? "bottom-right"
+                    : x >= bottomLeftX1 &&
+                        x <= bottomLeftX2 &&
+                        y >= bottomLeftY1 &&
+                        y <= bottomLeftY2
+                        ? "bottom-left"
+                        : false;
+        return mouseIsIn;
+    }
     //Checks if given point is in given shape
-    mouseInShape(mouseX, mouseY, x1, x2, y1, y2) {
+    mouseInSelection(mouseX, mouseY, x1, x2, y1, y2) {
         if (mouseX >= x1 && mouseX <= x2 && mouseY >= y1 && mouseY <= y2)
             return true;
         return false;
@@ -537,7 +623,17 @@ class DrawingCanvas {
                     const shapeHeight = drawing.y2 - drawing.y1;
                     this.context.strokeStyle = "#7678ed";
                     this.context.lineWidth = 1;
+                    //Stroke main selection rectangle
                     this.context.strokeRect(drawing.x1, drawing.y1, shapeWidth, shapeHeight);
+                    //Stroke rectangles inside each corner
+                    //Inner top left corner
+                    this.context.strokeRect(drawing.x1, drawing.y1, 10, 10);
+                    //Inner top right corner
+                    this.context.strokeRect(drawing.x2, drawing.y1, -10, 10);
+                    //Inner bottom right corner
+                    this.context.strokeRect(drawing.x2, drawing.y2, -10, -10);
+                    //Inner bottom left corner
+                    this.context.strokeRect(drawing.x1, drawing.y2, 10, -10);
                 }
             }
             if (drawing.type === "text") {
@@ -550,7 +646,17 @@ class DrawingCanvas {
                     const shapeHeight = drawing.y2 - drawing.y1;
                     this.context.strokeStyle = "#7678ed";
                     this.context.lineWidth = 1;
+                    //Stroke main selection rectangle
                     this.context.strokeRect(drawing.x1, drawing.y1, shapeWidth, shapeHeight);
+                    //Stroke rectangles inside each corner
+                    //Inner top left corner
+                    this.context.strokeRect(drawing.x1, drawing.y1, 10, 10);
+                    //Inner top right corner
+                    this.context.strokeRect(drawing.x2, drawing.y1, -10, 10);
+                    //Inner bottom right corner
+                    this.context.strokeRect(drawing.x2, drawing.y2, -10, -10);
+                    //Inner bottom left corner
+                    this.context.strokeRect(drawing.x1, drawing.y2, 10, -10);
                 }
             }
         });
