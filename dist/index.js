@@ -29,12 +29,12 @@ class DrawingCanvas {
         //For state tracking
         this.isDrawing = false;
         this.isErasing = false;
-        this.isMovingAndResizing = false;
+        this.isMoving = false;
         this.isWriting = false;
-        this.shouldDraw = false;
-        this.shouldErase = false;
-        this.shouldMove = false;
-        this.shouldWrite = false;
+        this.toggleDraw = false;
+        this.toggleErase = false;
+        this.toggleMvRz = false;
+        this.toggleWrite = false;
         this.index = -1;
         this.selectedDrawingIndex = null;
         //Create default path object
@@ -128,34 +128,34 @@ class DrawingCanvas {
             }
             if (pen && this.targetIs(pen, target)) {
                 this.canvas.style.cursor = "crosshair";
-                this.handleToggle([{ element: pen, stateName: "shouldDraw" }], [
-                    { element: eraser, stateName: "shouldErase" },
-                    { element: moveAndResize, stateName: "shouldMove" },
-                    { element: text, stateName: "shouldWrite" },
+                this.handleToggle([{ element: pen, stateName: "toggleDraw" }], [
+                    { element: eraser, stateName: "toggleErase" },
+                    { element: moveAndResize, stateName: "toggleMvRz" },
+                    { element: text, stateName: "toggleWrite" },
                 ]);
             }
             if (eraser && this.targetIs(eraser, target)) {
                 this.canvas.style.cursor = "crosshair";
-                this.handleToggle([{ element: eraser, stateName: "shouldErase" }], [
-                    { element: pen, stateName: "shouldDraw" },
-                    { element: moveAndResize, stateName: "shouldMove" },
-                    { element: text, stateName: "shouldWrite" },
+                this.handleToggle([{ element: eraser, stateName: "toggleErase" }], [
+                    { element: pen, stateName: "toggleDraw" },
+                    { element: moveAndResize, stateName: "toggleMvRz" },
+                    { element: text, stateName: "toggleWrite" },
                 ]);
             }
             if (moveAndResize && this.targetIs(moveAndResize, target)) {
                 this.canvas.style.cursor = "default";
-                this.handleToggle([{ element: moveAndResize, stateName: "shouldMove" }], [
-                    { element: pen, stateName: "shouldDraw" },
-                    { element: eraser, stateName: "shouldErase" },
-                    { element: text, stateName: "shouldWrite" },
+                this.handleToggle([{ element: moveAndResize, stateName: "toggleMvRz" }], [
+                    { element: pen, stateName: "toggleDraw" },
+                    { element: eraser, stateName: "toggleErase" },
+                    { element: text, stateName: "toggleWrite" },
                 ]);
             }
             if (text && this.targetIs(text, target)) {
                 this.canvas.style.cursor = "text";
-                this.handleToggle([{ element: text, stateName: "shouldWrite" }], [
-                    { element: pen, stateName: "shouldDraw" },
-                    { element: eraser, stateName: "shouldErase" },
-                    { element: moveAndResize, stateName: "shouldMove" },
+                this.handleToggle([{ element: text, stateName: "toggleWrite" }], [
+                    { element: pen, stateName: "toggleDraw" },
+                    { element: eraser, stateName: "toggleErase" },
+                    { element: moveAndResize, stateName: "toggleMvRz" },
                 ]);
             }
         };
@@ -173,28 +173,28 @@ class DrawingCanvas {
             this.startX = mouseX;
             this.startY = mouseY;
             //IF element has been selected when we click on canvas
-            if (this.shouldErase) {
+            if (this.toggleErase) {
                 this.pathObject.operation = "destination-out";
                 this.isErasing = true;
                 this.isDrawing = false;
-                this.isMovingAndResizing = false;
+                this.isMoving = false;
                 this.isWriting = false;
                 this.pathObject.xCords.push(mouseX);
                 this.pathObject.yCords.push(mouseY);
                 this.pathObject.path.moveTo(mouseX, mouseY);
             }
-            if (this.shouldDraw) {
+            if (this.toggleDraw) {
                 this.pathObject.operation = "source-over";
                 this.isDrawing = true;
                 this.isErasing = false;
-                this.isMovingAndResizing = false;
+                this.isMoving = false;
                 this.isWriting = false;
                 this.pathObject.xCords.push(mouseX);
                 this.pathObject.yCords.push(mouseY);
                 this.pathObject.path.moveTo(mouseX, mouseY);
             }
-            if (this.shouldMove) {
-                this.isMovingAndResizing = true;
+            if (this.toggleMvRz) {
+                this.isMoving = true;
                 this.isDrawing = false;
                 this.isErasing = false;
                 this.isWriting = false;
@@ -261,7 +261,7 @@ class DrawingCanvas {
                     }
                 });
             }
-            if (this.shouldWrite) {
+            if (this.toggleWrite) {
                 const canvasContainer = (document.querySelector(".drawing-board"));
                 //Create textinput
                 const textInput = this.createPersonalElement("input", "text", {
@@ -278,7 +278,7 @@ class DrawingCanvas {
                 this.isWriting = true;
                 this.isDrawing = false;
                 this.isErasing = false;
-                this.isMovingAndResizing = false;
+                this.isMoving = false;
                 //Focus input
                 window.setTimeout(() => textInput.focus(), 0);
                 //Runs whenever we unfocus input
@@ -331,8 +331,8 @@ class DrawingCanvas {
         };
         //Runs whenever mouse is released
         this.mouseUpHandler = () => {
-            if (this.isMovingAndResizing) {
-                this.isMovingAndResizing = false;
+            if (this.isMoving) {
+                this.isMoving = false;
                 //No longer selecting anything
                 // this.selectedDrawingIndex = null;
                 return;
@@ -393,7 +393,7 @@ class DrawingCanvas {
             const mouseX = evtType.clientX - this.canvas.offsetLeft;
             const mouseY = evtType.clientY - this.canvas.offsetTop;
             //IF moving tool is toggled
-            if (this.shouldMove) {
+            if (this.toggleMvRz) {
                 this.canvas.style.cursor = "default";
                 this.drawingData.forEach((drawing, i) => {
                     if (drawing.type === "stroke") {
@@ -406,14 +406,10 @@ class DrawingCanvas {
                             //IF mouse is in any of the corners
                             switch (this.mouseInSelectionCorner(mouseX, mouseY, drawing.x1, drawing.x2, drawing.y1, drawing.y2)) {
                                 case "top-left":
-                                    this.canvas.style.cursor = "nwse-resize";
-                                    break;
-                                case "top-right":
-                                    this.canvas.style.cursor = "nesw-resize";
-                                    break;
                                 case "bottom-right":
                                     this.canvas.style.cursor = "nwse-resize";
                                     break;
+                                case "top-right":
                                 case "bottom-left":
                                     this.canvas.style.cursor = "nesw-resize";
                                     break;
@@ -426,14 +422,10 @@ class DrawingCanvas {
                         }
                         switch (this.mouseInSelectionCorner(mouseX, mouseY, drawing.x1, drawing.x2, drawing.y1, drawing.y2)) {
                             case "top-left":
-                                this.canvas.style.cursor = "nwse-resize";
-                                break;
-                            case "top-right":
-                                this.canvas.style.cursor = "nesw-resize";
-                                break;
                             case "bottom-right":
                                 this.canvas.style.cursor = "nwse-resize";
                                 break;
+                            case "top-right":
                             case "bottom-left":
                                 this.canvas.style.cursor = "nesw-resize";
                                 break;
@@ -442,7 +434,7 @@ class DrawingCanvas {
                 });
             }
             //IF we are movingAndResizing
-            if (this.isMovingAndResizing) {
+            if (this.isMoving) {
                 //IF there is no selected element
                 if (this.selectedDrawingIndex === null)
                     return;
@@ -542,7 +534,7 @@ class DrawingCanvas {
         //Assign default values
         this.canvas.style.cursor = "crosshair";
         (_a = this.pencil) === null || _a === void 0 ? void 0 : _a.classList.add("active");
-        this.shouldDraw = true;
+        this.toggleDraw = true;
         //Add eventlisteners to canvas
         this.listen();
     }

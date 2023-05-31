@@ -31,10 +31,10 @@ interface CanvasElement {
 }
 
 interface ToggledStates {
-  shouldDraw: boolean;
-  shouldErase: boolean;
-  shouldMove: boolean;
-  shouldWrite: boolean;
+  toggleDraw: boolean;
+  toggleErase: boolean;
+  toggleMvRz: boolean;
+  toggleWrite: boolean;
 }
 
 interface PathElement {
@@ -95,13 +95,13 @@ class DrawingCanvas implements OptionElementsI {
   //For state tracking
   private isDrawing = false;
   private isErasing = false;
-  private isMovingAndResizing = false;
+  private isMoving = false;
   private isWriting = false;
 
-  private shouldDraw = false;
-  private shouldErase = false;
-  private shouldMove = false;
-  private shouldWrite = false;
+  private toggleDraw = false;
+  private toggleErase = false;
+  private toggleMvRz = false;
+  private toggleWrite = false;
 
   private index = -1;
   private selectedDrawingIndex: number | null = null;
@@ -176,7 +176,7 @@ class DrawingCanvas implements OptionElementsI {
     //Assign default values
     this.canvas.style.cursor = "crosshair";
     this.pencil?.classList.add("active");
-    this.shouldDraw = true;
+    this.toggleDraw = true;
 
     //Add eventlisteners to canvas
     this.listen();
@@ -283,11 +283,11 @@ class DrawingCanvas implements OptionElementsI {
     if (pen && this.targetIs(pen, target)) {
       this.canvas.style.cursor = "crosshair";
       this.handleToggle(
-        [{ element: pen, stateName: "shouldDraw" }],
+        [{ element: pen, stateName: "toggleDraw" }],
         [
-          { element: eraser, stateName: "shouldErase" },
-          { element: moveAndResize, stateName: "shouldMove" },
-          { element: text, stateName: "shouldWrite" },
+          { element: eraser, stateName: "toggleErase" },
+          { element: moveAndResize, stateName: "toggleMvRz" },
+          { element: text, stateName: "toggleWrite" },
         ]
       );
     }
@@ -295,11 +295,11 @@ class DrawingCanvas implements OptionElementsI {
     if (eraser && this.targetIs(eraser, target)) {
       this.canvas.style.cursor = "crosshair";
       this.handleToggle(
-        [{ element: eraser, stateName: "shouldErase" }],
+        [{ element: eraser, stateName: "toggleErase" }],
         [
-          { element: pen, stateName: "shouldDraw" },
-          { element: moveAndResize, stateName: "shouldMove" },
-          { element: text, stateName: "shouldWrite" },
+          { element: pen, stateName: "toggleDraw" },
+          { element: moveAndResize, stateName: "toggleMvRz" },
+          { element: text, stateName: "toggleWrite" },
         ]
       );
     }
@@ -307,11 +307,11 @@ class DrawingCanvas implements OptionElementsI {
     if (moveAndResize && this.targetIs(moveAndResize, target)) {
       this.canvas.style.cursor = "default";
       this.handleToggle(
-        [{ element: moveAndResize, stateName: "shouldMove" }],
+        [{ element: moveAndResize, stateName: "toggleMvRz" }],
         [
-          { element: pen, stateName: "shouldDraw" },
-          { element: eraser, stateName: "shouldErase" },
-          { element: text, stateName: "shouldWrite" },
+          { element: pen, stateName: "toggleDraw" },
+          { element: eraser, stateName: "toggleErase" },
+          { element: text, stateName: "toggleWrite" },
         ]
       );
     }
@@ -319,11 +319,11 @@ class DrawingCanvas implements OptionElementsI {
     if (text && this.targetIs(text, target)) {
       this.canvas.style.cursor = "text";
       this.handleToggle(
-        [{ element: text, stateName: "shouldWrite" }],
+        [{ element: text, stateName: "toggleWrite" }],
         [
-          { element: pen, stateName: "shouldDraw" },
-          { element: eraser, stateName: "shouldErase" },
-          { element: moveAndResize, stateName: "shouldMove" },
+          { element: pen, stateName: "toggleDraw" },
+          { element: eraser, stateName: "toggleErase" },
+          { element: moveAndResize, stateName: "toggleMvRz" },
         ]
       );
     }
@@ -345,12 +345,12 @@ class DrawingCanvas implements OptionElementsI {
     this.startY = mouseY;
 
     //IF element has been selected when we click on canvas
-    if (this.shouldErase) {
+    if (this.toggleErase) {
       this.pathObject.operation = "destination-out";
       this.isErasing = true;
 
       this.isDrawing = false;
-      this.isMovingAndResizing = false;
+      this.isMoving = false;
       this.isWriting = false;
 
       this.pathObject.xCords.push(mouseX);
@@ -358,12 +358,12 @@ class DrawingCanvas implements OptionElementsI {
       this.pathObject.path.moveTo(mouseX, mouseY);
     }
 
-    if (this.shouldDraw) {
+    if (this.toggleDraw) {
       this.pathObject.operation = "source-over";
       this.isDrawing = true;
 
       this.isErasing = false;
-      this.isMovingAndResizing = false;
+      this.isMoving = false;
       this.isWriting = false;
 
       this.pathObject.xCords.push(mouseX);
@@ -371,8 +371,8 @@ class DrawingCanvas implements OptionElementsI {
       this.pathObject.path.moveTo(mouseX, mouseY);
     }
 
-    if (this.shouldMove) {
-      this.isMovingAndResizing = true;
+    if (this.toggleMvRz) {
+      this.isMoving = true;
       this.isDrawing = false;
       this.isErasing = false;
       this.isWriting = false;
@@ -417,6 +417,7 @@ class DrawingCanvas implements OptionElementsI {
               console.log("bottom-left");
               break;
           }
+
           return;
         }
 
@@ -479,7 +480,7 @@ class DrawingCanvas implements OptionElementsI {
       });
     }
 
-    if (this.shouldWrite) {
+    if (this.toggleWrite) {
       const canvasContainer = <HTMLElement>(
         document.querySelector(".drawing-board")
       );
@@ -505,7 +506,7 @@ class DrawingCanvas implements OptionElementsI {
 
       this.isDrawing = false;
       this.isErasing = false;
-      this.isMovingAndResizing = false;
+      this.isMoving = false;
 
       //Focus input
       window.setTimeout(() => textInput.focus(), 0);
@@ -576,8 +577,8 @@ class DrawingCanvas implements OptionElementsI {
 
   //Runs whenever mouse is released
   private mouseUpHandler = () => {
-    if (this.isMovingAndResizing) {
-      this.isMovingAndResizing = false;
+    if (this.isMoving) {
+      this.isMoving = false;
 
       //No longer selecting anything
       // this.selectedDrawingIndex = null;
@@ -648,7 +649,7 @@ class DrawingCanvas implements OptionElementsI {
     const mouseY = evtType.clientY - this.canvas.offsetTop;
 
     //IF moving tool is toggled
-    if (this.shouldMove) {
+    if (this.toggleMvRz) {
       this.canvas.style.cursor = "default";
 
       this.drawingData.forEach((drawing, i) => {
@@ -682,14 +683,10 @@ class DrawingCanvas implements OptionElementsI {
               )
             ) {
               case "top-left":
-                this.canvas.style.cursor = "nwse-resize";
-                break;
-              case "top-right":
-                this.canvas.style.cursor = "nesw-resize";
-                break;
               case "bottom-right":
                 this.canvas.style.cursor = "nwse-resize";
                 break;
+              case "top-right":
               case "bottom-left":
                 this.canvas.style.cursor = "nesw-resize";
                 break;
@@ -721,14 +718,10 @@ class DrawingCanvas implements OptionElementsI {
             )
           ) {
             case "top-left":
-              this.canvas.style.cursor = "nwse-resize";
-              break;
-            case "top-right":
-              this.canvas.style.cursor = "nesw-resize";
-              break;
             case "bottom-right":
               this.canvas.style.cursor = "nwse-resize";
               break;
+            case "top-right":
             case "bottom-left":
               this.canvas.style.cursor = "nesw-resize";
               break;
@@ -738,7 +731,7 @@ class DrawingCanvas implements OptionElementsI {
     }
 
     //IF we are movingAndResizing
-    if (this.isMovingAndResizing) {
+    if (this.isMoving) {
       //IF there is no selected element
       if (this.selectedDrawingIndex === null) return;
 
