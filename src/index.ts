@@ -621,7 +621,6 @@ class DrawingCanvas implements OptionElementsI {
     const mouseX = evtType.clientX - this.canvas.offsetLeft;
     const mouseY = evtType.clientY - this.canvas.offsetTop;
 
-    //IF moving tool is toggled
     if (this.toggleMvRz) {
       this.canvas.style.cursor = "default";
 
@@ -631,47 +630,32 @@ class DrawingCanvas implements OptionElementsI {
             this.context.isPointInPath(drawing.path, mouseX, mouseY) ||
             this.selectedDrawingIndex === i
           ) {
-            //IF mouse is in selection rectangle
-            if (this.mouseInSelection(mouseX, mouseY, drawing)) {
+            if (this.mouseInSelection(mouseX, mouseY, drawing))
               this.canvas.style.cursor = "move";
-            }
-            //IF mouse is in any of the corners
-            switch (this.mouseInCorner(mouseX, mouseY, drawing)) {
-              case "tl":
-              case "br":
-                this.canvas.style.cursor = "nwse-resize";
-                break;
-              case "tr":
-              case "bl":
-                this.canvas.style.cursor = "nesw-resize";
-                break;
+
+            if (this.mouseInCorner(mouseX, mouseY, drawing)) {
+              const corner = this.mouseInCorner(mouseX, mouseY, drawing);
+              corner === "tl" || corner === "br"
+                ? (this.canvas.style.cursor = "nwse-resize")
+                : (this.canvas.style.cursor = "nesw-resize");
             }
           }
         }
         if (drawing.type === "text") {
-          if (this.mouseInSelection(mouseX, mouseY, drawing)) {
+          if (this.mouseInSelection(mouseX, mouseY, drawing))
             this.canvas.style.cursor = "move";
-          }
 
-          switch (this.mouseInCorner(mouseX, mouseY, drawing)) {
-            case "tl":
-            case "br":
-              this.canvas.style.cursor = "nwse-resize";
-              break;
-            case "tr":
-            case "bl":
-              this.canvas.style.cursor = "nesw-resize";
-              break;
+          if (this.mouseInCorner(mouseX, mouseY, drawing)) {
+            const corner = this.mouseInCorner(mouseX, mouseY, drawing);
+            corner === "tl" || corner === "br"
+              ? (this.canvas.style.cursor = "nwse-resize")
+              : (this.canvas.style.cursor = "nesw-resize");
           }
         }
       });
     }
 
-    //IF we are movingAndResizing
-    if (this.isMoving) {
-      //IF there is no selected element
-      if (this.selectedDrawingIndex === null) return;
-
+    if (this.isMoving && this.selectedDrawingIndex !== null) {
       const dx = mouseX - this.startX;
       const dy = mouseY - this.startY;
 
