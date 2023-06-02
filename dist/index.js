@@ -30,11 +30,21 @@ class DrawingCanvas {
         this.isDrawing = false;
         this.isErasing = false;
         this.isMoving = false;
+        this.isResizing = false;
         this.isWriting = false;
+        this.shouldDraw = false;
+        this.shouldErase = false;
+        this.shouldMove = false;
+        this.shouldResize = {
+            toggled: false,
+            from: "",
+        };
         this.toggleDraw = false;
         this.toggleErase = false;
         this.toggleMvRz = false;
         this.toggleWrite = false;
+        this.mouseIsDown = false;
+        this.isDragging = false;
         this.index = -1;
         this.selectedDrawingIndex = null;
         //Create default path object
@@ -64,10 +74,6 @@ class DrawingCanvas {
             operation: "source-over",
         };
         this.drawingData = [];
-        this.shouldResize = {
-            toggled: false,
-            from: "",
-        };
         this.startX = 0;
         this.startY = 0;
         //Runs for each element passed to options
@@ -165,6 +171,7 @@ class DrawingCanvas {
         };
         //Runs whenever mouse is clicked
         this.pressDownHandler = (e) => {
+            this.mouseIsDown = true;
             if (this.isWriting)
                 return;
             //Check if event is touch or mouse
@@ -179,29 +186,15 @@ class DrawingCanvas {
             //IF element has been selected when we click on canvas
             if (this.toggleErase) {
                 this.pathObject.operation = "destination-out";
-                this.isErasing = true;
-                this.isDrawing = false;
-                this.isMoving = false;
-                this.isWriting = false;
-                this.pathObject.xCords.push(mouseX);
-                this.pathObject.yCords.push(mouseY);
-                this.pathObject.path.moveTo(mouseX, mouseY);
+                this.shouldErase = true;
+                this.addCoords(mouseX, mouseY, false);
             }
             if (this.toggleDraw) {
                 this.pathObject.operation = "source-over";
-                this.isDrawing = true;
-                this.isErasing = false;
-                this.isMoving = false;
-                this.isWriting = false;
-                this.pathObject.xCords.push(mouseX);
-                this.pathObject.yCords.push(mouseY);
-                this.pathObject.path.moveTo(mouseX, mouseY);
+                this.shouldDraw = true;
+                this.addCoords(mouseX, mouseY, false);
             }
             if (this.toggleMvRz) {
-                this.isMoving = true;
-                this.isDrawing = false;
-                this.isErasing = false;
-                this.isWriting = false;
                 //IF no paths
                 if (this.drawingData.length <= 0)
                     return;
@@ -219,10 +212,12 @@ class DrawingCanvas {
                                 //And store
                                 this.shouldResize.toggled = true;
                                 this.shouldResize.from = corner;
+                                //Return because it is still within the selection
+                                return;
                             }
                             //IF in selection of the selected
                             if (this.mouseInSelection(mouseX, mouseY, selected)) {
-                                this.shouldResize = { toggled: false, from: "" };
+                                this.shouldMove = true;
                                 return;
                             }
                             //IF NOT in corner or selection THEN check if its in another drawing path
@@ -234,6 +229,7 @@ class DrawingCanvas {
                         else {
                             if (this.context.isPointInPath(drawing.path, mouseX, mouseY)) {
                                 this.selectedDrawingIndex = i;
+                                this.shouldMove = true;
                             }
                         }
                         this.redraw(this.drawingData);
@@ -247,10 +243,11 @@ class DrawingCanvas {
                                 const corner = this.mouseInCorner(mouseX, mouseY, selected);
                                 this.shouldResize.toggled = true;
                                 this.shouldResize.from = corner;
+                                return;
                             }
                             //IF in selection of selected
                             if (this.mouseInSelection(mouseX, mouseY, selected)) {
-                                this.shouldResize = { toggled: false, from: "" };
+                                this.shouldMove = true;
                                 return;
                             }
                             //IF not in corner or selection
@@ -263,6 +260,7 @@ class DrawingCanvas {
                         else {
                             if (this.mouseInSelection(mouseX, mouseY, drawing)) {
                                 this.selectedDrawingIndex = i;
+                                this.shouldMove = true;
                             }
                         }
                         this.redraw(this.drawingData);
@@ -284,9 +282,6 @@ class DrawingCanvas {
                 });
                 //We are now writing
                 this.isWriting = true;
-                this.isDrawing = false;
-                this.isErasing = false;
-                this.isMoving = false;
                 //Focus input
                 window.setTimeout(() => textInput.focus(), 0);
                 //Runs whenever we unfocus input
@@ -339,11 +334,12 @@ class DrawingCanvas {
         };
         //Runs whenever mouse is released
         this.mouseUpHandler = () => {
-            if (this.isMoving) {
-                this.isMoving = false;
-                return;
-            }
+            //No longer moving or dragging
+            this.mouseIsDown = false;
+            this.isDragging = false;
             if (this.isDrawing || this.isErasing) {
+                this.shouldDraw = false;
+                this.shouldErase = false;
                 this.isDrawing = false;
                 this.isErasing = false;
                 //IF its just a click and no stroke
@@ -386,6 +382,14 @@ class DrawingCanvas {
                     yCords: [],
                 };
             }
+            if (this.shouldResize.toggled) {
+                this.shouldResize = { toggled: false, from: "" };
+                this.isResizing = false;
+            }
+            if (this.shouldMove) {
+                this.shouldMove = false;
+                this.isMoving = false;
+            }
             this.redraw(this.drawingData);
             //Save stroke
             // this.context.stroke();
@@ -426,54 +430,62 @@ class DrawingCanvas {
                     }
                 });
             }
-            if (this.isMoving && this.selectedDrawingIndex !== null) {
+            //IF mousedown and selected drawing
+            if (this.mouseIsDown && this.selectedDrawingIndex !== null) {
+                this.isDragging = true;
                 const dx = mouseX - this.startX;
                 const dy = mouseY - this.startY;
                 //Selected drawing
                 const selectedPath = this.drawingData[this.selectedDrawingIndex];
                 if (selectedPath.type === "stroke") {
-                    //Update x and y coordinates
-                    for (let i = 0; i < selectedPath.xCords.length; i++) {
-                        selectedPath.xCords[i] += dx;
-                        selectedPath.yCords[i] += dy;
+                    if (this.shouldMove) {
+                        //Update x and y coordinates
+                        for (let i = 0; i < selectedPath.xCords.length; i++) {
+                            selectedPath.xCords[i] += dx;
+                            selectedPath.yCords[i] += dy;
+                        }
+                        //Update left, top, right and bottom
+                        selectedPath.x1 = Math.min(...selectedPath.xCords);
+                        selectedPath.y1 = Math.min(...selectedPath.yCords);
+                        selectedPath.x2 = Math.max(...selectedPath.xCords);
+                        selectedPath.y2 = Math.max(...selectedPath.yCords);
+                        //Create new path from existing path
+                        const newPath = new Path2D();
+                        const m = new DOMMatrix().translate(dx, dy);
+                        newPath.addPath(selectedPath.path, m);
+                        selectedPath.path = newPath;
                     }
-                    //Update left, top, right and bottom
-                    selectedPath.x1 = Math.min(...selectedPath.xCords);
-                    selectedPath.y1 = Math.min(...selectedPath.yCords);
-                    selectedPath.x2 = Math.max(...selectedPath.xCords);
-                    selectedPath.y2 = Math.max(...selectedPath.yCords);
-                    //Create new path from existing path
-                    const newPath = new Path2D();
-                    const m = new DOMMatrix().translate(dx, dy);
-                    newPath.addPath(selectedPath.path, m);
-                    selectedPath.path = newPath;
                 }
                 if (selectedPath.type === "text") {
-                    //Assign new coordinates
-                    selectedPath.x1 += dx;
-                    selectedPath.y1 += dy;
-                    selectedPath.x2 += dx;
-                    selectedPath.y2 += dy;
+                    if (this.shouldMove) {
+                        //Assign new coordinates
+                        selectedPath.x1 += dx;
+                        selectedPath.y1 += dy;
+                        selectedPath.x2 += dx;
+                        selectedPath.y2 += dy;
+                    }
                 }
                 this.redraw(this.drawingData);
                 //Set start positions to current
                 this.startX = mouseX;
                 this.startY = mouseY;
             }
-            if (!this.isDrawing && !this.isErasing)
-                return;
-            this.redraw(this.drawingData);
-            //Set props for current path object
-            this.context.lineCap = "round";
-            this.context.lineWidth = this.pathObject.lineWidth;
-            this.context.strokeStyle = this.pathObject.strokeStyle;
-            this.context.globalCompositeOperation = this.pathObject.operation;
-            //Save each x and y to path object
-            this.pathObject.xCords.push(mouseX);
-            this.pathObject.yCords.push(mouseY);
-            this.pathObject.path.lineTo(mouseX, mouseY);
+            if ((this.mouseIsDown && this.shouldDraw) ||
+                (this.mouseIsDown && this.shouldErase)) {
+                this.shouldDraw ? (this.isDrawing = true) : (this.isDrawing = false);
+                this.shouldErase ? (this.isErasing = true) : (this.isErasing = false);
+                this.redraw(this.drawingData);
+                //Set props for current path object
+                this.context.lineCap = "round";
+                this.context.lineWidth = this.pathObject.lineWidth;
+                this.context.strokeStyle = this.pathObject.strokeStyle;
+                this.context.globalCompositeOperation = this.pathObject.operation;
+                this.addCoords(mouseX, mouseY, true);
+                this.pathObject.path.lineTo(mouseX, mouseY);
+                this.context.stroke(this.pathObject.path);
+            }
+            e.preventDefault();
             //Draw a stroke according to the path
-            this.context.stroke(this.pathObject.path);
         };
         this.createPersonalElement = (tagName, type, styles) => {
             const element = document.createElement(tagName);
@@ -539,6 +551,11 @@ class DrawingCanvas {
         canvas.addEventListener("touchmove", this.mouseMoveHandler);
         controller === null || controller === void 0 ? void 0 : controller.addEventListener("change", this.changeHandler);
         controller === null || controller === void 0 ? void 0 : controller.addEventListener("click", this.toolSelectHandler);
+    }
+    addCoords(x, y, dragging) {
+        this.pathObject.xCords.push(x);
+        this.pathObject.yCords.push(y);
+        this.isDragging = dragging;
     }
     mouseInCorner(x, y, drawing) {
         const { x1, y1, x2, y2 } = drawing;

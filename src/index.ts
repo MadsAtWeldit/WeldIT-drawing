@@ -96,12 +96,24 @@ class DrawingCanvas implements OptionElementsI {
   private isDrawing = false;
   private isErasing = false;
   private isMoving = false;
+  private isResizing = false;
   private isWriting = false;
+
+  private shouldDraw = false;
+  private shouldErase = false;
+  private shouldMove = false;
+  private shouldResize = {
+    toggled: false,
+    from: "",
+  };
 
   private toggleDraw = false;
   private toggleErase = false;
   private toggleMvRz = false;
   private toggleWrite = false;
+
+  private mouseIsDown = false;
+  private isDragging = false;
 
   private index = -1;
   private selectedDrawingIndex: number | null = null;
@@ -135,11 +147,6 @@ class DrawingCanvas implements OptionElementsI {
   };
 
   private drawingData: DrawingElements[] = [];
-
-  private shouldResize = {
-    toggled: false,
-    from: "",
-  };
 
   private lineWidth: number;
   private strokeStyle: string;
@@ -336,6 +343,8 @@ class DrawingCanvas implements OptionElementsI {
 
   //Runs whenever mouse is clicked
   private pressDownHandler = (e: MouseEvent | TouchEvent) => {
+    this.mouseIsDown = true;
+
     if (this.isWriting) return;
     //Check if event is touch or mouse
     const evtType = (e as TouchEvent).touches
@@ -352,38 +361,24 @@ class DrawingCanvas implements OptionElementsI {
     //IF element has been selected when we click on canvas
     if (this.toggleErase) {
       this.pathObject.operation = "destination-out";
-      this.isErasing = true;
 
-      this.isDrawing = false;
-      this.isMoving = false;
-      this.isWriting = false;
+      this.shouldErase = true;
 
-      this.pathObject.xCords.push(mouseX);
-      this.pathObject.yCords.push(mouseY);
-      this.pathObject.path.moveTo(mouseX, mouseY);
+      this.addCoords(mouseX, mouseY, false);
     }
 
     if (this.toggleDraw) {
       this.pathObject.operation = "source-over";
-      this.isDrawing = true;
 
-      this.isErasing = false;
-      this.isMoving = false;
-      this.isWriting = false;
+      this.shouldDraw = true;
 
-      this.pathObject.xCords.push(mouseX);
-      this.pathObject.yCords.push(mouseY);
-      this.pathObject.path.moveTo(mouseX, mouseY);
+      this.addCoords(mouseX, mouseY, false);
     }
 
     if (this.toggleMvRz) {
-      this.isMoving = true;
-      this.isDrawing = false;
-      this.isErasing = false;
-      this.isWriting = false;
-
       //IF no paths
       if (this.drawingData.length <= 0) return;
+
       //Loop through each drawing
       this.drawingData.forEach((drawing, i) => {
         if (drawing.type === "stroke") {
@@ -391,6 +386,7 @@ class DrawingCanvas implements OptionElementsI {
           if (this.selectedDrawingIndex !== null) {
             //Get selected drawing
             const selected = this.drawingData[this.selectedDrawingIndex];
+
             //Check if mouse is on selected drawing corners
             if (this.mouseInCorner(mouseX, mouseY, selected)) {
               //IF it is then get value of corner
@@ -398,11 +394,15 @@ class DrawingCanvas implements OptionElementsI {
               //And store
               this.shouldResize.toggled = true;
               this.shouldResize.from = corner as string;
+
+              //Return because it is still within the selection
+              return;
             }
 
             //IF in selection of the selected
             if (this.mouseInSelection(mouseX, mouseY, selected)) {
-              this.shouldResize = { toggled: false, from: "" };
+              this.shouldMove = true;
+
               return;
             }
 
@@ -415,6 +415,7 @@ class DrawingCanvas implements OptionElementsI {
           } else {
             if (this.context.isPointInPath(drawing.path, mouseX, mouseY)) {
               this.selectedDrawingIndex = i;
+              this.shouldMove = true;
             }
           }
 
@@ -431,10 +432,12 @@ class DrawingCanvas implements OptionElementsI {
 
               this.shouldResize.toggled = true;
               this.shouldResize.from = corner as string;
+
+              return;
             }
             //IF in selection of selected
             if (this.mouseInSelection(mouseX, mouseY, selected)) {
-              this.shouldResize = { toggled: false, from: "" };
+              this.shouldMove = true;
               return;
             }
 
@@ -448,6 +451,7 @@ class DrawingCanvas implements OptionElementsI {
           } else {
             if (this.mouseInSelection(mouseX, mouseY, drawing)) {
               this.selectedDrawingIndex = i;
+              this.shouldMove = true;
             }
           }
           this.redraw(this.drawingData);
@@ -478,10 +482,6 @@ class DrawingCanvas implements OptionElementsI {
 
       //We are now writing
       this.isWriting = true;
-
-      this.isDrawing = false;
-      this.isErasing = false;
-      this.isMoving = false;
 
       //Focus input
       window.setTimeout(() => textInput.focus(), 0);
@@ -552,13 +552,14 @@ class DrawingCanvas implements OptionElementsI {
 
   //Runs whenever mouse is released
   private mouseUpHandler = () => {
-    if (this.isMoving) {
-      this.isMoving = false;
-
-      return;
-    }
+    //No longer moving or dragging
+    this.mouseIsDown = false;
+    this.isDragging = false;
 
     if (this.isDrawing || this.isErasing) {
+      this.shouldDraw = false;
+      this.shouldErase = false;
+
       this.isDrawing = false;
       this.isErasing = false;
 
@@ -605,6 +606,17 @@ class DrawingCanvas implements OptionElementsI {
         yCords: [],
       };
     }
+
+    if (this.shouldResize.toggled) {
+      this.shouldResize = { toggled: false, from: "" };
+      this.isResizing = false;
+    }
+
+    if (this.shouldMove) {
+      this.shouldMove = false;
+      this.isMoving = false;
+    }
+
     this.redraw(this.drawingData);
 
     //Save stroke
@@ -655,7 +667,10 @@ class DrawingCanvas implements OptionElementsI {
       });
     }
 
-    if (this.isMoving && this.selectedDrawingIndex !== null) {
+    //IF mousedown and selected drawing
+    if (this.mouseIsDown && this.selectedDrawingIndex !== null) {
+      this.isDragging = true;
+
       const dx = mouseX - this.startX;
       const dy = mouseY - this.startY;
 
@@ -663,32 +678,36 @@ class DrawingCanvas implements OptionElementsI {
       const selectedPath = this.drawingData[this.selectedDrawingIndex];
 
       if (selectedPath.type === "stroke") {
-        //Update x and y coordinates
-        for (let i = 0; i < selectedPath.xCords.length; i++) {
-          selectedPath.xCords[i] += dx;
-          selectedPath.yCords[i] += dy;
+        if (this.shouldMove) {
+          //Update x and y coordinates
+          for (let i = 0; i < selectedPath.xCords.length; i++) {
+            selectedPath.xCords[i] += dx;
+            selectedPath.yCords[i] += dy;
+          }
+          //Update left, top, right and bottom
+          selectedPath.x1 = Math.min(...selectedPath.xCords);
+          selectedPath.y1 = Math.min(...selectedPath.yCords);
+          selectedPath.x2 = Math.max(...selectedPath.xCords);
+          selectedPath.y2 = Math.max(...selectedPath.yCords);
+
+          //Create new path from existing path
+          const newPath = new Path2D();
+          const m = new DOMMatrix().translate(dx, dy);
+          newPath.addPath(selectedPath.path, m);
+
+          selectedPath.path = newPath;
         }
-        //Update left, top, right and bottom
-        selectedPath.x1 = Math.min(...selectedPath.xCords);
-        selectedPath.y1 = Math.min(...selectedPath.yCords);
-        selectedPath.x2 = Math.max(...selectedPath.xCords);
-        selectedPath.y2 = Math.max(...selectedPath.yCords);
-
-        //Create new path from existing path
-        const newPath = new Path2D();
-        const m = new DOMMatrix().translate(dx, dy);
-        newPath.addPath(selectedPath.path, m);
-
-        selectedPath.path = newPath;
       }
 
       if (selectedPath.type === "text") {
-        //Assign new coordinates
-        selectedPath.x1 += dx;
-        selectedPath.y1 += dy;
+        if (this.shouldMove) {
+          //Assign new coordinates
+          selectedPath.x1 += dx;
+          selectedPath.y1 += dy;
 
-        selectedPath.x2 += dx;
-        selectedPath.y2 += dy;
+          selectedPath.x2 += dx;
+          selectedPath.y2 += dy;
+        }
       }
 
       this.redraw(this.drawingData);
@@ -698,24 +717,34 @@ class DrawingCanvas implements OptionElementsI {
       this.startY = mouseY;
     }
 
-    if (!this.isDrawing && !this.isErasing) return;
-    this.redraw(this.drawingData);
+    if (
+      (this.mouseIsDown && this.shouldDraw) ||
+      (this.mouseIsDown && this.shouldErase)
+    ) {
+      this.shouldDraw ? (this.isDrawing = true) : (this.isDrawing = false);
+      this.shouldErase ? (this.isErasing = true) : (this.isErasing = false);
+      this.redraw(this.drawingData);
 
-    //Set props for current path object
-    this.context.lineCap = "round";
-    this.context.lineWidth = this.pathObject.lineWidth;
-    this.context.strokeStyle = this.pathObject.strokeStyle;
-    this.context.globalCompositeOperation = this.pathObject.operation;
+      //Set props for current path object
+      this.context.lineCap = "round";
+      this.context.lineWidth = this.pathObject.lineWidth;
+      this.context.strokeStyle = this.pathObject.strokeStyle;
+      this.context.globalCompositeOperation = this.pathObject.operation;
 
-    //Save each x and y to path object
-    this.pathObject.xCords.push(mouseX);
-    this.pathObject.yCords.push(mouseY);
+      this.addCoords(mouseX, mouseY, true);
 
-    this.pathObject.path.lineTo(mouseX, mouseY);
-
+      this.pathObject.path.lineTo(mouseX, mouseY);
+      this.context.stroke(this.pathObject.path);
+    }
+    e.preventDefault();
     //Draw a stroke according to the path
-    this.context.stroke(this.pathObject.path);
   };
+
+  private addCoords(x: number, y: number, dragging: boolean) {
+    this.pathObject.xCords.push(x);
+    this.pathObject.yCords.push(y);
+    this.isDragging = dragging;
+  }
 
   private mouseInCorner(
     x: number,
