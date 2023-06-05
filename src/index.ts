@@ -684,6 +684,7 @@ class DrawingCanvas implements OptionElementsI {
             selectedPath.xCords[i] += dx;
             selectedPath.yCords[i] += dy;
           }
+
           //Update left, top, right and bottom
           selectedPath.x1 = Math.min(...selectedPath.xCords);
           selectedPath.y1 = Math.min(...selectedPath.yCords);
@@ -696,6 +697,106 @@ class DrawingCanvas implements OptionElementsI {
           newPath.addPath(selectedPath.path, m);
 
           selectedPath.path = newPath;
+          //Set start positions to current
+          this.startX = mouseX;
+          this.startY = mouseY;
+        } else {
+          const { from } = this.shouldResize;
+          switch (from) {
+            case "tl": {
+              const width = selectedPath.x2 - selectedPath.x1;
+              const height = selectedPath.y2 - selectedPath.y1;
+
+              //Create new path
+              const resizedPath = {
+                path: new Path2D(),
+                xCords: [...selectedPath.xCords],
+                yCords: [...selectedPath.yCords],
+              };
+
+              //Original distance between x2,y2 and startMouse
+              const originalDistance =
+                selectedPath.x2 - this.startX + (selectedPath.y2 - this.startY);
+
+              //Current distance between x2,y2 and current mouse
+              const currentDistance =
+                selectedPath.x2 - mouseX + (selectedPath.y2 - mouseY);
+              //Scale factor
+              const scaleFactor = currentDistance / originalDistance;
+
+              const originalDistanceX = [];
+              const originalDistanceY = [];
+
+              //Loop original coords
+              for (let i = 0; i < selectedPath.xCords.length; i++) {
+                //Calculate distance for each point from x2 to point and y2 to point
+                const distanceX = selectedPath.x2 - selectedPath.xCords[i];
+                const distanceY = selectedPath.y2 - selectedPath.yCords[i];
+
+                //Save original distances to array
+                originalDistanceX.push(distanceX);
+                originalDistanceY.push(distanceY);
+              }
+
+              //Update to resized coords
+              for (let i = 0; i < resizedPath.xCords.length; i++) {
+                //Calculate new distance based on scale factor
+                const newDistanceX = originalDistanceX[i] * scaleFactor;
+                const newDistanceY = originalDistanceY[i] * scaleFactor;
+
+                //Assign to each coord
+                resizedPath.xCords[i] = selectedPath.x2 - newDistanceX;
+                resizedPath.yCords[i] = selectedPath.y2 - newDistanceY;
+
+                //Create new resized path
+                if (i) {
+                  resizedPath.path.moveTo(
+                    resizedPath.xCords[i - 1],
+                    resizedPath.yCords[i - 1]
+                  );
+                }
+
+                resizedPath.path.lineTo(
+                  resizedPath.xCords[i],
+                  resizedPath.yCords[i]
+                );
+              }
+
+              this.context.stroke(resizedPath.path);
+
+              // for (let i = 0; i < resizedPath.xCords.length; i++) {
+              //   //Calculate distance between x2 and current x
+              //   let distanceX = selectedPath.x2 - resizedPath.xCords[i];
+              //   let distanceY = selectedPath.y2 - resizedPath.yCords[i];
+
+              //   //Scale distance
+              //   distanceX = distanceX * scaleFactor;
+              //   distanceY = distanceY * scaleFactor;
+
+              //   //Place point at correct position
+              //   resizedPath.xCords[i] = selectedPath.x2 - distanceX;
+              //   resizedPath.yCords[i] = selectedPath.y2 - distanceY;
+              //   console.log(selectedPath.xCords[i], resizedPath.xCords[i]);
+
+              //   if (i) {
+              //     resizedPath.path.moveTo(
+              //       resizedPath.xCords[i - 1],
+              //       resizedPath.yCords[i - 1]
+              //     );
+              //   }
+              //   resizedPath.path.lineTo(
+              //     resizedPath.xCords[i],
+              //     resizedPath.yCords[i]
+              //   );
+              // }
+              // this.context.stroke(resizedPath.path);
+
+              break;
+            }
+            case "br":
+              console.log(dx, dy);
+              break;
+          }
         }
       }
 
@@ -710,11 +811,11 @@ class DrawingCanvas implements OptionElementsI {
         }
       }
 
-      this.redraw(this.drawingData);
+      //this.redraw(this.drawingData);
 
       //Set start positions to current
-      this.startX = mouseX;
-      this.startY = mouseY;
+      // this.startX = mouseX;
+      // this.startY = mouseY;
     }
 
     if (
