@@ -754,81 +754,84 @@ class DrawingCanvas implements OptionElementsI {
           this.startY = mouseY;
         } else {
           const { from } = this.shouldResize;
+
+          this.isResizing = true;
+
           switch (from) {
             case "tl": {
-              const width = selectedPath.x2 - selectedPath.x1;
-              const height = selectedPath.y2 - selectedPath.y1;
-
-              //Instantiate new path2d
-              const resizedPath = new Path2D();
-
-              //Create copy of original x and y coords
-              const resizedXCords = [...selectedPath.xCords];
-              const resizedYCords = [...selectedPath.yCords];
-
-              //Original distance between x2,y2 and startMouse
+              //Calculate original distance from mouse to origin
               const originalDistance =
                 selectedPath.x2 - this.startX + (selectedPath.y2 - this.startY);
-
-              //Current distance between x2,y2 and current mouse
+              //Current distance
               const currentDistance =
                 selectedPath.x2 - mouseX + (selectedPath.y2 - mouseY);
-              //Scale factor
+
+              //Scale factor based on mouse
               const scaleFactor = currentDistance / originalDistance;
 
-              const originalDistanceX = [];
-              const originalDistanceY = [];
-
-              this.isResizing = true;
-              //Loop original coords
-              for (let i = 0; i < selectedPath.xCords.length; i++) {
-                //Calculate distance for each point from x2 to point and y2 to point
-                const distanceX = selectedPath.x2 - selectedPath.xCords[i];
-                const distanceY = selectedPath.y2 - selectedPath.yCords[i];
-
-                //Save original distances to array
-                originalDistanceX.push(distanceX);
-                originalDistanceY.push(distanceY);
-              }
-
-              //Update to resized coords
-              for (let i = 0; i < resizedXCords.length; i++) {
-                //Calculate new distance based on scale factor
-                const newDistanceX = originalDistanceX[i] * scaleFactor;
-                const newDistanceY = originalDistanceY[i] * scaleFactor;
-
-                //Assign to each coord
-                resizedXCords[i] = selectedPath.x2 - newDistanceX;
-                resizedYCords[i] = selectedPath.y2 - newDistanceY;
-
-                //Create new resized path
-                if (i) {
-                  resizedPath.moveTo(
-                    resizedXCords[i - 1],
-                    resizedYCords[i - 1]
-                  );
-                }
-
-                resizedPath.lineTo(resizedXCords[i], resizedYCords[i]);
-              }
-
-              selectedPath.resizedX1 = Math.min(...resizedXCords);
-              selectedPath.resizedY1 = Math.min(...resizedYCords);
-              selectedPath.resizedX2 = Math.max(...resizedXCords);
-              selectedPath.resizedY2 = Math.max(...resizedYCords);
-
-              selectedPath.resizedXCords = resizedXCords;
-              selectedPath.resizedYCords = resizedYCords;
-
-              selectedPath.resizedPath = resizedPath;
-
-              this.context.stroke(selectedPath.resizedPath);
+              this.resize(
+                selectedPath,
+                scaleFactor,
+                selectedPath.x2,
+                selectedPath.y2
+              );
 
               break;
             }
-            case "br":
-              console.log(dx, dy);
+            case "tr": {
+              const originalDistance =
+                this.startX - selectedPath.x1 + (selectedPath.y2 - this.startY);
+
+              const currentDistance =
+                mouseX - selectedPath.x1 + (selectedPath.y2 - mouseY);
+
+              const scaleFactor = currentDistance / originalDistance;
+
+              this.resize(
+                selectedPath,
+                scaleFactor,
+                selectedPath.x1,
+                selectedPath.y2
+              );
               break;
+            }
+            case "br": {
+              const originalDistance =
+                this.startX - selectedPath.x1 + (this.startY - selectedPath.y1);
+
+              const currentDistance =
+                mouseX - selectedPath.x1 + (mouseY - selectedPath.y1);
+
+              const scaleFactor = currentDistance / originalDistance;
+
+              this.resize(
+                selectedPath,
+                scaleFactor,
+                selectedPath.x1,
+                selectedPath.y1
+              );
+
+              break;
+            }
+
+            case "bl": {
+              const originalDistance =
+                selectedPath.x2 - this.startX + (this.startY - selectedPath.y1);
+
+              const currentDistance =
+                selectedPath.x2 - mouseX + (mouseY - selectedPath.y1);
+
+              const scaleFactor = currentDistance / originalDistance;
+
+              this.resize(
+                selectedPath,
+                scaleFactor,
+                selectedPath.x2,
+                selectedPath.y1
+              );
+
+              break;
+            }
           }
         }
       }
@@ -877,6 +880,61 @@ class DrawingCanvas implements OptionElementsI {
     this.pathObject.xCords.push(x);
     this.pathObject.yCords.push(y);
     this.isDragging = dragging;
+  }
+
+  private resize(
+    element: DrawingElements,
+    scaleFactor: number,
+    originX?: number,
+    originY?: number
+  ) {
+    if (element.type === "stroke") {
+      const resizedPath = new Path2D();
+
+      //Origin of scale or default middle
+      const scaleOriginX = originX ? originX : element.x2 - element.x1 / 2;
+      const scaleOriginY = originY ? originY : element.y2 - element.y1 / 2;
+
+      //Create copy of element coordinates
+      const resizedXCords = [...element.xCords];
+      const resizedYCords = [...element.yCords];
+
+      const originalDistanceX = [];
+      const originalDistanceY = [];
+
+      //Calculate original distance between origin and x,y coordinates
+      for (let i = 0; i < element.xCords.length; i++) {
+        originalDistanceX[i] = scaleOriginX - element.xCords[i];
+        originalDistanceY[i] = scaleOriginY - element.yCords[i];
+      }
+      console.log(scaleFactor);
+      //Update to resized coords
+      for (let i = 0; i < resizedXCords.length; i++) {
+        //Calculate new distance based on scale factor
+        const newDistanceX = originalDistanceX[i] * scaleFactor;
+        const newDistanceY = originalDistanceY[i] * scaleFactor;
+
+        //Place resized coords in the correct place
+        resizedXCords[i] = scaleOriginX - newDistanceX;
+        resizedYCords[i] = scaleOriginY - newDistanceY;
+
+        //Move path to new coords
+        resizedPath.moveTo(resizedXCords[i - 1], resizedYCords[i - 1]);
+        //Create line to new coords
+        resizedPath.lineTo(resizedXCords[i], resizedYCords[i]);
+      }
+
+      //Assign resized path to element
+      element.resizedX1 = Math.min(...resizedXCords);
+      element.resizedY1 = Math.min(...resizedYCords);
+      element.resizedX2 = Math.max(...resizedXCords);
+      element.resizedY2 = Math.max(...resizedYCords);
+
+      element.resizedXCords = resizedXCords;
+      element.resizedYCords = resizedYCords;
+
+      element.resizedPath = resizedPath;
+    }
   }
 
   private mouseInCorner(
