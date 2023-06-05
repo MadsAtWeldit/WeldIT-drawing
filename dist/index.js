@@ -51,6 +51,7 @@ class DrawingCanvas {
         this.pathObject = {
             type: "stroke",
             path: new Path2D(),
+            resizedPath: null,
             lineWidth: 5,
             strokeStyle: "black",
             operation: "source-over",
@@ -58,8 +59,14 @@ class DrawingCanvas {
             y1: 0,
             x2: 0,
             y2: 0,
+            resizedX1: 0,
+            resizedY1: 0,
+            resizedX2: 0,
+            resizedY2: 0,
             xCords: [],
             yCords: [],
+            resizedXCords: [],
+            resizedYCords: [],
         };
         //Create default text object
         this.textObject = {
@@ -99,7 +106,6 @@ class DrawingCanvas {
             const target = e.target;
             const colorPicker = this.colorPicker;
             const lineWidthPicker = this.lineWidthPicker;
-            const context = this.context;
             if (colorPicker && this.targetIs(colorPicker, target)) {
                 //Change current path object strokeStyle
                 this.pathObject.strokeStyle = target.value;
@@ -221,13 +227,13 @@ class DrawingCanvas {
                                 return;
                             }
                             //IF NOT in corner or selection THEN check if its in another drawing path
-                            this.context.isPointInPath(drawing.path, mouseX, mouseY)
+                            this.context.isPointInStroke(drawing.path, mouseX, mouseY)
                                 ? (this.selectedDrawingIndex = i)
                                 : (this.selectedDrawingIndex = null);
                             //IF no selected drawing when we click
                         }
                         else {
-                            if (this.context.isPointInPath(drawing.path, mouseX, mouseY)) {
+                            if (this.context.isPointInStroke(drawing.path, mouseX, mouseY)) {
                                 this.selectedDrawingIndex = i;
                                 this.shouldMove = true;
                             }
@@ -347,6 +353,7 @@ class DrawingCanvas {
                     this.pathObject = {
                         type: "stroke",
                         path: new Path2D(),
+                        resizedPath: null,
                         lineWidth: this.context.lineWidth,
                         strokeStyle: String(this.context.strokeStyle),
                         operation: "source-over",
@@ -354,8 +361,14 @@ class DrawingCanvas {
                         y1: 0,
                         x2: 0,
                         y2: 0,
+                        resizedX1: 0,
+                        resizedY1: 0,
+                        resizedX2: 0,
+                        resizedY2: 0,
                         xCords: [],
                         yCords: [],
+                        resizedXCords: [],
+                        resizedYCords: [],
                     };
                     return;
                 }
@@ -371,6 +384,7 @@ class DrawingCanvas {
                 this.pathObject = {
                     type: "stroke",
                     path: new Path2D(),
+                    resizedPath: null,
                     lineWidth: this.context.lineWidth,
                     strokeStyle: String(this.context.strokeStyle),
                     operation: "source-over",
@@ -378,13 +392,36 @@ class DrawingCanvas {
                     y1: 0,
                     x2: 0,
                     y2: 0,
+                    resizedX1: 0,
+                    resizedY1: 0,
+                    resizedX2: 0,
+                    resizedY2: 0,
                     xCords: [],
                     yCords: [],
+                    resizedXCords: [],
+                    resizedYCords: [],
                 };
             }
-            if (this.shouldResize.toggled) {
+            if (this.isResizing) {
                 this.shouldResize = { toggled: false, from: "" };
                 this.isResizing = false;
+                if (this.selectedDrawingIndex !== null &&
+                    this.drawingData[this.selectedDrawingIndex].type === "stroke") {
+                    const selectedDrawing = this.drawingData[this.selectedDrawingIndex];
+                    //Update original path
+                    selectedDrawing.xCords = selectedDrawing.resizedXCords;
+                    selectedDrawing.yCords = selectedDrawing.resizedYCords;
+                    selectedDrawing.path = selectedDrawing.resizedPath;
+                    selectedDrawing.x1 = Math.min(...selectedDrawing.xCords);
+                    selectedDrawing.y1 = Math.min(...selectedDrawing.yCords);
+                    selectedDrawing.x2 = Math.max(...selectedDrawing.xCords);
+                    selectedDrawing.y2 = Math.max(...selectedDrawing.yCords);
+                    selectedDrawing.resizedPath = null;
+                    selectedDrawing.resizedX1 = 0;
+                    selectedDrawing.resizedY1 = 0;
+                    selectedDrawing.resizedX2 = 0;
+                    selectedDrawing.resizedY1 = 0;
+                }
             }
             if (this.shouldMove) {
                 this.shouldMove = false;
@@ -406,7 +443,7 @@ class DrawingCanvas {
                 this.canvas.style.cursor = "default";
                 this.drawingData.forEach((drawing, i) => {
                     if (drawing.type === "stroke") {
-                        if (this.context.isPointInPath(drawing.path, mouseX, mouseY) ||
+                        if (this.context.isPointInStroke(drawing.path, mouseX, mouseY) ||
                             this.selectedDrawingIndex === i) {
                             if (this.mouseInSelection(mouseX, mouseY, drawing))
                                 this.canvas.style.cursor = "move";
@@ -454,6 +491,46 @@ class DrawingCanvas {
                         const m = new DOMMatrix().translate(dx, dy);
                         newPath.addPath(selectedPath.path, m);
                         selectedPath.path = newPath;
+                        //Set start positions to current
+                        this.startX = mouseX;
+                        this.startY = mouseY;
+                    }
+                    else {
+                        const { from } = this.shouldResize;
+                        this.isResizing = true;
+                        switch (from) {
+                            case "tl": {
+                                //Calculate original distance from mouse to origin
+                                const originalDistance = selectedPath.x2 - this.startX + (selectedPath.y2 - this.startY);
+                                //Current distance
+                                const currentDistance = selectedPath.x2 - mouseX + (selectedPath.y2 - mouseY);
+                                //Scale factor based on mouse
+                                const scaleFactor = currentDistance / originalDistance;
+                                this.resize(selectedPath, scaleFactor, selectedPath.x2, selectedPath.y2);
+                                break;
+                            }
+                            case "tr": {
+                                const originalDistance = this.startX - selectedPath.x1 + (selectedPath.y2 - this.startY);
+                                const currentDistance = mouseX - selectedPath.x1 + (selectedPath.y2 - mouseY);
+                                const scaleFactor = currentDistance / originalDistance;
+                                this.resize(selectedPath, scaleFactor, selectedPath.x1, selectedPath.y2);
+                                break;
+                            }
+                            case "br": {
+                                const originalDistance = this.startX - selectedPath.x1 + (this.startY - selectedPath.y1);
+                                const currentDistance = mouseX - selectedPath.x1 + (mouseY - selectedPath.y1);
+                                const scaleFactor = currentDistance / originalDistance;
+                                this.resize(selectedPath, scaleFactor, selectedPath.x1, selectedPath.y1);
+                                break;
+                            }
+                            case "bl": {
+                                const originalDistance = selectedPath.x2 - this.startX + (this.startY - selectedPath.y1);
+                                const currentDistance = selectedPath.x2 - mouseX + (mouseY - selectedPath.y1);
+                                const scaleFactor = currentDistance / originalDistance;
+                                this.resize(selectedPath, scaleFactor, selectedPath.x2, selectedPath.y1);
+                                break;
+                            }
+                        }
                     }
                 }
                 if (selectedPath.type === "text") {
@@ -463,12 +540,11 @@ class DrawingCanvas {
                         selectedPath.y1 += dy;
                         selectedPath.x2 += dx;
                         selectedPath.y2 += dy;
+                        this.startX = mouseX;
+                        this.startY = mouseY;
                     }
                 }
                 this.redraw(this.drawingData);
-                //Set start positions to current
-                this.startX = mouseX;
-                this.startY = mouseY;
             }
             if ((this.mouseIsDown && this.shouldDraw) ||
                 (this.mouseIsDown && this.shouldErase)) {
@@ -557,6 +633,46 @@ class DrawingCanvas {
         this.pathObject.yCords.push(y);
         this.isDragging = dragging;
     }
+    resize(element, scaleFactor, originX, originY) {
+        if (element.type === "stroke") {
+            const resizedPath = new Path2D();
+            //Origin of scale or default middle
+            const scaleOriginX = originX ? originX : element.x2 - element.x1 / 2;
+            const scaleOriginY = originY ? originY : element.y2 - element.y1 / 2;
+            //Create copy of element coordinates
+            const resizedXCords = [...element.xCords];
+            const resizedYCords = [...element.yCords];
+            const originalDistanceX = [];
+            const originalDistanceY = [];
+            //Calculate original distance between origin and x,y coordinates
+            for (let i = 0; i < element.xCords.length; i++) {
+                originalDistanceX[i] = scaleOriginX - element.xCords[i];
+                originalDistanceY[i] = scaleOriginY - element.yCords[i];
+            }
+            console.log(scaleFactor);
+            //Update to resized coords
+            for (let i = 0; i < resizedXCords.length; i++) {
+                //Calculate new distance based on scale factor
+                const newDistanceX = originalDistanceX[i] * scaleFactor;
+                const newDistanceY = originalDistanceY[i] * scaleFactor;
+                //Place resized coords in the correct place
+                resizedXCords[i] = scaleOriginX - newDistanceX;
+                resizedYCords[i] = scaleOriginY - newDistanceY;
+                //Move path to new coords
+                resizedPath.moveTo(resizedXCords[i - 1], resizedYCords[i - 1]);
+                //Create line to new coords
+                resizedPath.lineTo(resizedXCords[i], resizedYCords[i]);
+            }
+            //Assign resized path to element
+            element.resizedX1 = Math.min(...resizedXCords);
+            element.resizedY1 = Math.min(...resizedYCords);
+            element.resizedX2 = Math.max(...resizedXCords);
+            element.resizedY2 = Math.max(...resizedYCords);
+            element.resizedXCords = resizedXCords;
+            element.resizedYCords = resizedYCords;
+            element.resizedPath = resizedPath;
+        }
+    }
     mouseInCorner(x, y, drawing) {
         const { x1, y1, x2, y2 } = drawing;
         //Top left rectangle
@@ -613,6 +729,27 @@ class DrawingCanvas {
             return;
         drawingData.forEach((drawing, i) => {
             if (drawing.type === "stroke") {
+                if (this.isResizing && this.selectedDrawingIndex === i) {
+                    this.context.lineWidth = drawing.lineWidth;
+                    this.context.strokeStyle = drawing.strokeStyle;
+                    this.context.globalCompositeOperation = drawing.operation;
+                    this.context.stroke(drawing.resizedPath);
+                    const shapeWidth = drawing.resizedX2 - drawing.resizedX1;
+                    const shapeHeight = drawing.resizedY2 - drawing.resizedY1;
+                    this.context.strokeStyle = "#7678ed";
+                    this.context.lineWidth = 1;
+                    this.context.strokeRect(drawing.resizedX1, drawing.resizedY1, shapeWidth, shapeHeight);
+                    //Stroke rectangles inside each corner
+                    //Inner top left corner
+                    this.context.strokeRect(drawing.resizedX1, drawing.resizedY1, 10, 10);
+                    //Inner top right corner
+                    this.context.strokeRect(drawing.resizedX2, drawing.resizedY1, -10, 10);
+                    //Inner bottom right corner
+                    this.context.strokeRect(drawing.resizedX2, drawing.resizedY2, -10, -10);
+                    //Inner bottom left corner
+                    this.context.strokeRect(drawing.resizedX1, drawing.resizedY2, 10, -10);
+                    return;
+                }
                 this.context.lineWidth = drawing.lineWidth;
                 this.context.strokeStyle = drawing.strokeStyle;
                 this.context.globalCompositeOperation = drawing.operation;
