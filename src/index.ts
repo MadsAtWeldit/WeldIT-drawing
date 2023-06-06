@@ -728,28 +728,28 @@ class DrawingCanvas implements OptionElementsI {
       const dy = mouseY - this.startY;
 
       //Selected drawing
-      const selectedPath = this.drawingData[this.selectedDrawingIndex];
+      const selectedDrawing = this.drawingData[this.selectedDrawingIndex];
 
-      if (selectedPath.type === "stroke") {
+      if (selectedDrawing.type === "stroke") {
         if (this.shouldMove) {
           //Update x and y coordinates
-          for (let i = 0; i < selectedPath.xCords.length; i++) {
-            selectedPath.xCords[i] += dx;
-            selectedPath.yCords[i] += dy;
+          for (let i = 0; i < selectedDrawing.xCords.length; i++) {
+            selectedDrawing.xCords[i] += dx;
+            selectedDrawing.yCords[i] += dy;
           }
 
           //Update left, top, right and bottom
-          selectedPath.x1 = Math.min(...selectedPath.xCords);
-          selectedPath.y1 = Math.min(...selectedPath.yCords);
-          selectedPath.x2 = Math.max(...selectedPath.xCords);
-          selectedPath.y2 = Math.max(...selectedPath.yCords);
+          selectedDrawing.x1 = Math.min(...selectedDrawing.xCords);
+          selectedDrawing.y1 = Math.min(...selectedDrawing.yCords);
+          selectedDrawing.x2 = Math.max(...selectedDrawing.xCords);
+          selectedDrawing.y2 = Math.max(...selectedDrawing.yCords);
 
           //Create new path from existing path
           const newPath = new Path2D();
           const m = new DOMMatrix().translate(dx, dy);
-          newPath.addPath(selectedPath.path, m);
+          newPath.addPath(selectedDrawing.path, m);
 
-          selectedPath.path = newPath;
+          selectedDrawing.path = newPath;
           //Set start positions to current
           this.startX = mouseX;
           this.startY = mouseY;
@@ -762,54 +762,60 @@ class DrawingCanvas implements OptionElementsI {
             case "tl": {
               //Calculate original distance from mouse to origin
               const originalDistance =
-                selectedPath.x2 - this.startX + (selectedPath.y2 - this.startY);
+                selectedDrawing.x2 -
+                this.startX +
+                (selectedDrawing.y2 - this.startY);
               //Current distance
               const currentDistance =
-                selectedPath.x2 - mouseX + (selectedPath.y2 - mouseY);
+                selectedDrawing.x2 - mouseX + (selectedDrawing.y2 - mouseY);
 
               //Scale factor based on mouse
               const scaleFactor = currentDistance / originalDistance;
 
               this.resize(
-                selectedPath,
+                selectedDrawing,
                 scaleFactor,
-                selectedPath.x2,
-                selectedPath.y2
+                selectedDrawing.x2,
+                selectedDrawing.y2
               );
 
               break;
             }
             case "tr": {
               const originalDistance =
-                this.startX - selectedPath.x1 + (selectedPath.y2 - this.startY);
+                this.startX -
+                selectedDrawing.x1 +
+                (selectedDrawing.y2 - this.startY);
 
               const currentDistance =
-                mouseX - selectedPath.x1 + (selectedPath.y2 - mouseY);
+                mouseX - selectedDrawing.x1 + (selectedDrawing.y2 - mouseY);
 
               const scaleFactor = currentDistance / originalDistance;
 
               this.resize(
-                selectedPath,
+                selectedDrawing,
                 scaleFactor,
-                selectedPath.x1,
-                selectedPath.y2
+                selectedDrawing.x1,
+                selectedDrawing.y2
               );
               break;
             }
             case "br": {
               const originalDistance =
-                this.startX - selectedPath.x1 + (this.startY - selectedPath.y1);
+                this.startX -
+                selectedDrawing.x1 +
+                (this.startY - selectedDrawing.y1);
 
               const currentDistance =
-                mouseX - selectedPath.x1 + (mouseY - selectedPath.y1);
+                mouseX - selectedDrawing.x1 + (mouseY - selectedDrawing.y1);
 
               const scaleFactor = currentDistance / originalDistance;
 
               this.resize(
-                selectedPath,
+                selectedDrawing,
                 scaleFactor,
-                selectedPath.x1,
-                selectedPath.y1
+                selectedDrawing.x1,
+                selectedDrawing.y1
               );
 
               break;
@@ -817,18 +823,20 @@ class DrawingCanvas implements OptionElementsI {
 
             case "bl": {
               const originalDistance =
-                selectedPath.x2 - this.startX + (this.startY - selectedPath.y1);
+                selectedDrawing.x2 -
+                this.startX +
+                (this.startY - selectedDrawing.y1);
 
               const currentDistance =
-                selectedPath.x2 - mouseX + (mouseY - selectedPath.y1);
+                selectedDrawing.x2 - mouseX + (mouseY - selectedDrawing.y1);
 
               const scaleFactor = currentDistance / originalDistance;
 
               this.resize(
-                selectedPath,
+                selectedDrawing,
                 scaleFactor,
-                selectedPath.x2,
-                selectedPath.y1
+                selectedDrawing.x2,
+                selectedDrawing.y1
               );
 
               break;
@@ -837,14 +845,14 @@ class DrawingCanvas implements OptionElementsI {
         }
       }
 
-      if (selectedPath.type === "text") {
+      if (selectedDrawing.type === "text") {
         if (this.shouldMove) {
           //Assign new coordinates
-          selectedPath.x1 += dx;
-          selectedPath.y1 += dy;
+          selectedDrawing.x1 += dx;
+          selectedDrawing.y1 += dy;
 
-          selectedPath.x2 += dx;
-          selectedPath.y2 += dy;
+          selectedDrawing.x2 += dx;
+          selectedDrawing.y2 += dy;
 
           this.startX = mouseX;
           this.startY = mouseY;
@@ -877,24 +885,25 @@ class DrawingCanvas implements OptionElementsI {
     //Draw a stroke according to the path
   };
 
+  //Adds each coordinate to array
   private addCoords(x: number, y: number, dragging: boolean) {
     this.pathObject.xCords.push(x);
     this.pathObject.yCords.push(y);
     this.isDragging = dragging;
   }
 
+  //Resize drawing with provided scale factor and scale origin
   private resize(
     element: DrawingElements,
     scaleFactor: number,
     originX?: number,
     originY?: number
   ) {
+    //Origin of scale or default middle
+    const scaleOriginX = originX ? originX : element.x2 - element.x1 / 2;
+    const scaleOriginY = originY ? originY : element.y2 - element.y1 / 2;
     if (element.type === "stroke") {
       const resizedPath = new Path2D();
-
-      //Origin of scale or default middle
-      const scaleOriginX = originX ? originX : element.x2 - element.x1 / 2;
-      const scaleOriginY = originY ? originY : element.y2 - element.y1 / 2;
 
       //Create copy of element coordinates
       const resizedXCords = [...element.xCords];
@@ -935,6 +944,8 @@ class DrawingCanvas implements OptionElementsI {
       element.resizedYCords = resizedYCords;
 
       element.resizedPath = resizedPath;
+    } else {
+      console.log("text");
     }
   }
 
@@ -988,7 +999,7 @@ class DrawingCanvas implements OptionElementsI {
     return mouseIsIn;
   }
 
-  //Draw a selection rectangle for give coords
+  //Draw a selection rectangle for given coords
   private createDrawingSelection(
     x1: number,
     y1: number,
@@ -1037,7 +1048,8 @@ class DrawingCanvas implements OptionElementsI {
       this.context.font = drawing.font;
     }
   }
-  //Loop each pathObject and redraw corresponding Path2D
+
+  //Loop and redraw each drawing as drawn
   private redraw(drawingData: DrawingElements[]) {
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
@@ -1075,14 +1087,17 @@ class DrawingCanvas implements OptionElementsI {
       }
 
       if (drawing.type === "text") {
-        if (this.selectedDrawingIndex === i)
+        if (this.selectedDrawingIndex === i) {
+          if (this.isResizing) {
+            this.setCtxStyles(drawing);
+          }
           this.createDrawingSelection(
             drawing.x1,
             drawing.y1,
             drawing.x2,
             drawing.y2
           );
-
+        }
         this.setCtxStyles(drawing);
 
         this.context.fillText(drawing.text, drawing.x1, drawing.y1);
