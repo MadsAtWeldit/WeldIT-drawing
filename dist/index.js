@@ -649,7 +649,6 @@ class DrawingCanvas {
                 originalDistanceX[i] = scaleOriginX - element.xCords[i];
                 originalDistanceY[i] = scaleOriginY - element.yCords[i];
             }
-            console.log(scaleFactor);
             //Update to resized coords
             for (let i = 0; i < resizedXCords.length; i++) {
                 //Calculate new distance based on scale factor
@@ -715,6 +714,18 @@ class DrawingCanvas {
                         : false;
         return mouseIsIn;
     }
+    createDrawingSelection(x1, y1, x2, y2, px) {
+        const width = x2 - x1;
+        const height = y2 - y1;
+        const size = px ? px : 10;
+        this.context.strokeStyle = "#7678ed";
+        this.context.lineWidth = 1;
+        this.context.strokeRect(x1, y1, width, height);
+        this.context.strokeRect(x1, y1, size, size);
+        this.context.strokeRect(x2, y1, -size, size);
+        this.context.strokeRect(x2, y2, -size, -size);
+        this.context.strokeRect(x1, y2, size, -size);
+    }
     //Checks if given point is in given drawing selection
     mouseInSelection(mouseX, mouseY, drawing) {
         const { x1, y1, x2, y2 } = drawing;
@@ -734,20 +745,7 @@ class DrawingCanvas {
                     this.context.strokeStyle = drawing.strokeStyle;
                     this.context.globalCompositeOperation = drawing.operation;
                     this.context.stroke(drawing.resizedPath);
-                    const shapeWidth = drawing.resizedX2 - drawing.resizedX1;
-                    const shapeHeight = drawing.resizedY2 - drawing.resizedY1;
-                    this.context.strokeStyle = "#7678ed";
-                    this.context.lineWidth = 1;
-                    this.context.strokeRect(drawing.resizedX1, drawing.resizedY1, shapeWidth, shapeHeight);
-                    //Stroke rectangles inside each corner
-                    //Inner top left corner
-                    this.context.strokeRect(drawing.resizedX1, drawing.resizedY1, 10, 10);
-                    //Inner top right corner
-                    this.context.strokeRect(drawing.resizedX2, drawing.resizedY1, -10, 10);
-                    //Inner bottom right corner
-                    this.context.strokeRect(drawing.resizedX2, drawing.resizedY2, -10, -10);
-                    //Inner bottom left corner
-                    this.context.strokeRect(drawing.resizedX1, drawing.resizedY2, 10, -10);
+                    this.createDrawingSelection(drawing.resizedX1, drawing.resizedY1, drawing.resizedX2, drawing.resizedY2);
                     return;
                 }
                 this.context.lineWidth = drawing.lineWidth;
@@ -756,21 +754,7 @@ class DrawingCanvas {
                 this.context.stroke(drawing.path);
                 //Check if there is a selected drawing
                 if (this.selectedDrawingIndex === i) {
-                    const shapeWidth = drawing.x2 - drawing.x1;
-                    const shapeHeight = drawing.y2 - drawing.y1;
-                    this.context.strokeStyle = "#7678ed";
-                    this.context.lineWidth = 1;
-                    //Stroke main selection rectangle
-                    this.context.strokeRect(drawing.x1, drawing.y1, shapeWidth, shapeHeight);
-                    //Stroke rectangles inside each corner
-                    //Inner top left corner
-                    this.context.strokeRect(drawing.x1, drawing.y1, 10, 10);
-                    //Inner top right corner
-                    this.context.strokeRect(drawing.x2, drawing.y1, -10, 10);
-                    //Inner bottom right corner
-                    this.context.strokeRect(drawing.x2, drawing.y2, -10, -10);
-                    //Inner bottom left corner
-                    this.context.strokeRect(drawing.x1, drawing.y2, 10, -10);
+                    this.createDrawingSelection(drawing.x1, drawing.y1, drawing.x2, drawing.y2);
                 }
             }
             if (drawing.type === "text") {
@@ -779,21 +763,7 @@ class DrawingCanvas {
                 this.context.globalCompositeOperation = drawing.operation;
                 this.context.fillText(drawing.text, drawing.x1, drawing.y1);
                 if (this.selectedDrawingIndex === i) {
-                    const shapeWidth = drawing.x2 - drawing.x1;
-                    const shapeHeight = drawing.y2 - drawing.y1;
-                    this.context.strokeStyle = "#7678ed";
-                    this.context.lineWidth = 1;
-                    //Stroke main selection rectangle
-                    this.context.strokeRect(drawing.x1, drawing.y1, shapeWidth, shapeHeight);
-                    //Stroke rectangles inside each corner
-                    //Inner top left corner
-                    this.context.strokeRect(drawing.x1, drawing.y1, 10, 10);
-                    //Inner top right corner
-                    this.context.strokeRect(drawing.x2, drawing.y1, -10, 10);
-                    //Inner bottom right corner
-                    this.context.strokeRect(drawing.x2, drawing.y2, -10, -10);
-                    //Inner bottom left corner
-                    this.context.strokeRect(drawing.x1, drawing.y2, 10, -10);
+                    this.createDrawingSelection(drawing.x1, drawing.y1, drawing.x2, drawing.y2);
                 }
             }
         });
