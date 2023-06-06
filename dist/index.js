@@ -714,10 +714,12 @@ class DrawingCanvas {
                         : false;
         return mouseIsIn;
     }
+    //Draw a selection rectangle for give coords
     createDrawingSelection(x1, y1, x2, y2, px) {
         const width = x2 - x1;
         const height = y2 - y1;
         const size = px ? px : 10;
+        this.context.globalCompositeOperation = "source-over";
         this.context.strokeStyle = "#7678ed";
         this.context.lineWidth = 1;
         this.context.strokeRect(x1, y1, width, height);
@@ -733,6 +735,18 @@ class DrawingCanvas {
             return true;
         return false;
     }
+    //Sets context styles based on drawing styles
+    setCtxStyles(drawing) {
+        this.context.globalCompositeOperation = drawing.operation;
+        if (drawing.type === "stroke") {
+            this.context.lineWidth = drawing.lineWidth;
+            this.context.strokeStyle = drawing.strokeStyle;
+        }
+        else {
+            this.context.textBaseline = drawing.baseline;
+            this.context.font = drawing.font;
+        }
+    }
     //Loop each pathObject and redraw corresponding Path2D
     redraw(drawingData) {
         this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -740,31 +754,23 @@ class DrawingCanvas {
             return;
         drawingData.forEach((drawing, i) => {
             if (drawing.type === "stroke") {
-                if (this.isResizing && this.selectedDrawingIndex === i) {
-                    this.context.lineWidth = drawing.lineWidth;
-                    this.context.strokeStyle = drawing.strokeStyle;
-                    this.context.globalCompositeOperation = drawing.operation;
-                    this.context.stroke(drawing.resizedPath);
-                    this.createDrawingSelection(drawing.resizedX1, drawing.resizedY1, drawing.resizedX2, drawing.resizedY2);
-                    return;
-                }
-                this.context.lineWidth = drawing.lineWidth;
-                this.context.strokeStyle = drawing.strokeStyle;
-                this.context.globalCompositeOperation = drawing.operation;
-                this.context.stroke(drawing.path);
-                //Check if there is a selected drawing
                 if (this.selectedDrawingIndex === i) {
+                    if (this.isResizing) {
+                        this.setCtxStyles(drawing);
+                        this.context.stroke(drawing.resizedPath);
+                        this.createDrawingSelection(drawing.resizedX1, drawing.resizedY1, drawing.resizedX2, drawing.resizedY2);
+                        return;
+                    }
                     this.createDrawingSelection(drawing.x1, drawing.y1, drawing.x2, drawing.y2);
                 }
+                this.setCtxStyles(drawing);
+                this.context.stroke(drawing.path);
             }
             if (drawing.type === "text") {
-                this.context.textBaseline = drawing.baseline;
-                this.context.font = drawing.font;
-                this.context.globalCompositeOperation = drawing.operation;
-                this.context.fillText(drawing.text, drawing.x1, drawing.y1);
-                if (this.selectedDrawingIndex === i) {
+                if (this.selectedDrawingIndex === i)
                     this.createDrawingSelection(drawing.x1, drawing.y1, drawing.x2, drawing.y2);
-                }
+                this.setCtxStyles(drawing);
+                this.context.fillText(drawing.text, drawing.x1, drawing.y1);
             }
         });
     }
