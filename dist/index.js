@@ -625,15 +625,12 @@ class DrawingCanvas {
                 this.redraw(this.drawingData);
                 //Set props for current path object
                 this.context.lineCap = "round";
-                this.context.lineWidth = this.pathObject.lineWidth;
-                this.context.strokeStyle = this.pathObject.strokeStyle;
-                this.context.globalCompositeOperation = this.pathObject.operation;
+                this.setCtxStyles(this.pathObject);
                 this.addCoords(mouseX, mouseY, true);
                 this.pathObject.path.lineTo(mouseX, mouseY);
                 this.context.stroke(this.pathObject.path);
             }
             e.preventDefault();
-            //Draw a stroke according to the path
         };
         this.createPersonalElement = (tagName, type, styles) => {
             const element = document.createElement(tagName);
@@ -706,18 +703,22 @@ class DrawingCanvas {
         this.pathObject.yCords.push(y);
         this.isDragging = dragging;
     }
+    //Resize text based on origin of mouse
     resizeText(element, scaleFactor, from) {
         switch (from) {
             case "tl": {
+                //Start corners
+                const cornerX = element.x1;
+                const cornerY = element.y1;
                 const scaleOriginX = element.x2;
                 const scaleOriginY = element.y2;
                 //Create copy of original font string
                 const fontStringCopy = element.font.slice();
                 //Convert font size to number
                 const fontSize = parseFloat(fontStringCopy);
-                //Get original distance from scale origin to x and y
-                const originalDistanceX = scaleOriginX - element.x1; //x2 - x1
-                const originalDistanceY = scaleOriginY - element.y1; //y2 - y1
+                //Get original distance from scale origin to start corner
+                const originalDistanceX = scaleOriginX - cornerX;
+                const originalDistanceY = scaleOriginY - cornerY;
                 //Resize font size
                 const resizedFontSize = fontSize * scaleFactor;
                 //Get new distance based on scale factor
@@ -725,98 +726,72 @@ class DrawingCanvas {
                 const newDistanceY = originalDistanceY * scaleFactor;
                 //Replace original font size with resized
                 const newFont = fontStringCopy.replace(fontSize.toString(), resizedFontSize.toString());
-                //Set font size and style before measuring text
-                this.context.font = newFont;
-                //Assign resized x1 and y1
-                element.resizedX1 = element.x2 - newDistanceX;
-                element.resizedY1 = element.y2 - newDistanceY;
-                //Resized right and bottom is still the same because of origin
-                element.resizedX2 = element.x2;
-                element.resizedY2 = element.y2;
+                //Static x and y positions
+                element.resizedX2 = scaleOriginX;
+                element.resizedY2 = scaleOriginY;
+                element.resizedX1 = scaleOriginX - newDistanceX;
+                element.resizedY1 = scaleOriginY - newDistanceY;
                 //Store the new size
                 element.resizedFont = newFont;
                 break;
             }
             case "tr": {
+                const cornerX = element.x2;
+                const cornerY = element.y1;
                 const scaleOriginY = element.y2;
-                // Create copy of original font string
+                const scaleOriginX = element.x1;
                 const fontStringCopy = element.font.slice();
-                //Convert font size to number
                 const fontSize = parseFloat(fontStringCopy);
-                //Get original distance from scale origin to x and y
-                const originalDistanceY = scaleOriginY - element.y1;
-                //Resize font size
+                const originalDistanceX = scaleOriginX - cornerX;
+                const originalDistanceY = scaleOriginY - cornerY;
                 const resizedFontSize = fontSize * scaleFactor;
-                //Get new distance based on scale factor
                 const newDistanceY = originalDistanceY * scaleFactor;
-                //Replace original font size with resized
+                const newDistanceX = originalDistanceX * scaleFactor;
                 const newFont = fontStringCopy.replace(fontSize.toString(), resizedFontSize.toString());
-                this.context.font = newFont;
-                //Measure the drawn text
-                const textWidth = this.context.measureText(element.text).width;
-                //Assign resized x1 and y1
-                element.resizedX1 = element.x1; //Is the same
-                element.resizedY1 = element.y2 - newDistanceY;
-                //Assign right and bottom coords
-                element.resizedX2 = Math.round(element.resizedX1 + textWidth);
-                element.resizedY2 = element.y2;
-                //Store the new size
+                element.resizedX1 = scaleOriginX;
+                element.resizedY2 = scaleOriginY;
+                element.resizedY1 = scaleOriginY - newDistanceY;
+                element.resizedX2 = scaleOriginX - newDistanceX;
                 element.resizedFont = newFont;
                 break;
             }
             case "br": {
+                const cornerX = element.x2;
+                const cornerY = element.y2;
                 const scaleOriginX = element.x1;
                 const scaleOriginY = element.y1;
-                //Create copy of original font string
                 const fontStringCopy = element.font.slice();
-                //Convert font size to number
                 const fontSize = parseFloat(fontStringCopy);
-                //Get original distance from scale origin to x and y
-                const originalDistanceX = scaleOriginX - element.x2;
-                const originalDistanceY = scaleOriginY - element.y2;
-                //Resize font size
+                const originalDistanceX = scaleOriginX - cornerX;
+                const originalDistanceY = scaleOriginY - cornerY;
                 const resizedFontSize = fontSize * scaleFactor;
-                //Get new distance based on scale factor
                 const newDistanceX = originalDistanceX * scaleFactor;
                 const newDistanceY = originalDistanceY * scaleFactor;
-                //Replace original font size with resized
                 const newFont = fontStringCopy.replace(fontSize.toString(), resizedFontSize.toString());
-                //Set font size and style before measuring text
-                this.context.font = newFont;
-                //Assign resized x1 and y1
-                element.resizedX1 = element.x1;
-                element.resizedY1 = element.y1;
-                element.resizedX2 = element.x1 - newDistanceX;
-                element.resizedY2 = element.y1 - newDistanceY;
-                //Store the new size
+                element.resizedX1 = scaleOriginX;
+                element.resizedY1 = scaleOriginY;
+                element.resizedX2 = scaleOriginX - newDistanceX;
+                element.resizedY2 = scaleOriginY - newDistanceY;
                 element.resizedFont = newFont;
                 break;
             }
             case "bl": {
+                const cornerX = element.x1;
+                const cornerY = element.y2;
                 const scaleOriginX = element.x2;
                 const scaleOriginY = element.y1;
-                //Create copy of original font string
                 const fontStringCopy = element.font.slice();
-                //Convert font size to number
                 const fontSize = parseFloat(fontStringCopy);
-                //Get original distance from scale origin to x and y
-                const originalDistanceX = scaleOriginX - element.x1;
-                const originalDistanceY = element.y2 - scaleOriginY;
-                //Resize font size
+                const originalDistanceX = scaleOriginX - cornerX;
+                const originalDistanceY = scaleOriginY - cornerY;
                 const resizedFontSize = fontSize * scaleFactor;
-                //Get new distance based on scale factor
                 const newDistanceX = originalDistanceX * scaleFactor;
                 const newDistanceY = originalDistanceY * scaleFactor;
-                //Replace original font size with resized
                 const newFont = fontStringCopy.replace(fontSize.toString(), resizedFontSize.toString());
-                //Set font size and style before measuring text
-                this.context.font = newFont;
-                //Assign resized x1 and y1
-                element.resizedX1 = element.x2 - newDistanceX;
-                element.resizedY1 = element.y1;
-                element.resizedX2 = element.x2;
-                element.resizedY2 = element.y1 + newDistanceY;
-                //Store the new size
+                element.resizedY1 = scaleOriginY;
+                element.resizedX2 = scaleOriginX;
+                element.resizedX1 = scaleOriginX - newDistanceX;
+                element.resizedY2 = scaleOriginY - newDistanceY;
                 element.resizedFont = newFont;
                 break;
             }
