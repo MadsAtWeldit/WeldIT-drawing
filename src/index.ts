@@ -62,11 +62,16 @@ interface TextElement {
   type: "text";
   text: string;
   font: string;
+  resizedFont: string;
   baseline: string;
   x1: number;
   y1: number;
   x2: number;
   y2: number;
+  resizedX1: number;
+  resizedY1: number;
+  resizedX2: number;
+  resizedY2: number;
 
   operation: "source-over" | "destination-out";
 }
@@ -152,11 +157,16 @@ class DrawingCanvas implements OptionElementsI {
     type: "text",
     text: "",
     font: "30pt sans-serif",
+    resizedFont: "",
     baseline: "top",
     x1: 0,
     y1: 0,
     x2: 0,
     y2: 0,
+    resizedX1: 0,
+    resizedY1: 0,
+    resizedX2: 0,
+    resizedY2: 0,
     operation: "source-over",
   };
 
@@ -541,11 +551,16 @@ class DrawingCanvas implements OptionElementsI {
           type: "text",
           text: "",
           font: "30pt sans-serif",
+          resizedFont: "",
           baseline: "top",
           x1: 0,
           y1: 0,
           x2: 0,
           y2: 0,
+          resizedX1: 0,
+          resizedY1: 0,
+          resizedX2: 0,
+          resizedY2: 0,
           operation: "source-over",
         };
       });
@@ -661,6 +676,21 @@ class DrawingCanvas implements OptionElementsI {
         selectedDrawing.resizedY1 = 0;
         selectedDrawing.resizedX2 = 0;
         selectedDrawing.resizedY1 = 0;
+      }
+      if (
+        this.selectedDrawingIndex !== null &&
+        this.drawingData[this.selectedDrawingIndex].type === "text"
+      ) {
+        const selectedDrawing = this.drawingData[
+          this.selectedDrawingIndex
+        ] as TextElement;
+
+        selectedDrawing.font = selectedDrawing.resizedFont;
+
+        selectedDrawing.x1 = selectedDrawing.resizedX1;
+        selectedDrawing.y1 = selectedDrawing.resizedY1;
+        selectedDrawing.x2 = selectedDrawing.resizedX2;
+        selectedDrawing.y2 = selectedDrawing.resizedY2;
       }
     }
 
@@ -856,6 +886,71 @@ class DrawingCanvas implements OptionElementsI {
 
           this.startX = mouseX;
           this.startY = mouseY;
+        } else {
+          const { from } = this.shouldResize;
+          this.isResizing = true;
+          switch (from) {
+            case "tl": {
+              //Calculate original distance from mouse to origin
+              const originalDistance =
+                selectedDrawing.x2 -
+                this.startX +
+                (selectedDrawing.y2 - this.startY);
+              //Current distance
+              const currentDistance =
+                selectedDrawing.x2 - mouseX + (selectedDrawing.y2 - mouseY);
+
+              //Scale factor based on mouse
+              const scaleFactor = currentDistance / originalDistance;
+
+              this.resizeText(selectedDrawing, scaleFactor, from);
+              break;
+            }
+            case "tr": {
+              const originalDistance =
+                this.startX -
+                selectedDrawing.x1 +
+                (selectedDrawing.y2 - this.startY);
+
+              const currentDistance =
+                mouseX - selectedDrawing.x1 + (selectedDrawing.y2 - mouseY);
+
+              const scaleFactor = currentDistance / originalDistance;
+
+              this.resizeText(selectedDrawing, scaleFactor, from);
+
+              break;
+            }
+            case "br": {
+              const originalDistance =
+                this.startX -
+                selectedDrawing.x1 +
+                (this.startY - selectedDrawing.y1);
+
+              const currentDistance =
+                mouseX - selectedDrawing.x1 + (mouseY - selectedDrawing.y1);
+
+              const scaleFactor = currentDistance / originalDistance;
+
+              this.resizeText(selectedDrawing, scaleFactor, from);
+
+              break;
+            }
+            case "bl": {
+              const originalDistance =
+                selectedDrawing.x2 -
+                this.startX +
+                (this.startY - selectedDrawing.y1);
+
+              const currentDistance =
+                selectedDrawing.x2 - mouseX + (mouseY - selectedDrawing.y1);
+
+              const scaleFactor = currentDistance / originalDistance;
+
+              this.resizeText(selectedDrawing, scaleFactor, from);
+              break;
+            }
+          }
         }
       }
 
@@ -891,7 +986,180 @@ class DrawingCanvas implements OptionElementsI {
     this.pathObject.yCords.push(y);
     this.isDragging = dragging;
   }
+  private resizeText(
+    element: TextElement,
+    scaleFactor: number,
+    from: "tl" | "tr" | "br" | "bl"
+  ) {
+    switch (from) {
+      case "tl": {
+        const scaleOriginX = element.x2;
+        const scaleOriginY = element.y2;
 
+        //Create copy of original font string
+        const fontStringCopy = element.font.slice();
+
+        //Convert font size to number
+        const fontSize = parseFloat(fontStringCopy);
+
+        //Get original distance from scale origin to x and y
+        const originalDistanceX = scaleOriginX - element.x1; //x2 - x1
+        const originalDistanceY = scaleOriginY - element.y1; //y2 - y1
+
+        //Resize font size
+        const resizedFontSize = fontSize * scaleFactor;
+
+        //Get new distance based on scale factor
+        const newDistanceX = originalDistanceX * scaleFactor;
+        const newDistanceY = originalDistanceY * scaleFactor;
+
+        //Replace original font size with resized
+        const newFont = fontStringCopy.replace(
+          fontSize.toString(),
+          resizedFontSize.toString()
+        );
+
+        //Set font size and style before measuring text
+        this.context.font = newFont;
+
+        //Assign resized x1 and y1
+        element.resizedX1 = element.x2 - newDistanceX;
+        element.resizedY1 = element.y2 - newDistanceY;
+
+        //Resized right and bottom is still the same because of origin
+        element.resizedX2 = element.x2;
+        element.resizedY2 = element.y2;
+
+        //Store the new size
+        element.resizedFont = newFont;
+        break;
+      }
+      case "tr": {
+        const scaleOriginY = element.y2;
+
+        // Create copy of original font string
+        const fontStringCopy = element.font.slice();
+
+        //Convert font size to number
+        const fontSize = parseFloat(fontStringCopy);
+
+        //Get original distance from scale origin to x and y
+        const originalDistanceY = scaleOriginY - element.y1;
+
+        //Resize font size
+        const resizedFontSize = fontSize * scaleFactor;
+
+        //Get new distance based on scale factor
+        const newDistanceY = originalDistanceY * scaleFactor;
+
+        //Replace original font size with resized
+        const newFont = fontStringCopy.replace(
+          fontSize.toString(),
+          resizedFontSize.toString()
+        );
+
+        this.context.font = newFont;
+
+        //Measure the drawn text
+        const textWidth = this.context.measureText(element.text).width;
+
+        //Assign resized x1 and y1
+        element.resizedX1 = element.x1; //Is the same
+        element.resizedY1 = element.y2 - newDistanceY;
+
+        //Assign right and bottom coords
+        element.resizedX2 = Math.round(element.resizedX1 + textWidth);
+        element.resizedY2 = element.y2;
+
+        //Store the new size
+        element.resizedFont = newFont;
+        break;
+      }
+      case "br": {
+        const scaleOriginX = element.x1;
+        const scaleOriginY = element.y1;
+
+        //Create copy of original font string
+        const fontStringCopy = element.font.slice();
+
+        //Convert font size to number
+        const fontSize = parseFloat(fontStringCopy);
+
+        //Get original distance from scale origin to x and y
+        const originalDistanceX = scaleOriginX - element.x2;
+        const originalDistanceY = scaleOriginY - element.y2;
+
+        //Resize font size
+        const resizedFontSize = fontSize * scaleFactor;
+
+        //Get new distance based on scale factor
+        const newDistanceX = originalDistanceX * scaleFactor;
+        const newDistanceY = originalDistanceY * scaleFactor;
+
+        //Replace original font size with resized
+        const newFont = fontStringCopy.replace(
+          fontSize.toString(),
+          resizedFontSize.toString()
+        );
+
+        //Set font size and style before measuring text
+        this.context.font = newFont;
+
+        //Assign resized x1 and y1
+        element.resizedX1 = element.x1;
+        element.resizedY1 = element.y1;
+
+        element.resizedX2 = element.x1 - newDistanceX;
+        element.resizedY2 = element.y1 - newDistanceY;
+
+        //Store the new size
+        element.resizedFont = newFont;
+
+        break;
+      }
+      case "bl": {
+        const scaleOriginX = element.x2;
+        const scaleOriginY = element.y1;
+
+        //Create copy of original font string
+        const fontStringCopy = element.font.slice();
+
+        //Convert font size to number
+        const fontSize = parseFloat(fontStringCopy);
+
+        //Get original distance from scale origin to x and y
+        const originalDistanceX = scaleOriginX - element.x1;
+        const originalDistanceY = element.y2 - scaleOriginY;
+
+        //Resize font size
+        const resizedFontSize = fontSize * scaleFactor;
+
+        //Get new distance based on scale factor
+        const newDistanceX = originalDistanceX * scaleFactor;
+        const newDistanceY = originalDistanceY * scaleFactor;
+
+        //Replace original font size with resized
+        const newFont = fontStringCopy.replace(
+          fontSize.toString(),
+          resizedFontSize.toString()
+        );
+
+        //Set font size and style before measuring text
+        this.context.font = newFont;
+
+        //Assign resized x1 and y1
+        element.resizedX1 = element.x2 - newDistanceX;
+        element.resizedY1 = element.y1;
+
+        element.resizedX2 = element.x2;
+        element.resizedY2 = element.y1 + newDistanceY;
+
+        //Store the new size
+        element.resizedFont = newFont;
+        break;
+      }
+    }
+  }
   //Resize drawing with provided scale factor and scale origin
   private resize(
     element: DrawingElements,
@@ -944,8 +1212,6 @@ class DrawingCanvas implements OptionElementsI {
       element.resizedYCords = resizedYCords;
 
       element.resizedPath = resizedPath;
-    } else {
-      console.log("text");
     }
   }
 
@@ -1090,6 +1356,20 @@ class DrawingCanvas implements OptionElementsI {
         if (this.selectedDrawingIndex === i) {
           if (this.isResizing) {
             this.setCtxStyles(drawing);
+
+            this.context.font = drawing.resizedFont;
+            this.context.fillText(
+              drawing.text,
+              drawing.resizedX1,
+              drawing.resizedY1
+            );
+            this.createDrawingSelection(
+              drawing.resizedX1,
+              drawing.resizedY1,
+              drawing.resizedX2,
+              drawing.resizedY2
+            );
+            return;
           }
           this.createDrawingSelection(
             drawing.x1,
