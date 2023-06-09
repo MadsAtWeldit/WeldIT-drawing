@@ -415,31 +415,9 @@ class DrawingCanvas {
             if (this.isResizing) {
                 this.shouldResize = { toggled: false, from: "" };
                 this.isResizing = false;
-                if (this.selectedDrawingIndex !== null &&
-                    this.drawingData[this.selectedDrawingIndex].type === "stroke") {
+                if (this.selectedDrawingIndex !== null) {
                     const selectedDrawing = this.drawingData[this.selectedDrawingIndex];
-                    //Update original path
-                    selectedDrawing.xCords = selectedDrawing.resizedXCords;
-                    selectedDrawing.yCords = selectedDrawing.resizedYCords;
-                    selectedDrawing.path = selectedDrawing.resizedPath;
-                    selectedDrawing.x1 = Math.min(...selectedDrawing.xCords);
-                    selectedDrawing.y1 = Math.min(...selectedDrawing.yCords);
-                    selectedDrawing.x2 = Math.max(...selectedDrawing.xCords);
-                    selectedDrawing.y2 = Math.max(...selectedDrawing.yCords);
-                    selectedDrawing.resizedPath = null;
-                    selectedDrawing.resizedX1 = 0;
-                    selectedDrawing.resizedY1 = 0;
-                    selectedDrawing.resizedX2 = 0;
-                    selectedDrawing.resizedY1 = 0;
-                }
-                if (this.selectedDrawingIndex !== null &&
-                    this.drawingData[this.selectedDrawingIndex].type === "text") {
-                    const selectedDrawing = this.drawingData[this.selectedDrawingIndex];
-                    selectedDrawing.font = selectedDrawing.resizedFont;
-                    selectedDrawing.x1 = selectedDrawing.resizedX1;
-                    selectedDrawing.y1 = selectedDrawing.resizedY1;
-                    selectedDrawing.x2 = selectedDrawing.resizedX2;
-                    selectedDrawing.y2 = selectedDrawing.resizedY2;
+                    this.updateToResized(selectedDrawing);
                 }
             }
             if (this.shouldMove) {
@@ -696,6 +674,25 @@ class DrawingCanvas {
         canvas.addEventListener("touchmove", this.mouseMoveHandler);
         controller === null || controller === void 0 ? void 0 : controller.addEventListener("change", this.changeHandler);
         controller === null || controller === void 0 ? void 0 : controller.addEventListener("click", this.toolSelectHandler);
+    }
+    //Updates drawing to resized
+    updateToResized(drawing) {
+        if (drawing.type === "stroke") {
+            drawing.xCords = drawing.resizedXCords;
+            drawing.yCords = drawing.resizedYCords;
+            drawing.path = drawing.resizedPath;
+            drawing.x1 = Math.min(...drawing.xCords);
+            drawing.y1 = Math.min(...drawing.yCords);
+            drawing.x2 = Math.max(...drawing.xCords);
+            drawing.y2 = Math.max(...drawing.yCords);
+        }
+        else {
+            drawing.font = drawing.resizedFont;
+            drawing.x1 = drawing.resizedX1;
+            drawing.y1 = drawing.resizedY1;
+            drawing.x2 = drawing.resizedX2;
+            drawing.y2 = drawing.resizedY2;
+        }
     }
     //Adds each coordinate to array
     addCoords(x, y, dragging) {
