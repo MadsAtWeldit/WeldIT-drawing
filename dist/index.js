@@ -298,23 +298,18 @@ class DrawingCanvas {
                 //Runs whenever we unfocus input
                 textInput.addEventListener("blur", () => {
                     this.redraw(this.drawingData);
-                    //Set start cords and text
-                    this.textObject.x1 = mouseX;
-                    this.textObject.y1 = mouseY;
+                    //Assign value of text
                     this.textObject.text = textInput.value;
-                    //Set context props based on current text
-                    this.context.textBaseline = this.textObject
-                        .baseline;
-                    this.context.font = this.textObject.font;
-                    this.context.globalCompositeOperation = this.textObject.operation;
-                    //Draw text
-                    this.context.fillText(this.textObject.text, this.textObject.x1, this.textObject.y1);
+                    //Set context props based on current drawing
+                    this.setCtxStyles(this.textObject);
                     //Measure the drawn text
                     const textWidth = this.context.measureText(textInput.value).width;
                     const textHeight = parseInt(this.context.font);
-                    //Assign right and bottom coords
+                    this.textObject.x1 = mouseX;
+                    this.textObject.y1 = mouseY;
                     this.textObject.x2 = Math.round(this.textObject.x1 + textWidth);
                     this.textObject.y2 = Math.round(this.textObject.y1 + textHeight);
+                    this.context.fillText(this.textObject.text, mouseX, mouseY);
                     //Save and store index
                     this.index = this.incOrDec(this.index, "increment", 1);
                     this.drawingData.push(this.textObject);
@@ -551,47 +546,7 @@ class DrawingCanvas {
                     else {
                         const { from } = this.shouldResize;
                         this.isResizing = true;
-                        switch (from) {
-                            case "tl": {
-                                //Calculate original distance from mouse to origin
-                                const originalDistance = selectedDrawing.x2 -
-                                    this.startX +
-                                    (selectedDrawing.y2 - this.startY);
-                                //Current distance
-                                const currentDistance = selectedDrawing.x2 - mouseX + (selectedDrawing.y2 - mouseY);
-                                //Scale factor based on mouse
-                                const scaleFactor = currentDistance / originalDistance;
-                                this.resizeText(selectedDrawing, scaleFactor, from);
-                                break;
-                            }
-                            case "tr": {
-                                const originalDistance = this.startX -
-                                    selectedDrawing.x1 +
-                                    (selectedDrawing.y2 - this.startY);
-                                const currentDistance = mouseX - selectedDrawing.x1 + (selectedDrawing.y2 - mouseY);
-                                const scaleFactor = currentDistance / originalDistance;
-                                this.resizeText(selectedDrawing, scaleFactor, from);
-                                break;
-                            }
-                            case "br": {
-                                const originalDistance = this.startX -
-                                    selectedDrawing.x1 +
-                                    (this.startY - selectedDrawing.y1);
-                                const currentDistance = mouseX - selectedDrawing.x1 + (mouseY - selectedDrawing.y1);
-                                const scaleFactor = currentDistance / originalDistance;
-                                this.resizeText(selectedDrawing, scaleFactor, from);
-                                break;
-                            }
-                            case "bl": {
-                                const originalDistance = selectedDrawing.x2 -
-                                    this.startX +
-                                    (this.startY - selectedDrawing.y1);
-                                const currentDistance = selectedDrawing.x2 - mouseX + (mouseY - selectedDrawing.y1);
-                                const scaleFactor = currentDistance / originalDistance;
-                                this.resizeText(selectedDrawing, scaleFactor, from);
-                                break;
-                            }
-                        }
+                        this.resizeText(selectedDrawing, from, mouseX, mouseY);
                     }
                 }
                 this.redraw(this.drawingData);
@@ -701,13 +656,19 @@ class DrawingCanvas {
         this.isDragging = dragging;
     }
     //Resize text based on origin of mouse
-    resizeText(element, scaleFactor, from) {
+    resizeText(element, from, currentMouseX, currentMouseY) {
         //Set start corners based on where we scale from so its as saying if left then startCorner = left : right
         const startCornerX = from === "tl" || from === "bl" ? element.x1 : element.x2;
         const startCornerY = from === "tl" || from === "tr" ? element.y1 : element.y2;
         //Set scale origin so its as saying if left then scale to or from right and if right then scale to or from left
         const scaleOriginX = from === "tl" || from === "bl" ? element.x2 : element.x1;
         const scaleOriginY = from === "tl" || from === "tr" ? element.y2 : element.y1;
+        //Get original distance from startX to scale origin and startY to scale origin
+        const originalDistance = scaleOriginX - startCornerX + (scaleOriginY - startCornerY);
+        //Current distance based on mouse
+        const currentDistance = scaleOriginX - currentMouseX + (scaleOriginY - currentMouseY);
+        //Scale factor based on mouse
+        const scaleFactor = currentDistance / originalDistance;
         //Create copy of original font string
         const fontStringCopy = element.font.slice();
         //Convert font size to number

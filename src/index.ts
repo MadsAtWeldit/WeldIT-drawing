@@ -512,31 +512,24 @@ class DrawingCanvas implements OptionElementsI {
       //Runs whenever we unfocus input
       textInput.addEventListener("blur", () => {
         this.redraw(this.drawingData);
-        //Set start cords and text
-        this.textObject.x1 = mouseX;
-        this.textObject.y1 = mouseY;
+
+        //Assign value of text
         this.textObject.text = textInput.value;
 
-        //Set context props based on current text
-        this.context.textBaseline = this.textObject
-          .baseline as CanvasTextBaseline;
-        this.context.font = this.textObject.font;
-        this.context.globalCompositeOperation = this.textObject.operation;
-
-        //Draw text
-        this.context.fillText(
-          this.textObject.text,
-          this.textObject.x1,
-          this.textObject.y1
-        );
+        //Set context props based on current drawing
+        this.setCtxStyles(this.textObject);
 
         //Measure the drawn text
         const textWidth = this.context.measureText(textInput.value).width;
         const textHeight = parseInt(this.context.font);
 
-        //Assign right and bottom coords
+        this.textObject.x1 = mouseX;
+        this.textObject.y1 = mouseY;
+
         this.textObject.x2 = Math.round(this.textObject.x1 + textWidth);
         this.textObject.y2 = Math.round(this.textObject.y1 + textHeight);
+
+        this.context.fillText(this.textObject.text, mouseX, mouseY);
 
         //Save and store index
         this.index = this.incOrDec(this.index, "increment", 1);
@@ -855,70 +848,7 @@ class DrawingCanvas implements OptionElementsI {
         } else {
           const { from } = this.shouldResize;
           this.isResizing = true;
-          switch (from) {
-            case "tl": {
-              //Calculate original distance from mouse to origin
-              const originalDistance =
-                selectedDrawing.x2 -
-                this.startX +
-                (selectedDrawing.y2 - this.startY);
-              //Current distance
-              const currentDistance =
-                selectedDrawing.x2 - mouseX + (selectedDrawing.y2 - mouseY);
-
-              //Scale factor based on mouse
-              const scaleFactor = currentDistance / originalDistance;
-
-              this.resizeText(selectedDrawing, scaleFactor, from);
-              break;
-            }
-
-            case "tr": {
-              const originalDistance =
-                this.startX -
-                selectedDrawing.x1 +
-                (selectedDrawing.y2 - this.startY);
-
-              const currentDistance =
-                mouseX - selectedDrawing.x1 + (selectedDrawing.y2 - mouseY);
-
-              const scaleFactor = currentDistance / originalDistance;
-
-              this.resizeText(selectedDrawing, scaleFactor, from);
-
-              break;
-            }
-            case "br": {
-              const originalDistance =
-                this.startX -
-                selectedDrawing.x1 +
-                (this.startY - selectedDrawing.y1);
-
-              const currentDistance =
-                mouseX - selectedDrawing.x1 + (mouseY - selectedDrawing.y1);
-
-              const scaleFactor = currentDistance / originalDistance;
-
-              this.resizeText(selectedDrawing, scaleFactor, from);
-
-              break;
-            }
-            case "bl": {
-              const originalDistance =
-                selectedDrawing.x2 -
-                this.startX +
-                (this.startY - selectedDrawing.y1);
-
-              const currentDistance =
-                selectedDrawing.x2 - mouseX + (mouseY - selectedDrawing.y1);
-
-              const scaleFactor = currentDistance / originalDistance;
-
-              this.resizeText(selectedDrawing, scaleFactor, from);
-
-              break;
-            }
-          }
+          this.resizeText(selectedDrawing, from, mouseX, mouseY);
         }
       }
 
@@ -977,8 +907,9 @@ class DrawingCanvas implements OptionElementsI {
   //Resize text based on origin of mouse
   private resizeText(
     element: TextElement,
-    scaleFactor: number,
-    from: "tl" | "tr" | "br" | "bl"
+    from: string,
+    currentMouseX: number,
+    currentMouseY: number
   ) {
     //Set start corners based on where we scale from so its as saying if left then startCorner = left : right
     const startCornerX =
@@ -991,6 +922,17 @@ class DrawingCanvas implements OptionElementsI {
       from === "tl" || from === "bl" ? element.x2 : element.x1;
     const scaleOriginY =
       from === "tl" || from === "tr" ? element.y2 : element.y1;
+
+    //Get original distance from startX to scale origin and startY to scale origin
+    const originalDistance =
+      scaleOriginX - startCornerX + (scaleOriginY - startCornerY);
+
+    //Current distance based on mouse
+    const currentDistance =
+      scaleOriginX - currentMouseX + (scaleOriginY - currentMouseY);
+
+    //Scale factor based on mouse
+    const scaleFactor = currentDistance / originalDistance;
 
     //Create copy of original font string
     const fontStringCopy = element.font.slice();
