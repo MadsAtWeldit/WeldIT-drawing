@@ -298,23 +298,18 @@ class DrawingCanvas {
                 //Runs whenever we unfocus input
                 textInput.addEventListener("blur", () => {
                     this.redraw(this.drawingData);
-                    //Set start cords and text
-                    this.textObject.x1 = mouseX;
-                    this.textObject.y1 = mouseY;
+                    //Assign value of text
                     this.textObject.text = textInput.value;
-                    //Set context props based on current text
-                    this.context.textBaseline = this.textObject
-                        .baseline;
-                    this.context.font = this.textObject.font;
-                    this.context.globalCompositeOperation = this.textObject.operation;
-                    //Draw text
-                    this.context.fillText(this.textObject.text, this.textObject.x1, this.textObject.y1);
+                    //Set context props based on current drawing
+                    this.setCtxStyles(this.textObject);
                     //Measure the drawn text
                     const textWidth = this.context.measureText(textInput.value).width;
                     const textHeight = parseInt(this.context.font);
-                    //Assign right and bottom coords
+                    this.textObject.x1 = mouseX;
+                    this.textObject.y1 = mouseY;
                     this.textObject.x2 = Math.round(this.textObject.x1 + textWidth);
                     this.textObject.y2 = Math.round(this.textObject.y1 + textHeight);
+                    this.context.fillText(this.textObject.text, mouseX, mouseY);
                     //Save and store index
                     this.index = this.incOrDec(this.index, "increment", 1);
                     this.drawingData.push(this.textObject);
@@ -415,31 +410,9 @@ class DrawingCanvas {
             if (this.isResizing) {
                 this.shouldResize = { toggled: false, from: "" };
                 this.isResizing = false;
-                if (this.selectedDrawingIndex !== null &&
-                    this.drawingData[this.selectedDrawingIndex].type === "stroke") {
+                if (this.selectedDrawingIndex !== null) {
                     const selectedDrawing = this.drawingData[this.selectedDrawingIndex];
-                    //Update original path
-                    selectedDrawing.xCords = selectedDrawing.resizedXCords;
-                    selectedDrawing.yCords = selectedDrawing.resizedYCords;
-                    selectedDrawing.path = selectedDrawing.resizedPath;
-                    selectedDrawing.x1 = Math.min(...selectedDrawing.xCords);
-                    selectedDrawing.y1 = Math.min(...selectedDrawing.yCords);
-                    selectedDrawing.x2 = Math.max(...selectedDrawing.xCords);
-                    selectedDrawing.y2 = Math.max(...selectedDrawing.yCords);
-                    selectedDrawing.resizedPath = null;
-                    selectedDrawing.resizedX1 = 0;
-                    selectedDrawing.resizedY1 = 0;
-                    selectedDrawing.resizedX2 = 0;
-                    selectedDrawing.resizedY1 = 0;
-                }
-                if (this.selectedDrawingIndex !== null &&
-                    this.drawingData[this.selectedDrawingIndex].type === "text") {
-                    const selectedDrawing = this.drawingData[this.selectedDrawingIndex];
-                    selectedDrawing.font = selectedDrawing.resizedFont;
-                    selectedDrawing.x1 = selectedDrawing.resizedX1;
-                    selectedDrawing.y1 = selectedDrawing.resizedY1;
-                    selectedDrawing.x2 = selectedDrawing.resizedX2;
-                    selectedDrawing.y2 = selectedDrawing.resizedY2;
+                    this.updateToResized(selectedDrawing);
                 }
             }
             if (this.shouldMove) {
@@ -573,47 +546,7 @@ class DrawingCanvas {
                     else {
                         const { from } = this.shouldResize;
                         this.isResizing = true;
-                        switch (from) {
-                            case "tl": {
-                                //Calculate original distance from mouse to origin
-                                const originalDistance = selectedDrawing.x2 -
-                                    this.startX +
-                                    (selectedDrawing.y2 - this.startY);
-                                //Current distance
-                                const currentDistance = selectedDrawing.x2 - mouseX + (selectedDrawing.y2 - mouseY);
-                                //Scale factor based on mouse
-                                const scaleFactor = currentDistance / originalDistance;
-                                this.resizeText(selectedDrawing, scaleFactor, from);
-                                break;
-                            }
-                            case "tr": {
-                                const originalDistance = this.startX -
-                                    selectedDrawing.x1 +
-                                    (selectedDrawing.y2 - this.startY);
-                                const currentDistance = mouseX - selectedDrawing.x1 + (selectedDrawing.y2 - mouseY);
-                                const scaleFactor = currentDistance / originalDistance;
-                                this.resizeText(selectedDrawing, scaleFactor, from);
-                                break;
-                            }
-                            case "br": {
-                                const originalDistance = this.startX -
-                                    selectedDrawing.x1 +
-                                    (this.startY - selectedDrawing.y1);
-                                const currentDistance = mouseX - selectedDrawing.x1 + (mouseY - selectedDrawing.y1);
-                                const scaleFactor = currentDistance / originalDistance;
-                                this.resizeText(selectedDrawing, scaleFactor, from);
-                                break;
-                            }
-                            case "bl": {
-                                const originalDistance = selectedDrawing.x2 -
-                                    this.startX +
-                                    (this.startY - selectedDrawing.y1);
-                                const currentDistance = selectedDrawing.x2 - mouseX + (mouseY - selectedDrawing.y1);
-                                const scaleFactor = currentDistance / originalDistance;
-                                this.resizeText(selectedDrawing, scaleFactor, from);
-                                break;
-                            }
-                        }
+                        this.resizeText(selectedDrawing, from, mouseX, mouseY);
                     }
                 }
                 this.redraw(this.drawingData);
@@ -697,6 +630,25 @@ class DrawingCanvas {
         controller === null || controller === void 0 ? void 0 : controller.addEventListener("change", this.changeHandler);
         controller === null || controller === void 0 ? void 0 : controller.addEventListener("click", this.toolSelectHandler);
     }
+    //Updates drawing to resized
+    updateToResized(drawing) {
+        if (drawing.type === "stroke") {
+            drawing.xCords = drawing.resizedXCords;
+            drawing.yCords = drawing.resizedYCords;
+            drawing.path = drawing.resizedPath;
+            drawing.x1 = Math.min(...drawing.xCords);
+            drawing.y1 = Math.min(...drawing.yCords);
+            drawing.x2 = Math.max(...drawing.xCords);
+            drawing.y2 = Math.max(...drawing.yCords);
+        }
+        else {
+            drawing.font = drawing.resizedFont;
+            drawing.x1 = drawing.resizedX1;
+            drawing.y1 = drawing.resizedY1;
+            drawing.x2 = drawing.resizedX2;
+            drawing.y2 = drawing.resizedY2;
+        }
+    }
     //Adds each coordinate to array
     addCoords(x, y, dragging) {
         this.pathObject.xCords.push(x);
@@ -704,13 +656,19 @@ class DrawingCanvas {
         this.isDragging = dragging;
     }
     //Resize text based on origin of mouse
-    resizeText(element, scaleFactor, from) {
+    resizeText(element, from, currentMouseX, currentMouseY) {
         //Set start corners based on where we scale from so its as saying if left then startCorner = left : right
         const startCornerX = from === "tl" || from === "bl" ? element.x1 : element.x2;
         const startCornerY = from === "tl" || from === "tr" ? element.y1 : element.y2;
         //Set scale origin so its as saying if left then scale to or from right and if right then scale to or from left
         const scaleOriginX = from === "tl" || from === "bl" ? element.x2 : element.x1;
         const scaleOriginY = from === "tl" || from === "tr" ? element.y2 : element.y1;
+        //Get original distance from startX to scale origin and startY to scale origin
+        const originalDistance = scaleOriginX - startCornerX + (scaleOriginY - startCornerY);
+        //Current distance based on mouse
+        const currentDistance = scaleOriginX - currentMouseX + (scaleOriginY - currentMouseY);
+        //Scale factor based on mouse
+        const scaleFactor = currentDistance / originalDistance;
         //Create copy of original font string
         const fontStringCopy = element.font.slice();
         //Convert font size to number
