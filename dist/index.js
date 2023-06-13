@@ -1,4 +1,5 @@
 "use strict";
+//Values for different types of elements
 var DrawingElementType;
 (function (DrawingElementType) {
     DrawingElementType["controller"] = "controller";
@@ -10,6 +11,7 @@ var DrawingElementType;
     DrawingElementType["moveAndResize"] = "moveAndResize";
     DrawingElementType["undo"] = "undo";
     DrawingElementType["text"] = "text";
+    DrawingElementType["lineTool"] = "lineTool";
     DrawingElementType["rectangle"] = "rectangle";
 })(DrawingElementType || (DrawingElementType = {}));
 class DrawingCanvas {
@@ -25,6 +27,7 @@ class DrawingCanvas {
         this.moveAndResize = document.getElementById("mv-rz");
         this.undo = document.getElementById("undo");
         this.text = document.getElementById("text");
+        this.lineTool = document.getElementById("lineTool");
         this.rectangle = document.getElementById("rectangle");
         //For state tracking
         this.isDrawing = false;
@@ -39,10 +42,12 @@ class DrawingCanvas {
             toggled: false,
             from: "",
         };
+        //Toggled states
         this.toggleDraw = false;
         this.toggleErase = false;
         this.toggleMvRz = false;
         this.toggleWrite = false;
+        this.toggleLine = false;
         this.mouseIsDown = false;
         this.isDragging = false;
         this.index = -1;
@@ -490,7 +495,7 @@ class DrawingCanvas {
                     else {
                         const { from } = this.shouldResize;
                         this.isResizing = true;
-                        this.resize(selectedDrawing, from, mouseX, mouseY);
+                        this.resizePath(selectedDrawing, from, mouseX, mouseY);
                     }
                 }
                 if (selectedDrawing.type === "text") {
@@ -615,6 +620,39 @@ class DrawingCanvas {
         this.pathObject.yCords.push(y);
         this.isDragging = dragging;
     }
+    //Helper function that takes care of returning values for scaling correctly
+    scaleCorrectly(from, element, currentMouseX, currentMouseY) {
+        //IF scaling from the left side then start = left : start = right;
+        const startCornerX = from === "tl" || from === "bl" ? element.x1 : element.x2;
+        const startCornerY = from === "tl" || from === "tr" ? element.y1 : element.y2;
+        //IF scaling from left side then origin is opposite side so that we scale inwards or outwards based on corner
+        const scaleOriginX = from === "tl" || from === "bl" ? element.x2 : element.x1;
+        const scaleOriginY = from === "tl" || from === "tr" ? element.y2 : element.y1;
+        //For the scaling to work properly i also need where we scale from
+        //Since scaling from left side to right side would not work with e.g (x1 - x2 so instead x2 - x1 for distance)
+        const originalDistance = from === "tl" || from === "bl"
+            ? scaleOriginX - startCornerX
+            : startCornerX -
+                scaleOriginX +
+                (from === "tl" || from === "tr"
+                    ? scaleOriginY - startCornerY
+                    : startCornerY - scaleOriginY);
+        const currentDistance = from === "tl" || from === "bl"
+            ? scaleOriginX - currentMouseX
+            : currentMouseX -
+                scaleOriginX +
+                (from === "tl" || from === "tr"
+                    ? scaleOriginY - currentMouseY
+                    : currentMouseY - scaleOriginY);
+        const scaleFactor = currentDistance / originalDistance;
+        return {
+            scaleOriginXPos: scaleOriginX,
+            scaleOriginYPos: scaleOriginY,
+            startCornerXPos: startCornerX,
+            startCornerYPos: startCornerY,
+            scale: scaleFactor,
+        };
+    }
     //Resize text based on origin of mouse
     resizeText(element, from, currentMouseX, currentMouseY) {
         const { scaleOriginXPos, scaleOriginYPos, startCornerXPos, startCornerYPos, scale, } = this.scaleCorrectly(from, element, currentMouseX, currentMouseY);
@@ -652,41 +690,8 @@ class DrawingCanvas {
         //Store the new font size
         element.resizedFont = newFont;
     }
-    //Helper function that takes care of returning values for scaling correctly
-    scaleCorrectly(from, element, currentMouseX, currentMouseY) {
-        //IF scaling from the left side then start = left : start = right;
-        const startCornerX = from === "tl" || from === "bl" ? element.x1 : element.x2;
-        const startCornerY = from === "tl" || from === "tr" ? element.y1 : element.y2;
-        //IF scaling from left side then origin is opposite side so that we scale inwards or outwards based on corner
-        const scaleOriginX = from === "tl" || from === "bl" ? element.x2 : element.x1;
-        const scaleOriginY = from === "tl" || from === "tr" ? element.y2 : element.y1;
-        //For the scaling to work properly i also need where we scale from
-        //Since scaling from left side to right side would not work with e.g (x1 - x2 so instead x2 - x1 for distance)
-        const originalDistance = from === "tl" || from === "bl"
-            ? scaleOriginX - startCornerX
-            : startCornerX -
-                scaleOriginX +
-                (from === "tl" || from === "tr"
-                    ? scaleOriginY - startCornerY
-                    : startCornerY - scaleOriginY);
-        const currentDistance = from === "tl" || from === "bl"
-            ? scaleOriginX - currentMouseX
-            : currentMouseX -
-                scaleOriginX +
-                (from === "tl" || from === "tr"
-                    ? scaleOriginY - currentMouseY
-                    : currentMouseY - scaleOriginY);
-        const scaleFactor = currentDistance / originalDistance;
-        return {
-            scaleOriginXPos: scaleOriginX,
-            scaleOriginYPos: scaleOriginY,
-            startCornerXPos: startCornerX,
-            startCornerYPos: startCornerY,
-            scale: scaleFactor,
-        };
-    }
     //Resize drawing with provided scale factor and scale origin
-    resize(element, from, currentMouseX, currentMouseY) {
+    resizePath(element, from, currentMouseX, currentMouseY) {
         const { scaleOriginXPos, scaleOriginYPos, scale } = this.scaleCorrectly(from, element, currentMouseX, currentMouseY);
         const scaleOriginX = scaleOriginXPos;
         const scaleOriginY = scaleOriginYPos;

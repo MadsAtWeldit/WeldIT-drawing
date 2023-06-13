@@ -1,3 +1,4 @@
+//Values for different types of elements
 enum DrawingElementType {
   controller = "controller",
   pencil = "pencil",
@@ -8,9 +9,11 @@ enum DrawingElementType {
   moveAndResize = "moveAndResize",
   undo = "undo",
   text = "text",
+  lineTool = "lineTool",
   rectangle = "rectangle",
 }
 
+//Props for storing elements passed to options
 interface OptionElementsI {
   readonly controller: HTMLElement | null;
   readonly pencil: HTMLButtonElement | null;
@@ -21,9 +24,11 @@ interface OptionElementsI {
   readonly moveAndResize: HTMLButtonElement | null;
   readonly undo: HTMLButtonElement | null;
   readonly text: HTMLButtonElement | null;
+  readonly lineTool: HTMLButtonElement | null;
   readonly rectangle: HTMLButtonElement | null;
 }
 
+//Structure of passing in elements to options
 interface CanvasElement {
   type: DrawingElementType;
   className?: string;
@@ -35,6 +40,7 @@ interface ToggledStates {
   toggleErase: boolean;
   toggleMvRz: boolean;
   toggleWrite: boolean;
+  toggleLine: boolean;
 }
 
 interface PathElement {
@@ -100,6 +106,7 @@ class DrawingCanvas implements OptionElementsI {
   ) as HTMLButtonElement;
   readonly undo = document.getElementById("undo") as HTMLButtonElement;
   readonly text = document.getElementById("text") as HTMLButtonElement;
+  readonly lineTool = document.getElementById("lineTool") as HTMLButtonElement;
   readonly rectangle = document.getElementById(
     "rectangle"
   ) as HTMLButtonElement;
@@ -119,10 +126,12 @@ class DrawingCanvas implements OptionElementsI {
     from: "",
   };
 
+  //Toggled states
   private toggleDraw = false;
   private toggleErase = false;
   private toggleMvRz = false;
   private toggleWrite = false;
+  private toggleLine = false;
 
   private mouseIsDown = false;
   private isDragging = false;
@@ -746,7 +755,7 @@ class DrawingCanvas implements OptionElementsI {
           const { from } = this.shouldResize;
 
           this.isResizing = true;
-          this.resize(selectedDrawing, from, mouseX, mouseY);
+          this.resizePath(selectedDrawing, from, mouseX, mouseY);
         }
       }
 
@@ -820,6 +829,56 @@ class DrawingCanvas implements OptionElementsI {
     this.isDragging = dragging;
   }
 
+  //Helper function that takes care of returning values for scaling correctly
+  private scaleCorrectly(
+    from: string,
+    element: DrawingElements,
+    currentMouseX: number,
+    currentMouseY: number
+  ) {
+    //IF scaling from the left side then start = left : start = right;
+    const startCornerX =
+      from === "tl" || from === "bl" ? element.x1 : element.x2;
+    const startCornerY =
+      from === "tl" || from === "tr" ? element.y1 : element.y2;
+
+    //IF scaling from left side then origin is opposite side so that we scale inwards or outwards based on corner
+    const scaleOriginX =
+      from === "tl" || from === "bl" ? element.x2 : element.x1;
+    const scaleOriginY =
+      from === "tl" || from === "tr" ? element.y2 : element.y1;
+
+    //For the scaling to work properly i also need where we scale from
+    //Since scaling from left side to right side would not work with e.g (x1 - x2 so instead x2 - x1 for distance)
+    const originalDistance =
+      from === "tl" || from === "bl"
+        ? scaleOriginX - startCornerX
+        : startCornerX -
+          scaleOriginX +
+          (from === "tl" || from === "tr"
+            ? scaleOriginY - startCornerY
+            : startCornerY - scaleOriginY);
+
+    const currentDistance =
+      from === "tl" || from === "bl"
+        ? scaleOriginX - currentMouseX
+        : currentMouseX -
+          scaleOriginX +
+          (from === "tl" || from === "tr"
+            ? scaleOriginY - currentMouseY
+            : currentMouseY - scaleOriginY);
+
+    const scaleFactor = currentDistance / originalDistance;
+
+    return {
+      scaleOriginXPos: scaleOriginX,
+      scaleOriginYPos: scaleOriginY,
+      startCornerXPos: startCornerX,
+      startCornerYPos: startCornerY,
+      scale: scaleFactor,
+    };
+  }
+
   //Resize text based on origin of mouse
   private resizeText(
     element: TextElement,
@@ -883,57 +942,8 @@ class DrawingCanvas implements OptionElementsI {
     element.resizedFont = newFont;
   }
 
-  //Helper function that takes care of returning values for scaling correctly
-  private scaleCorrectly(
-    from: string,
-    element: DrawingElements,
-    currentMouseX: number,
-    currentMouseY: number
-  ) {
-    //IF scaling from the left side then start = left : start = right;
-    const startCornerX =
-      from === "tl" || from === "bl" ? element.x1 : element.x2;
-    const startCornerY =
-      from === "tl" || from === "tr" ? element.y1 : element.y2;
-
-    //IF scaling from left side then origin is opposite side so that we scale inwards or outwards based on corner
-    const scaleOriginX =
-      from === "tl" || from === "bl" ? element.x2 : element.x1;
-    const scaleOriginY =
-      from === "tl" || from === "tr" ? element.y2 : element.y1;
-
-    //For the scaling to work properly i also need where we scale from
-    //Since scaling from left side to right side would not work with e.g (x1 - x2 so instead x2 - x1 for distance)
-    const originalDistance =
-      from === "tl" || from === "bl"
-        ? scaleOriginX - startCornerX
-        : startCornerX -
-          scaleOriginX +
-          (from === "tl" || from === "tr"
-            ? scaleOriginY - startCornerY
-            : startCornerY - scaleOriginY);
-
-    const currentDistance =
-      from === "tl" || from === "bl"
-        ? scaleOriginX - currentMouseX
-        : currentMouseX -
-          scaleOriginX +
-          (from === "tl" || from === "tr"
-            ? scaleOriginY - currentMouseY
-            : currentMouseY - scaleOriginY);
-
-    const scaleFactor = currentDistance / originalDistance;
-
-    return {
-      scaleOriginXPos: scaleOriginX,
-      scaleOriginYPos: scaleOriginY,
-      startCornerXPos: startCornerX,
-      startCornerYPos: startCornerY,
-      scale: scaleFactor,
-    };
-  }
   //Resize drawing with provided scale factor and scale origin
-  private resize(
+  private resizePath(
     element: DrawingElements,
     from: string,
     currentMouseX: number,
