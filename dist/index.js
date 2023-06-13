@@ -490,47 +490,7 @@ class DrawingCanvas {
                     else {
                         const { from } = this.shouldResize;
                         this.isResizing = true;
-                        switch (from) {
-                            case "tl": {
-                                //Calculate original distance from mouse to origin
-                                const originalDistance = selectedDrawing.x2 -
-                                    this.startX +
-                                    (selectedDrawing.y2 - this.startY);
-                                //Current distance
-                                const currentDistance = selectedDrawing.x2 - mouseX + (selectedDrawing.y2 - mouseY);
-                                //Scale factor based on mouse
-                                const scaleFactor = currentDistance / originalDistance;
-                                this.resize(selectedDrawing, scaleFactor, selectedDrawing.x2, selectedDrawing.y2);
-                                break;
-                            }
-                            case "tr": {
-                                const originalDistance = this.startX -
-                                    selectedDrawing.x1 +
-                                    (selectedDrawing.y2 - this.startY);
-                                const currentDistance = mouseX - selectedDrawing.x1 + (selectedDrawing.y2 - mouseY);
-                                const scaleFactor = currentDistance / originalDistance;
-                                this.resize(selectedDrawing, scaleFactor, selectedDrawing.x1, selectedDrawing.y2);
-                                break;
-                            }
-                            case "br": {
-                                const originalDistance = this.startX -
-                                    selectedDrawing.x1 +
-                                    (this.startY - selectedDrawing.y1);
-                                const currentDistance = mouseX - selectedDrawing.x1 + (mouseY - selectedDrawing.y1);
-                                const scaleFactor = currentDistance / originalDistance;
-                                this.resize(selectedDrawing, scaleFactor, selectedDrawing.x1, selectedDrawing.y1);
-                                break;
-                            }
-                            case "bl": {
-                                const originalDistance = selectedDrawing.x2 -
-                                    this.startX +
-                                    (this.startY - selectedDrawing.y1);
-                                const currentDistance = selectedDrawing.x2 - mouseX + (mouseY - selectedDrawing.y1);
-                                const scaleFactor = currentDistance / originalDistance;
-                                this.resize(selectedDrawing, scaleFactor, selectedDrawing.x2, selectedDrawing.y1);
-                                break;
-                            }
-                        }
+                        this.resize(selectedDrawing, from, mouseX, mouseY);
                     }
                 }
                 if (selectedDrawing.type === "text") {
@@ -657,18 +617,13 @@ class DrawingCanvas {
     }
     //Resize text based on origin of mouse
     resizeText(element, from, currentMouseX, currentMouseY) {
-        //Set start corners based on where we scale from so its as saying if left then startCorner = left : right
-        const startCornerX = from === "tl" || from === "bl" ? element.x1 : element.x2;
-        const startCornerY = from === "tl" || from === "tr" ? element.y1 : element.y2;
-        //Set scale origin so its as saying if left then scale to or from right and if right then scale to or from left
-        const scaleOriginX = from === "tl" || from === "bl" ? element.x2 : element.x1;
-        const scaleOriginY = from === "tl" || from === "tr" ? element.y2 : element.y1;
-        //Get original distance from startX to scale origin and startY to scale origin
-        const originalDistance = scaleOriginX - startCornerX + (scaleOriginY - startCornerY);
-        //Current distance based on mouse
-        const currentDistance = scaleOriginX - currentMouseX + (scaleOriginY - currentMouseY);
+        const { scaleOriginXPos, scaleOriginYPos, startCornerXPos, startCornerYPos, scale, } = this.scaleCorrectly(from, element, currentMouseX, currentMouseY);
+        const startCornerX = startCornerXPos;
+        const startCornerY = startCornerYPos;
+        const scaleOriginX = scaleOriginXPos;
+        const scaleOriginY = scaleOriginYPos;
         //Scale factor based on mouse
-        const scaleFactor = currentDistance / originalDistance;
+        const scaleFactor = scale;
         //Create copy of original font string
         const fontStringCopy = element.font.slice();
         //Convert font size to number
@@ -697,11 +652,45 @@ class DrawingCanvas {
         //Store the new font size
         element.resizedFont = newFont;
     }
+    //Helper function that takes care of returning values for scaling correctly
+    scaleCorrectly(from, element, currentMouseX, currentMouseY) {
+        //IF scaling from the left side then start = left : start = right;
+        const startCornerX = from === "tl" || from === "bl" ? element.x1 : element.x2;
+        const startCornerY = from === "tl" || from === "tr" ? element.y1 : element.y2;
+        //IF scaling from left side then origin is opposite side so that we scale inwards or outwards based on corner
+        const scaleOriginX = from === "tl" || from === "bl" ? element.x2 : element.x1;
+        const scaleOriginY = from === "tl" || from === "tr" ? element.y2 : element.y1;
+        //For the scaling to work properly i also need where we scale from
+        //Since scaling from left side to right side would not work with e.g (x1 - x2 so instead x2 - x1 for distance)
+        const originalDistance = from === "tl" || from === "bl"
+            ? scaleOriginX - startCornerX
+            : startCornerX -
+                scaleOriginX +
+                (from === "tl" || from === "tr"
+                    ? scaleOriginY - startCornerY
+                    : startCornerY - scaleOriginY);
+        const currentDistance = from === "tl" || from === "bl"
+            ? scaleOriginX - currentMouseX
+            : currentMouseX -
+                scaleOriginX +
+                (from === "tl" || from === "tr"
+                    ? scaleOriginY - currentMouseY
+                    : currentMouseY - scaleOriginY);
+        const scaleFactor = currentDistance / originalDistance;
+        return {
+            scaleOriginXPos: scaleOriginX,
+            scaleOriginYPos: scaleOriginY,
+            startCornerXPos: startCornerX,
+            startCornerYPos: startCornerY,
+            scale: scaleFactor,
+        };
+    }
     //Resize drawing with provided scale factor and scale origin
-    resize(element, scaleFactor, originX, originY) {
-        //Origin of scale or default middle
-        const scaleOriginX = originX ? originX : element.x2 - element.x1 / 2;
-        const scaleOriginY = originY ? originY : element.y2 - element.y1 / 2;
+    resize(element, from, currentMouseX, currentMouseY) {
+        const { scaleOriginXPos, scaleOriginYPos, scale } = this.scaleCorrectly(from, element, currentMouseX, currentMouseY);
+        const scaleOriginX = scaleOriginXPos;
+        const scaleOriginY = scaleOriginYPos;
+        const scaleFactor = scale;
         if (element.type === "stroke") {
             const resizedPath = new Path2D();
             //Create copy of element coordinates
