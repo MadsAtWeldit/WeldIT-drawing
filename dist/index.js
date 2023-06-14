@@ -35,6 +35,7 @@ class DrawingCanvas {
         this.isMoving = false;
         this.isResizing = false;
         this.isWriting = false;
+        this.isLining = false;
         this.shouldDraw = false;
         this.shouldErase = false;
         this.shouldMove = false;
@@ -42,6 +43,7 @@ class DrawingCanvas {
             toggled: false,
             from: "",
         };
+        this.shouldLine = false;
         //Toggled states
         this.toggleDraw = false;
         this.toggleErase = false;
@@ -90,6 +92,19 @@ class DrawingCanvas {
             resizedY2: 0,
             operation: "source-over",
         };
+        //Create default line object
+        this.lineObject = {
+            type: "line",
+            path: new Path2D(),
+            resizedPath: null,
+            lineWidth: 5,
+            strokeStyle: "black",
+            operation: "source-over",
+            startX: 0,
+            startY: 0,
+            endX: 0,
+            endY: 0,
+        };
         this.drawingData = [];
         this.startX = 0;
         this.startY = 0;
@@ -134,6 +149,7 @@ class DrawingCanvas {
             const moveAndResize = this.moveAndResize;
             const undo = this.undo;
             const text = this.text;
+            const lineTool = this.lineTool;
             const context = this.context;
             if (clearCanvas && this.targetIs(clearCanvas, target)) {
                 context.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -158,6 +174,7 @@ class DrawingCanvas {
                     { element: eraser, stateName: "toggleErase" },
                     { element: moveAndResize, stateName: "toggleMvRz" },
                     { element: text, stateName: "toggleWrite" },
+                    { element: lineTool, stateName: "toggleLine" },
                 ]);
             }
             if (eraser && this.targetIs(eraser, target)) {
@@ -166,6 +183,7 @@ class DrawingCanvas {
                     { element: pen, stateName: "toggleDraw" },
                     { element: moveAndResize, stateName: "toggleMvRz" },
                     { element: text, stateName: "toggleWrite" },
+                    { element: lineTool, stateName: "toggleLine" },
                 ]);
             }
             if (moveAndResize && this.targetIs(moveAndResize, target)) {
@@ -174,6 +192,7 @@ class DrawingCanvas {
                     { element: pen, stateName: "toggleDraw" },
                     { element: eraser, stateName: "toggleErase" },
                     { element: text, stateName: "toggleWrite" },
+                    { element: lineTool, stateName: "toggleLine" },
                 ]);
             }
             if (text && this.targetIs(text, target)) {
@@ -181,6 +200,16 @@ class DrawingCanvas {
                 this.handleToggle([{ element: text, stateName: "toggleWrite" }], [
                     { element: pen, stateName: "toggleDraw" },
                     { element: eraser, stateName: "toggleErase" },
+                    { element: moveAndResize, stateName: "toggleMvRz" },
+                    { element: lineTool, stateName: "toggleLine" },
+                ]);
+            }
+            if (lineTool && this.targetIs(lineTool, target)) {
+                this.canvas.style.cursor = "crosshair";
+                this.handleToggle([{ element: lineTool, stateName: "toggleLine" }], [
+                    { element: pen, stateName: "toggleDraw" },
+                    { element: eraser, stateName: "toggleErase" },
+                    { element: text, stateName: "toggleWrite" },
                     { element: moveAndResize, stateName: "toggleMvRz" },
                 ]);
             }
@@ -345,6 +374,17 @@ class DrawingCanvas {
                 });
                 canvasContainer === null || canvasContainer === void 0 ? void 0 : canvasContainer.appendChild(textInput);
             }
+            if (this.toggleLine) {
+                if (this.isLining) {
+                    this.lineObject.endX = mouseX;
+                    this.lineObject.endY = mouseY;
+                }
+                this.lineObject.operation = "source-over";
+                this.shouldLine = true;
+                this.lineObject.path.moveTo(mouseX, mouseY);
+                this.lineObject.startX = mouseX;
+                this.lineObject.startY = mouseY;
+            }
             //Begin new path
             //this.context.beginPath();
         };
@@ -423,6 +463,14 @@ class DrawingCanvas {
             if (this.shouldMove) {
                 this.shouldMove = false;
                 this.isMoving = false;
+            }
+            //IF we are drawing line when we mouseUp
+            if (this.isLining) {
+                this.shouldLine = false;
+                this.isLining = false;
+                this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                this.context.stroke(this.lineObject.path);
+                return;
             }
             this.redraw(this.drawingData);
             //Save stroke
@@ -527,6 +575,15 @@ class DrawingCanvas {
                 this.addCoords(mouseX, mouseY, true);
                 this.pathObject.path.lineTo(mouseX, mouseY);
                 this.context.stroke(this.pathObject.path);
+            }
+            if (this.shouldLine) {
+                this.isLining = true;
+                this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                this.context.beginPath();
+                this.lineObject.path.moveTo(this.lineObject.startX, this.lineObject.startY);
+                this.lineObject.path.lineTo(mouseX, mouseY);
+                this.context.closePath();
+                this.context.stroke();
             }
             e.preventDefault();
         };

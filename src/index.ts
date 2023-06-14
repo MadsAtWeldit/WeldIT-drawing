@@ -82,6 +82,19 @@ interface TextElement {
   operation: "source-over" | "destination-out";
 }
 
+interface LineElement {
+  type: "line";
+  path: Path2D;
+  resizedPath: Path2D | null;
+  lineWidth: number;
+  strokeStyle: string;
+  operation: "source-over" | "destination-out";
+  startX: number;
+  startY: number;
+  endX: number;
+  endY: number;
+}
+
 type DrawingElements = PathElement | TextElement;
 
 //Type that removes readonly so we can assign values inside class
@@ -117,6 +130,7 @@ class DrawingCanvas implements OptionElementsI {
   private isMoving = false;
   private isResizing = false;
   private isWriting = false;
+  private isLining = false;
 
   private shouldDraw = false;
   private shouldErase = false;
@@ -125,6 +139,7 @@ class DrawingCanvas implements OptionElementsI {
     toggled: false,
     from: "",
   };
+  private shouldLine = false;
 
   //Toggled states
   private toggleDraw = false;
@@ -177,6 +192,20 @@ class DrawingCanvas implements OptionElementsI {
     resizedX2: 0,
     resizedY2: 0,
     operation: "source-over",
+  };
+
+  //Create default line object
+  private lineObject: LineElement = {
+    type: "line",
+    path: new Path2D(),
+    resizedPath: null,
+    lineWidth: 5,
+    strokeStyle: "black",
+    operation: "source-over",
+    startX: 0,
+    startY: 0,
+    endX: 0,
+    endY: 0,
   };
 
   private drawingData: DrawingElements[] = [];
@@ -300,6 +329,7 @@ class DrawingCanvas implements OptionElementsI {
     const moveAndResize = this.moveAndResize;
     const undo = this.undo;
     const text = this.text;
+    const lineTool = this.lineTool;
     const context = this.context;
 
     if (clearCanvas && this.targetIs(clearCanvas, target)) {
@@ -332,6 +362,7 @@ class DrawingCanvas implements OptionElementsI {
           { element: eraser, stateName: "toggleErase" },
           { element: moveAndResize, stateName: "toggleMvRz" },
           { element: text, stateName: "toggleWrite" },
+          { element: lineTool, stateName: "toggleLine" },
         ]
       );
     }
@@ -344,6 +375,7 @@ class DrawingCanvas implements OptionElementsI {
           { element: pen, stateName: "toggleDraw" },
           { element: moveAndResize, stateName: "toggleMvRz" },
           { element: text, stateName: "toggleWrite" },
+          { element: lineTool, stateName: "toggleLine" },
         ]
       );
     }
@@ -356,6 +388,7 @@ class DrawingCanvas implements OptionElementsI {
           { element: pen, stateName: "toggleDraw" },
           { element: eraser, stateName: "toggleErase" },
           { element: text, stateName: "toggleWrite" },
+          { element: lineTool, stateName: "toggleLine" },
         ]
       );
     }
@@ -367,6 +400,20 @@ class DrawingCanvas implements OptionElementsI {
         [
           { element: pen, stateName: "toggleDraw" },
           { element: eraser, stateName: "toggleErase" },
+          { element: moveAndResize, stateName: "toggleMvRz" },
+          { element: lineTool, stateName: "toggleLine" },
+        ]
+      );
+    }
+
+    if (lineTool && this.targetIs(lineTool, target)) {
+      this.canvas.style.cursor = "crosshair";
+      this.handleToggle(
+        [{ element: lineTool, stateName: "toggleLine" }],
+        [
+          { element: pen, stateName: "toggleDraw" },
+          { element: eraser, stateName: "toggleErase" },
+          { element: text, stateName: "toggleWrite" },
           { element: moveAndResize, stateName: "toggleMvRz" },
         ]
       );
@@ -576,6 +623,20 @@ class DrawingCanvas implements OptionElementsI {
       canvasContainer?.appendChild(textInput);
     }
 
+    if (this.toggleLine) {
+      if (this.isLining) {
+        this.lineObject.endX = mouseX;
+        this.lineObject.endY = mouseY;
+      }
+      this.lineObject.operation = "source-over";
+      this.shouldLine = true;
+
+      this.lineObject.path.moveTo(mouseX, mouseY);
+
+      this.lineObject.startX = mouseX;
+      this.lineObject.startY = mouseY;
+    }
+
     //Begin new path
     //this.context.beginPath();
   };
@@ -665,6 +726,14 @@ class DrawingCanvas implements OptionElementsI {
     if (this.shouldMove) {
       this.shouldMove = false;
       this.isMoving = false;
+    }
+    //IF we are drawing line when we mouseUp
+    if (this.isLining) {
+      this.shouldLine = false;
+      this.isLining = false;
+      this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+      this.context.stroke(this.lineObject.path);
+      return;
     }
 
     this.redraw(this.drawingData);
@@ -798,6 +867,21 @@ class DrawingCanvas implements OptionElementsI {
       this.context.stroke(this.pathObject.path);
     }
 
+    if (this.shouldLine) {
+      this.isLining = true;
+      this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+      this.context.beginPath();
+
+      this.lineObject.path.moveTo(
+        this.lineObject.startX,
+        this.lineObject.startY
+      );
+
+      this.lineObject.path.lineTo(mouseX, mouseY);
+      this.context.closePath();
+
+      this.context.stroke();
+    }
     e.preventDefault();
   };
 
@@ -885,7 +969,7 @@ class DrawingCanvas implements OptionElementsI {
     from: string,
     currentMouseX: number,
     currentMouseY: number
-  ) {
+  ): void {
     const {
       scaleOriginXPos,
       scaleOriginYPos,
