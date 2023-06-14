@@ -376,9 +376,13 @@ class DrawingCanvas {
             }
             if (this.toggleLine) {
                 if (this.isLining) {
+                    //Will run at end of line
                     this.lineObject.endX = mouseX;
                     this.lineObject.endY = mouseY;
+                    this.lineObject.path.lineTo(this.lineObject.endX, this.lineObject.endY);
+                    return;
                 }
+                //Will run at start of line
                 this.lineObject.operation = "source-over";
                 this.shouldLine = true;
                 this.lineObject.path.moveTo(mouseX, mouseY);
@@ -470,6 +474,18 @@ class DrawingCanvas {
                 this.isLining = false;
                 this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
                 this.context.stroke(this.lineObject.path);
+                this.lineObject = {
+                    type: "line",
+                    path: new Path2D(),
+                    resizedPath: null,
+                    lineWidth: 5,
+                    strokeStyle: "black",
+                    operation: "source-over",
+                    startX: 0,
+                    startY: 0,
+                    endX: 0,
+                    endY: 0,
+                };
                 return;
             }
             this.redraw(this.drawingData);
@@ -579,9 +595,13 @@ class DrawingCanvas {
             if (this.shouldLine) {
                 this.isLining = true;
                 this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                //Set ctx styles
+                this.context.globalCompositeOperation = this.lineObject.operation;
+                this.context.lineWidth = this.lineObject.lineWidth;
+                this.context.strokeStyle = this.lineObject.strokeStyle;
                 this.context.beginPath();
-                this.lineObject.path.moveTo(this.lineObject.startX, this.lineObject.startY);
-                this.lineObject.path.lineTo(mouseX, mouseY);
+                this.context.moveTo(this.lineObject.startX, this.lineObject.startY);
+                this.context.lineTo(mouseX, mouseY);
                 this.context.closePath();
                 this.context.stroke();
             }
