@@ -104,6 +104,10 @@ class DrawingCanvas {
             startY: 0,
             endX: 0,
             endY: 0,
+            x1: 0,
+            y1: 0,
+            x2: 0,
+            y2: 0,
         };
         this.drawingData = [];
         this.startX = 0;
@@ -376,13 +380,13 @@ class DrawingCanvas {
             }
             if (this.toggleLine) {
                 if (this.isLining) {
-                    //Will run at end of line
+                    //Finish path on second click while lining
                     this.lineObject.endX = mouseX;
                     this.lineObject.endY = mouseY;
                     this.lineObject.path.lineTo(this.lineObject.endX, this.lineObject.endY);
                     return;
                 }
-                //Will run at start of line
+                //Start line path at mouse position
                 this.lineObject.operation = "source-over";
                 this.shouldLine = true;
                 this.lineObject.path.moveTo(mouseX, mouseY);
@@ -472,8 +476,30 @@ class DrawingCanvas {
             if (this.isLining) {
                 this.shouldLine = false;
                 this.isLining = false;
-                this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-                this.context.stroke(this.lineObject.path);
+                //IF the line doesnt have an end then return
+                if (this.lineObject.endX === 0 && this.lineObject.endY === 0) {
+                    this.lineObject = {
+                        type: "line",
+                        path: new Path2D(),
+                        resizedPath: null,
+                        lineWidth: 5,
+                        strokeStyle: "black",
+                        operation: "source-over",
+                        startX: 0,
+                        startY: 0,
+                        endX: 0,
+                        endY: 0,
+                        x1: 0,
+                        y1: 0,
+                        x2: 0,
+                        y2: 0,
+                    };
+                    return;
+                }
+                //Save new line
+                this.index = this.incOrDec(this.index, "increment", 1);
+                this.drawingData.push(this.lineObject);
+                //New lineObject
                 this.lineObject = {
                     type: "line",
                     path: new Path2D(),
@@ -485,8 +511,11 @@ class DrawingCanvas {
                     startY: 0,
                     endX: 0,
                     endY: 0,
+                    x1: 0,
+                    y1: 0,
+                    x2: 0,
+                    y2: 0,
                 };
-                return;
             }
             this.redraw(this.drawingData);
             //Save stroke
@@ -594,14 +623,16 @@ class DrawingCanvas {
             }
             if (this.shouldLine) {
                 this.isLining = true;
-                this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-                //Set ctx styles
-                this.context.globalCompositeOperation = this.lineObject.operation;
-                this.context.lineWidth = this.lineObject.lineWidth;
-                this.context.strokeStyle = this.lineObject.strokeStyle;
+                //Redraw data
+                this.redraw(this.drawingData);
+                this.setCtxStyles(this.lineObject);
+                //Begin current path
                 this.context.beginPath();
+                //Move context to start position of lineObject
                 this.context.moveTo(this.lineObject.startX, this.lineObject.startY);
+                //Draw a line to current mouse position
                 this.context.lineTo(mouseX, mouseY);
+                //Close the path and save -> repeat while moving
                 this.context.closePath();
                 this.context.stroke();
             }
@@ -683,7 +714,7 @@ class DrawingCanvas {
             drawing.x2 = Math.max(...drawing.xCords);
             drawing.y2 = Math.max(...drawing.yCords);
         }
-        else {
+        else if (drawing.type === "text") {
             drawing.font = drawing.resizedFont;
             drawing.x1 = drawing.resizedX1;
             drawing.y1 = drawing.resizedY1;
@@ -878,9 +909,13 @@ class DrawingCanvas {
             this.context.lineWidth = drawing.lineWidth;
             this.context.strokeStyle = drawing.strokeStyle;
         }
-        else {
+        else if (drawing.type === "text") {
             this.context.textBaseline = drawing.baseline;
             this.context.font = drawing.font;
+        }
+        else {
+            this.context.lineWidth = drawing.lineWidth;
+            this.context.strokeStyle = drawing.strokeStyle;
         }
     }
     //Loop and redraw each drawing as drawn
@@ -915,6 +950,10 @@ class DrawingCanvas {
                 }
                 this.setCtxStyles(drawing);
                 this.context.fillText(drawing.text, drawing.x1, drawing.y1);
+            }
+            if (drawing.type === "line") {
+                this.setCtxStyles(drawing);
+                this.context.stroke(drawing.path);
             }
         });
     }

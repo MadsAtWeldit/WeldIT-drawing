@@ -93,9 +93,13 @@ interface LineElement {
   startY: number;
   endX: number;
   endY: number;
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
 }
 
-type DrawingElements = PathElement | TextElement;
+type DrawingElements = PathElement | TextElement | LineElement;
 
 //Type that removes readonly so we can assign values inside class
 type Writable<T> = { -readonly [K in keyof T]: T[K] };
@@ -206,6 +210,10 @@ class DrawingCanvas implements OptionElementsI {
     startY: 0,
     endX: 0,
     endY: 0,
+    x1: 0,
+    y1: 0,
+    x2: 0,
+    y2: 0,
   };
 
   private drawingData: DrawingElements[] = [];
@@ -625,7 +633,7 @@ class DrawingCanvas implements OptionElementsI {
 
     if (this.toggleLine) {
       if (this.isLining) {
-        //Will run at end of line
+        //Finish path on second click while lining
         this.lineObject.endX = mouseX;
         this.lineObject.endY = mouseY;
 
@@ -633,7 +641,8 @@ class DrawingCanvas implements OptionElementsI {
 
         return;
       }
-      //Will run at start of line
+
+      //Start line path at mouse position
       this.lineObject.operation = "source-over";
       this.shouldLine = true;
 
@@ -733,15 +742,38 @@ class DrawingCanvas implements OptionElementsI {
       this.shouldMove = false;
       this.isMoving = false;
     }
+
     //IF we are drawing line when we mouseUp
     if (this.isLining) {
       this.shouldLine = false;
       this.isLining = false;
 
-      this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+      //IF the line doesnt have an end then return
+      if (this.lineObject.endX === 0 && this.lineObject.endY === 0) {
+        this.lineObject = {
+          type: "line",
+          path: new Path2D(),
+          resizedPath: null,
+          lineWidth: 5,
+          strokeStyle: "black",
+          operation: "source-over",
+          startX: 0,
+          startY: 0,
+          endX: 0,
+          endY: 0,
+          x1: 0,
+          y1: 0,
+          x2: 0,
+          y2: 0,
+        };
+        return;
+      }
 
-      this.context.stroke(this.lineObject.path);
+      //Save new line
+      this.index = this.incOrDec(this.index, "increment", 1);
+      this.drawingData.push(this.lineObject);
 
+      //New lineObject
       this.lineObject = {
         type: "line",
         path: new Path2D(),
@@ -753,8 +785,11 @@ class DrawingCanvas implements OptionElementsI {
         startY: 0,
         endX: 0,
         endY: 0,
+        x1: 0,
+        y1: 0,
+        x2: 0,
+        y2: 0,
       };
-      return;
     }
 
     this.redraw(this.drawingData);
@@ -890,18 +925,18 @@ class DrawingCanvas implements OptionElementsI {
 
     if (this.shouldLine) {
       this.isLining = true;
-      this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+      //Redraw data
+      this.redraw(this.drawingData);
 
-      //Set ctx styles
-      this.context.globalCompositeOperation = this.lineObject.operation;
-      this.context.lineWidth = this.lineObject.lineWidth;
-      this.context.strokeStyle = this.lineObject.strokeStyle;
+      this.setCtxStyles(this.lineObject);
 
+      //Begin current path
       this.context.beginPath();
-
+      //Move context to start position of lineObject
       this.context.moveTo(this.lineObject.startX, this.lineObject.startY);
+      //Draw a line to current mouse position
       this.context.lineTo(mouseX, mouseY);
-
+      //Close the path and save -> repeat while moving
       this.context.closePath();
 
       this.context.stroke();
@@ -920,7 +955,7 @@ class DrawingCanvas implements OptionElementsI {
       drawing.y1 = Math.min(...drawing.yCords);
       drawing.x2 = Math.max(...drawing.xCords);
       drawing.y2 = Math.max(...drawing.yCords);
-    } else {
+    } else if (drawing.type === "text") {
       drawing.font = drawing.resizedFont;
 
       drawing.x1 = drawing.resizedX1;
@@ -1208,9 +1243,12 @@ class DrawingCanvas implements OptionElementsI {
     if (drawing.type === "stroke") {
       this.context.lineWidth = drawing.lineWidth;
       this.context.strokeStyle = drawing.strokeStyle;
-    } else {
+    } else if (drawing.type === "text") {
       this.context.textBaseline = drawing.baseline as CanvasTextBaseline;
       this.context.font = drawing.font;
+    } else {
+      this.context.lineWidth = drawing.lineWidth;
+      this.context.strokeStyle = drawing.strokeStyle;
     }
   }
 
@@ -1280,6 +1318,11 @@ class DrawingCanvas implements OptionElementsI {
         this.setCtxStyles(drawing);
 
         this.context.fillText(drawing.text, drawing.x1, drawing.y1);
+      }
+      if (drawing.type === "line") {
+        this.setCtxStyles(drawing);
+
+        this.context.stroke(drawing.path);
       }
     });
   }
