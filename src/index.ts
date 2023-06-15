@@ -634,15 +634,7 @@ class DrawingCanvas implements OptionElementsI {
     }
 
     if (this.toggleLine) {
-      if (this.isLining) {
-        //Finish path on second click while lining
-        this.lineObject.endX = mouseX;
-        this.lineObject.endY = mouseY;
-
-        this.lineObject.path.lineTo(this.lineObject.endX, this.lineObject.endY);
-
-        return;
-      }
+      if (this.isLining) return;
 
       //Start line path at mouse position
       this.lineObject.operation = "source-over";
@@ -746,34 +738,10 @@ class DrawingCanvas implements OptionElementsI {
       this.shouldLine = false;
       this.isLining = false;
 
-      if (this.isDragging) {
-        this.lineObject.endX = this.mouseX;
-        this.lineObject.endY = this.mouseY;
+      this.lineObject.endX = this.mouseX;
+      this.lineObject.endY = this.mouseY;
 
-        this.lineObject.path.lineTo(this.mouseX, this.mouseY);
-      }
-
-      //IF the line doesnt have end coords then dont save it
-      if (this.lineObject.endX === 0 && this.lineObject.endY === 0) {
-        this.lineObject = {
-          type: "line",
-          path: new Path2D(),
-          resizedPath: null,
-          lineWidth: 5,
-          strokeStyle: "black",
-          operation: "source-over",
-          startX: 0,
-          startY: 0,
-          endX: 0,
-          endY: 0,
-          x1: 0,
-          y1: 0,
-          x2: 0,
-          y2: 0,
-        };
-        return;
-      }
-
+      this.lineObject.path.lineTo(this.mouseX, this.mouseY);
       //Save new line
       this.index = this.incOrDec(this.index, "increment", 1);
       this.drawingData.push(this.lineObject);
