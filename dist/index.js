@@ -112,6 +112,8 @@ class DrawingCanvas {
         this.drawingData = [];
         this.startX = 0;
         this.startY = 0;
+        this.mouseX = 0;
+        this.mouseY = 0;
         //Runs for each element passed to options
         this.storeElements = (currentElement) => {
             //Loop through class props
@@ -398,9 +400,10 @@ class DrawingCanvas {
         };
         //Runs whenever mouse is released
         this.mouseUpHandler = () => {
-            //No longer moving or dragging
+            //Reset states
             this.mouseIsDown = false;
-            this.isDragging = false;
+            this.shouldMove = false;
+            this.isMoving = false;
             if (this.isDrawing || this.isErasing) {
                 this.shouldDraw = false;
                 this.shouldErase = false;
@@ -468,15 +471,16 @@ class DrawingCanvas {
                     this.updateToResized(selectedDrawing);
                 }
             }
-            if (this.shouldMove) {
-                this.shouldMove = false;
-                this.isMoving = false;
-            }
             //IF we are drawing line when we mouseUp
             if (this.isLining) {
                 this.shouldLine = false;
                 this.isLining = false;
-                //IF the line doesnt have an end then return
+                if (this.isDragging) {
+                    this.lineObject.endX = this.mouseX;
+                    this.lineObject.endY = this.mouseY;
+                    this.lineObject.path.lineTo(this.mouseX, this.mouseY);
+                }
+                //IF the line doesnt have end coords then dont save it
                 if (this.lineObject.endX === 0 && this.lineObject.endY === 0) {
                     this.lineObject = {
                         type: "line",
@@ -529,6 +533,10 @@ class DrawingCanvas {
             //Current mouse positions
             const mouseX = evtType.clientX - this.canvas.offsetLeft;
             const mouseY = evtType.clientY - this.canvas.offsetTop;
+            //Store current mousePosition
+            this.mouseX = mouseX;
+            this.mouseY = mouseY;
+            this.mouseIsDown ? (this.isDragging = true) : (this.isDragging = false);
             if (this.toggleMvRz) {
                 this.canvas.style.cursor = "default";
                 this.drawingData.forEach((drawing, i) => {
@@ -557,15 +565,15 @@ class DrawingCanvas {
                     }
                 });
             }
-            //IF mousedown and selected drawing
-            if (this.mouseIsDown && this.selectedDrawingIndex !== null) {
-                this.isDragging = true;
+            //IF we have a selected drawing and we are dragging
+            if (this.selectedDrawingIndex !== null && this.isDragging) {
                 const dx = mouseX - this.startX;
                 const dy = mouseY - this.startY;
                 //Selected drawing
                 const selectedDrawing = this.drawingData[this.selectedDrawingIndex];
                 if (selectedDrawing.type === "stroke") {
                     if (this.shouldMove) {
+                        this.isMoving = true;
                         //Update x and y coordinates
                         for (let i = 0; i < selectedDrawing.xCords.length; i++) {
                             selectedDrawing.xCords[i] += dx;
@@ -593,6 +601,7 @@ class DrawingCanvas {
                 }
                 if (selectedDrawing.type === "text") {
                     if (this.shouldMove) {
+                        this.isMoving = true;
                         //Assign new coordinates
                         selectedDrawing.x1 += dx;
                         selectedDrawing.y1 += dy;
@@ -609,8 +618,8 @@ class DrawingCanvas {
                 }
                 this.redraw(this.drawingData);
             }
-            if ((this.mouseIsDown && this.shouldDraw) ||
-                (this.mouseIsDown && this.shouldErase)) {
+            if ((this.shouldDraw && this.isDragging) ||
+                (this.shouldErase && this.isDragging)) {
                 this.shouldDraw ? (this.isDrawing = true) : (this.isDrawing = false);
                 this.shouldErase ? (this.isErasing = true) : (this.isErasing = false);
                 this.redraw(this.drawingData);

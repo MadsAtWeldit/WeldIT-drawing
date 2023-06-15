@@ -223,6 +223,8 @@ class DrawingCanvas implements OptionElementsI {
 
   private startX = 0;
   private startY = 0;
+  private mouseX = 0;
+  private mouseY = 0;
 
   constructor(
     elementId: string,
@@ -658,9 +660,10 @@ class DrawingCanvas implements OptionElementsI {
 
   //Runs whenever mouse is released
   private mouseUpHandler = () => {
-    //No longer moving or dragging
+    //Reset states
     this.mouseIsDown = false;
-    this.isDragging = false;
+    this.shouldMove = false;
+    this.isMoving = false;
 
     if (this.isDrawing || this.isErasing) {
       this.shouldDraw = false;
@@ -738,17 +741,19 @@ class DrawingCanvas implements OptionElementsI {
       }
     }
 
-    if (this.shouldMove) {
-      this.shouldMove = false;
-      this.isMoving = false;
-    }
-
     //IF we are drawing line when we mouseUp
     if (this.isLining) {
       this.shouldLine = false;
       this.isLining = false;
 
-      //IF the line doesnt have an end then return
+      if (this.isDragging) {
+        this.lineObject.endX = this.mouseX;
+        this.lineObject.endY = this.mouseY;
+
+        this.lineObject.path.lineTo(this.mouseX, this.mouseY);
+      }
+
+      //IF the line doesnt have end coords then dont save it
       if (this.lineObject.endX === 0 && this.lineObject.endY === 0) {
         this.lineObject = {
           type: "line",
@@ -807,6 +812,11 @@ class DrawingCanvas implements OptionElementsI {
     //Current mouse positions
     const mouseX = evtType.clientX - this.canvas.offsetLeft;
     const mouseY = evtType.clientY - this.canvas.offsetTop;
+    //Store current mousePosition
+    this.mouseX = mouseX;
+    this.mouseY = mouseY;
+
+    this.mouseIsDown ? (this.isDragging = true) : (this.isDragging = false);
 
     if (this.toggleMvRz) {
       this.canvas.style.cursor = "default";
@@ -843,10 +853,8 @@ class DrawingCanvas implements OptionElementsI {
       });
     }
 
-    //IF mousedown and selected drawing
-    if (this.mouseIsDown && this.selectedDrawingIndex !== null) {
-      this.isDragging = true;
-
+    //IF we have a selected drawing and we are dragging
+    if (this.selectedDrawingIndex !== null && this.isDragging) {
       const dx = mouseX - this.startX;
       const dy = mouseY - this.startY;
 
@@ -855,6 +863,7 @@ class DrawingCanvas implements OptionElementsI {
 
       if (selectedDrawing.type === "stroke") {
         if (this.shouldMove) {
+          this.isMoving = true;
           //Update x and y coordinates
           for (let i = 0; i < selectedDrawing.xCords.length; i++) {
             selectedDrawing.xCords[i] += dx;
@@ -886,6 +895,7 @@ class DrawingCanvas implements OptionElementsI {
 
       if (selectedDrawing.type === "text") {
         if (this.shouldMove) {
+          this.isMoving = true;
           //Assign new coordinates
           selectedDrawing.x1 += dx;
           selectedDrawing.y1 += dy;
@@ -906,8 +916,8 @@ class DrawingCanvas implements OptionElementsI {
     }
 
     if (
-      (this.mouseIsDown && this.shouldDraw) ||
-      (this.mouseIsDown && this.shouldErase)
+      (this.shouldDraw && this.isDragging) ||
+      (this.shouldErase && this.isDragging)
     ) {
       this.shouldDraw ? (this.isDrawing = true) : (this.isDrawing = false);
       this.shouldErase ? (this.isErasing = true) : (this.isErasing = false);
@@ -1319,6 +1329,7 @@ class DrawingCanvas implements OptionElementsI {
 
         this.context.fillText(drawing.text, drawing.x1, drawing.y1);
       }
+
       if (drawing.type === "line") {
         this.setCtxStyles(drawing);
 
