@@ -557,12 +557,8 @@ class DrawingCanvas implements OptionElementsI {
                 const selected = this.drawingData[
                   this.selectedDrawingIndex
                 ] as LineElement;
-                if (this.getLineCornerPosition(selected, mouseX, mouseY)) {
-                  const corner = this.getLineCornerPosition(
-                    selected,
-                    mouseX,
-                    mouseY
-                  );
+                if (this.mouseInLine(selected, mouseX, mouseY)) {
+                  const corner = this.mouseInLine(selected, mouseX, mouseY);
 
                   this.shouldResize.toggled = true;
                   this.shouldResize.from = corner as string;
@@ -883,15 +879,8 @@ class DrawingCanvas implements OptionElementsI {
             {
               if (this.context.isPointInStroke(drawing.path, mouseX, mouseY))
                 this.canvas.style.cursor = "move";
-              if (this.getLineCornerPosition(drawing, mouseX, mouseY)) {
-                const corner = this.getLineCornerPosition(
-                  drawing,
-                  mouseX,
-                  mouseY
-                );
-                corner === "l" || corner === "r"
-                  ? (this.canvas.style.cursor = "col-resize")
-                  : (this.canvas.style.cursor = "ns-resize");
+              if (this.mouseInLine(drawing, mouseX, mouseY)) {
+                this.canvas.style.cursor = "pointer";
               }
             }
 
@@ -1238,11 +1227,7 @@ class DrawingCanvas implements OptionElementsI {
     }
   }
 
-  private getLineCornerPosition(
-    element: LineElement,
-    mouseX: number,
-    mouseY: number
-  ) {
+  private mouseInLine(element: LineElement, mouseX: number, mouseY: number) {
     const { startX, startY, endX, endY, x1, y1, x2, y2 } = element;
     let leftToRight = false;
     let rightToLeft = false;
