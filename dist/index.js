@@ -251,70 +251,93 @@ class DrawingCanvas {
                     return;
                 //Loop through each drawing
                 this.drawingData.forEach((drawing, i) => {
-                    if (drawing.type === "stroke") {
-                        //IF selected drawing index when we click on canvas
-                        if (this.selectedDrawingIndex !== null) {
-                            //Get selected drawing
-                            const selected = this.drawingData[this.selectedDrawingIndex];
-                            //Check if mouse is on selected drawing corners
-                            if (this.mouseInCorner(mouseX, mouseY, selected)) {
-                                //IF it is then get value of corner
-                                const corner = this.mouseInCorner(mouseX, mouseY, selected);
-                                //And store
-                                this.shouldResize.toggled = true;
-                                this.shouldResize.from = corner;
-                                //Return because it is still within the selection
-                                return;
+                    switch (drawing.type) {
+                        case "stroke":
+                            {
+                                //IF selected drawing index when we click on canvas
+                                if (this.selectedDrawingIndex !== null) {
+                                    //Get selected drawing
+                                    const selected = this.drawingData[this.selectedDrawingIndex];
+                                    //Check if mouse is on selected drawing corners
+                                    if (this.mouseInCorner(mouseX, mouseY, selected)) {
+                                        //IF it is then get value of corner
+                                        const corner = this.mouseInCorner(mouseX, mouseY, selected);
+                                        //And store
+                                        this.shouldResize.toggled = true;
+                                        this.shouldResize.from = corner;
+                                        //Return because it is still within the selection
+                                        return;
+                                    }
+                                    //IF in selection of the selected
+                                    if (this.mouseInSelection(mouseX, mouseY, selected)) {
+                                        this.shouldMove = true;
+                                        return;
+                                    }
+                                    //IF NOT in corner or selection THEN check if its in another drawing path
+                                    this.context.isPointInStroke(drawing.path, mouseX, mouseY)
+                                        ? (this.selectedDrawingIndex = i)
+                                        : (this.selectedDrawingIndex = null);
+                                    //IF no selected drawing when we click
+                                }
+                                else {
+                                    if (this.context.isPointInStroke(drawing.path, mouseX, mouseY)) {
+                                        this.selectedDrawingIndex = i;
+                                        this.shouldMove = true;
+                                    }
+                                }
+                                this.redraw(this.drawingData);
                             }
-                            //IF in selection of the selected
-                            if (this.mouseInSelection(mouseX, mouseY, selected)) {
-                                this.shouldMove = true;
-                                return;
+                            break;
+                        case "text":
+                            {
+                                if (this.selectedDrawingIndex !== null) {
+                                    //Get selected drawing
+                                    const selected = this.drawingData[this.selectedDrawingIndex];
+                                    //IF in corner of selected drawing
+                                    if (this.mouseInCorner(mouseX, mouseY, selected)) {
+                                        const corner = this.mouseInCorner(mouseX, mouseY, selected);
+                                        this.shouldResize.toggled = true;
+                                        this.shouldResize.from = corner;
+                                        return;
+                                    }
+                                    //IF in selection of selected
+                                    if (this.mouseInSelection(mouseX, mouseY, selected)) {
+                                        this.shouldMove = true;
+                                        return;
+                                    }
+                                    //IF not in corner or selection
+                                    //Check if its in another unselected drawing
+                                    this.mouseInSelection(mouseX, mouseY, drawing)
+                                        ? (this.selectedDrawingIndex = i)
+                                        : (this.selectedDrawingIndex = null);
+                                    //IF no selected drawing then simply select
+                                }
+                                else {
+                                    if (this.mouseInSelection(mouseX, mouseY, drawing)) {
+                                        this.selectedDrawingIndex = i;
+                                        this.shouldMove = true;
+                                    }
+                                }
+                                this.redraw(this.drawingData);
                             }
-                            //IF NOT in corner or selection THEN check if its in another drawing path
-                            this.context.isPointInStroke(drawing.path, mouseX, mouseY)
-                                ? (this.selectedDrawingIndex = i)
-                                : (this.selectedDrawingIndex = null);
-                            //IF no selected drawing when we click
-                        }
-                        else {
-                            if (this.context.isPointInStroke(drawing.path, mouseX, mouseY)) {
-                                this.selectedDrawingIndex = i;
-                                this.shouldMove = true;
+                            break;
+                        case "line":
+                            {
+                                if (this.selectedDrawingIndex !== null) {
+                                    const selected = this.drawingData[this.selectedDrawingIndex];
+                                    if (this.mouseInLineCorner(mouseX, mouseY, selected)) {
+                                        const corner = this.mouseInLineCorner(mouseX, mouseY, selected);
+                                        this.shouldResize.toggled = true;
+                                        this.shouldResize.from = corner;
+                                        return;
+                                    }
+                                }
+                                if (this.context.isPointInStroke(drawing.path, mouseX, mouseY)) {
+                                    this.selectedDrawingIndex = i;
+                                    this.shouldMove = true;
+                                }
                             }
-                        }
-                        this.redraw(this.drawingData);
-                    }
-                    if (drawing.type === "text") {
-                        if (this.selectedDrawingIndex !== null) {
-                            //Get selected drawing
-                            const selected = this.drawingData[this.selectedDrawingIndex];
-                            //IF in corner of selected drawing
-                            if (this.mouseInCorner(mouseX, mouseY, selected)) {
-                                const corner = this.mouseInCorner(mouseX, mouseY, selected);
-                                this.shouldResize.toggled = true;
-                                this.shouldResize.from = corner;
-                                return;
-                            }
-                            //IF in selection of selected
-                            if (this.mouseInSelection(mouseX, mouseY, selected)) {
-                                this.shouldMove = true;
-                                return;
-                            }
-                            //IF not in corner or selection
-                            //Check if its in another unselected drawing
-                            this.mouseInSelection(mouseX, mouseY, drawing)
-                                ? (this.selectedDrawingIndex = i)
-                                : (this.selectedDrawingIndex = null);
-                            //IF no selected drawing then simply select
-                        }
-                        else {
-                            if (this.mouseInSelection(mouseX, mouseY, drawing)) {
-                                this.selectedDrawingIndex = i;
-                                this.shouldMove = true;
-                            }
-                        }
-                        this.redraw(this.drawingData);
+                            break;
                     }
                 });
             }
@@ -473,6 +496,27 @@ class DrawingCanvas {
                 this.lineObject.endX = this.mouseX;
                 this.lineObject.endY = this.mouseY;
                 this.lineObject.path.lineTo(this.mouseX, this.mouseY);
+                //Assign correct left, right, top and bottom
+                //IF startX is on left
+                if (this.lineObject.startX < this.lineObject.endX) {
+                    this.lineObject.x1 = this.lineObject.startX;
+                    this.lineObject.x2 = this.lineObject.endX;
+                    //IF startX is on right
+                }
+                else {
+                    this.lineObject.x1 = this.lineObject.endX;
+                    this.lineObject.x2 = this.lineObject.startX;
+                }
+                //IF startY is on top
+                if (this.lineObject.startY < this.lineObject.endY) {
+                    this.lineObject.y1 = this.lineObject.startY;
+                    this.lineObject.y2 = this.lineObject.endY;
+                    //IF startY is on bottom
+                }
+                else {
+                    this.lineObject.y1 = this.lineObject.endY;
+                    this.lineObject.y2 = this.lineObject.startY;
+                }
                 //Save new line
                 this.index = this.incOrDec(this.index, "increment", 1);
                 this.drawingData.push(this.lineObject);
@@ -513,28 +557,46 @@ class DrawingCanvas {
             if (this.toggleMvRz) {
                 this.canvas.style.cursor = "default";
                 this.drawingData.forEach((drawing, i) => {
-                    if (drawing.type === "stroke") {
-                        if (this.context.isPointInStroke(drawing.path, mouseX, mouseY) ||
-                            this.selectedDrawingIndex === i) {
-                            if (this.mouseInSelection(mouseX, mouseY, drawing))
-                                this.canvas.style.cursor = "move";
-                            if (this.mouseInCorner(mouseX, mouseY, drawing)) {
-                                const corner = this.mouseInCorner(mouseX, mouseY, drawing);
-                                corner === "tl" || corner === "br"
-                                    ? (this.canvas.style.cursor = "nwse-resize")
-                                    : (this.canvas.style.cursor = "nesw-resize");
+                    switch (drawing.type) {
+                        case "stroke":
+                            {
+                                if (this.context.isPointInStroke(drawing.path, mouseX, mouseY) ||
+                                    this.selectedDrawingIndex === i) {
+                                    if (this.mouseInSelection(mouseX, mouseY, drawing))
+                                        this.canvas.style.cursor = "move";
+                                    if (this.mouseInCorner(mouseX, mouseY, drawing)) {
+                                        const corner = this.mouseInCorner(mouseX, mouseY, drawing);
+                                        corner === "tl" || corner === "br"
+                                            ? (this.canvas.style.cursor = "nwse-resize")
+                                            : (this.canvas.style.cursor = "nesw-resize");
+                                    }
+                                }
                             }
-                        }
-                    }
-                    if (drawing.type === "text") {
-                        if (this.mouseInSelection(mouseX, mouseY, drawing))
-                            this.canvas.style.cursor = "move";
-                        if (this.mouseInCorner(mouseX, mouseY, drawing)) {
-                            const corner = this.mouseInCorner(mouseX, mouseY, drawing);
-                            corner === "tl" || corner === "br"
-                                ? (this.canvas.style.cursor = "nwse-resize")
-                                : (this.canvas.style.cursor = "nesw-resize");
-                        }
+                            break;
+                        case "text":
+                            {
+                                if (this.mouseInSelection(mouseX, mouseY, drawing))
+                                    this.canvas.style.cursor = "move";
+                                if (this.mouseInCorner(mouseX, mouseY, drawing)) {
+                                    const corner = this.mouseInCorner(mouseX, mouseY, drawing);
+                                    corner === "tl" || corner === "br"
+                                        ? (this.canvas.style.cursor = "nwse-resize")
+                                        : (this.canvas.style.cursor = "nesw-resize");
+                                }
+                            }
+                            break;
+                        case "line":
+                            {
+                                if (this.context.isPointInStroke(drawing.path, mouseX, mouseY))
+                                    this.canvas.style.cursor = "move";
+                                if (this.getLineCornerPosition(drawing, mouseX, mouseY)) {
+                                    const corner = this.getLineCornerPosition(drawing, mouseX, mouseY);
+                                    corner === "l" || corner === "r"
+                                        ? (this.canvas.style.cursor = "col-resize")
+                                        : (this.canvas.style.cursor = "ns-resize");
+                                }
+                            }
+                            break;
                     }
                 });
             }
@@ -589,6 +651,30 @@ class DrawingCanvas {
                         this.resizeText(selectedDrawing, from, mouseX, mouseY);
                     }
                 }
+                if (selectedDrawing.type === "line") {
+                    if (this.shouldMove) {
+                        this.isMoving = true;
+                        //Assign new start and end coordinates
+                        selectedDrawing.startX += dx;
+                        selectedDrawing.startY += dy;
+                        selectedDrawing.endX += dx;
+                        selectedDrawing.endY += dy;
+                        selectedDrawing.x1 += dx;
+                        selectedDrawing.y1 += dy;
+                        selectedDrawing.x2 += dx;
+                        selectedDrawing.y2 += dy;
+                        //Create new path from existing path
+                        const newPath = new Path2D();
+                        const m = new DOMMatrix().translate(dx, dy);
+                        newPath.addPath(selectedDrawing.path, m);
+                        selectedDrawing.path = newPath;
+                        this.startX = mouseX;
+                        this.startY = mouseY;
+                    }
+                    else {
+                        const { from } = this.shouldResize;
+                    }
+                }
                 this.redraw(this.drawingData);
             }
             if ((this.shouldDraw && this.isDragging) ||
@@ -597,7 +683,6 @@ class DrawingCanvas {
                 this.shouldErase ? (this.isErasing = true) : (this.isErasing = false);
                 this.redraw(this.drawingData);
                 //Set props for current path object
-                this.context.lineCap = "round";
                 this.setCtxStyles(this.pathObject);
                 this.addCoords(mouseX, mouseY, true);
                 this.pathObject.path.lineTo(mouseX, mouseY);
@@ -821,6 +906,177 @@ class DrawingCanvas {
             element.resizedPath = resizedPath;
         }
     }
+    //Reason for having this function is so that
+    getLineCornerPosition(element, mouseX, mouseY) {
+        const { startX, startY, endX, endY, x1, y1, x2, y2 } = element;
+        let leftToRight = false;
+        let rightToLeft = false;
+        let topToBottom = false;
+        let bottomToTop = false;
+        let cornerPosition;
+        const offset = 10;
+        //IF drawn across x axis
+        if (x2 - x1 > y2 - y1) {
+            //Check if the line was drawn from left to right or right to left
+            if (startX < endX) {
+                leftToRight = true;
+            }
+            else {
+                rightToLeft = true;
+            }
+            //IF its from left to right
+            if (leftToRight) {
+                //IF we start at left then left would be startX
+                const leftX1 = startX - offset;
+                const leftX2 = startX + offset;
+                const leftY1 = startY - offset;
+                const leftY2 = startY + offset;
+                const rightX1 = endX - offset;
+                const rightX2 = endX + offset;
+                const rightY1 = endY - offset;
+                const rightY2 = endY + offset;
+                //Check if mouse is on the left side
+                if (mouseX >= leftX1 &&
+                    mouseX <= leftX2 &&
+                    mouseY >= leftY1 &&
+                    mouseY <= leftY2) {
+                    cornerPosition = "l";
+                    //ELSE right side
+                }
+                else if (mouseX >= rightX1 &&
+                    mouseX <= rightX2 &&
+                    mouseY >= rightY1 &&
+                    mouseY <= rightY2) {
+                    cornerPosition = "r";
+                }
+            }
+            //Check IF drawn from right to left
+            if (rightToLeft) {
+                //IF we start at right then left would be endX
+                const leftX1 = endX - offset;
+                const leftX2 = endX + offset;
+                const leftY1 = endY - offset;
+                const leftY2 = endY + offset;
+                const rightX1 = startX - offset;
+                const rightX2 = startX + offset;
+                const rightY1 = startY - offset;
+                const rightY2 = startY + offset;
+                //IF its on left side
+                if (mouseX >= leftX1 &&
+                    mouseX <= leftX2 &&
+                    mouseY >= leftY1 &&
+                    mouseY <= leftY2) {
+                    cornerPosition = "l";
+                }
+                else if (mouseX >= rightX1 &&
+                    mouseX <= rightX2 &&
+                    mouseY >= rightY1 &&
+                    mouseY <= rightY2) {
+                    cornerPosition = "r";
+                }
+            }
+        }
+        else {
+            //Check origin of line
+            if (startY < endY) {
+                topToBottom = true;
+            }
+            else {
+                bottomToTop = true;
+            }
+            if (topToBottom) {
+                const topX1 = startX - 10;
+                const topX2 = startX + 10;
+                const topY1 = startY - 10;
+                const topY2 = startY + 10;
+                const bottomX1 = endX - 10;
+                const bottomX2 = endX + 10;
+                const bottomY1 = endY - 10;
+                const bottomY2 = endY + 10;
+                //Check if mouse is on top side
+                if (mouseX >= topX1 &&
+                    mouseX <= topX2 &&
+                    mouseY >= topY1 &&
+                    mouseY <= topY2) {
+                    cornerPosition = "t";
+                    //Check if on bottom side
+                }
+                else if (mouseX >= bottomX1 &&
+                    mouseX <= bottomX2 &&
+                    mouseY >= bottomY1 &&
+                    mouseY <= bottomY2) {
+                    cornerPosition = "b";
+                }
+            }
+            if (bottomToTop) {
+                const topX1 = endX - 10;
+                const topX2 = endX + 10;
+                const topY1 = endY - 10;
+                const topY2 = endY + 10;
+                const bottomX1 = startX - 10;
+                const bottomX2 = startX + 10;
+                const bottomY1 = startY - 10;
+                const bottomY2 = startY + 10;
+                //Check if mouse is on top side
+                if (mouseX >= topX1 &&
+                    mouseX <= topX2 &&
+                    mouseY >= topY1 &&
+                    mouseY <= topY2) {
+                    cornerPosition = "top";
+                }
+                else if (mouseX >= bottomX1 &&
+                    mouseX <= bottomX2 &&
+                    mouseY >= bottomY1 &&
+                    mouseY <= bottomY2) {
+                    cornerPosition = "b";
+                }
+            }
+        }
+        return cornerPosition;
+    }
+    mouseInLineCorner(x, y, drawing) {
+        const { x1, y1, x2, y2 } = drawing;
+        let mouseIsIn;
+        //IF the distance on the x axis is greater than y axis that means the line goes from left to right ELSE its from top to bottom
+        if (x2 - x1 > y2 - y1) {
+            const leftX1 = x1;
+            const leftX2 = x1 + 10;
+            const rightX1 = x2 - 10;
+            const rightX2 = x2;
+            //IF mouse is in left corner
+            if (x >= leftX1 && x <= leftX2) {
+                mouseIsIn = "l";
+                //IF mouse is is right corner
+            }
+            else if (x >= rightX1 && x <= rightX2) {
+                mouseIsIn = "r";
+            }
+            else {
+                mouseIsIn = false;
+            }
+        }
+        else {
+            const topY1 = y1;
+            const topY2 = y1 + 10;
+            const bottomY1 = y2 - 10;
+            const bottomY2 = y2;
+            //IF mouse is in top corner
+            if (y >= topY1 && y <= topY2) {
+                mouseIsIn = "t";
+                //IF mouse is in bottom corner
+            }
+            else if (y >= bottomY1 && y <= bottomY2) {
+                mouseIsIn = "b";
+            }
+            else if (y < bottomY1 && y > topY2) {
+                mouseIsIn = "m";
+            }
+            else {
+                mouseIsIn = false;
+            }
+        }
+        return mouseIsIn;
+    }
     mouseInCorner(x, y, drawing) {
         const { x1, y1, x2, y2 } = drawing;
         //Top left rectangle
@@ -887,6 +1143,7 @@ class DrawingCanvas {
     //Sets context styles based on drawing styles
     setCtxStyles(drawing) {
         this.context.globalCompositeOperation = drawing.operation;
+        this.context.lineCap = "round";
         if (drawing.type === "stroke") {
             this.context.lineWidth = drawing.lineWidth;
             this.context.strokeStyle = drawing.strokeStyle;
@@ -936,6 +1193,24 @@ class DrawingCanvas {
             if (drawing.type === "line") {
                 this.setCtxStyles(drawing);
                 this.context.stroke(drawing.path);
+                if (this.selectedDrawingIndex === i) {
+                    this.context.strokeStyle = "cyan";
+                    this.context.globalCompositeOperation = "source-over";
+                    //Draw first circle
+                    this.context.beginPath();
+                    this.context.arc(drawing.startX, drawing.startY, 1, 0, 2 * Math.PI);
+                    this.context.stroke();
+                    //Draw line from start to end
+                    this.context.lineWidth = 1;
+                    this.context.moveTo(drawing.startX, drawing.startY);
+                    this.context.lineTo(drawing.endX, drawing.endY);
+                    this.context.stroke();
+                    //Draw second circle
+                    this.context.lineWidth = 5;
+                    this.context.beginPath();
+                    this.context.arc(drawing.endX, drawing.endY, 1, 0, 2 * Math.PI);
+                    this.context.stroke();
+                }
             }
         });
     }
