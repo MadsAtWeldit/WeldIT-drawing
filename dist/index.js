@@ -325,14 +325,15 @@ class DrawingCanvas {
                             {
                                 if (this.selectedDrawingIndex !== null) {
                                     const selected = this.drawingData[this.selectedDrawingIndex];
-                                    if (this.mouseInLineCorner(mouseX, mouseY, selected)) {
-                                        const corner = this.mouseInLineCorner(mouseX, mouseY, selected);
+                                    if (this.getLineCornerPosition(selected, mouseX, mouseY)) {
+                                        const corner = this.getLineCornerPosition(selected, mouseX, mouseY);
                                         this.shouldResize.toggled = true;
                                         this.shouldResize.from = corner;
                                         return;
                                     }
                                 }
                                 if (this.context.isPointInStroke(drawing.path, mouseX, mouseY)) {
+                                    console.log(i);
                                     this.selectedDrawingIndex = i;
                                     this.shouldMove = true;
                                 }
@@ -606,74 +607,83 @@ class DrawingCanvas {
                 const dy = mouseY - this.startY;
                 //Selected drawing
                 const selectedDrawing = this.drawingData[this.selectedDrawingIndex];
-                if (selectedDrawing.type === "stroke") {
-                    if (this.shouldMove) {
-                        this.isMoving = true;
-                        //Update x and y coordinates
-                        for (let i = 0; i < selectedDrawing.xCords.length; i++) {
-                            selectedDrawing.xCords[i] += dx;
-                            selectedDrawing.yCords[i] += dy;
+                switch (selectedDrawing.type) {
+                    case "stroke":
+                        {
+                            if (this.shouldMove) {
+                                this.isMoving = true;
+                                //Update x and y coordinates
+                                for (let i = 0; i < selectedDrawing.xCords.length; i++) {
+                                    selectedDrawing.xCords[i] += dx;
+                                    selectedDrawing.yCords[i] += dy;
+                                }
+                                //Update left, top, right and bottom
+                                selectedDrawing.x1 = Math.min(...selectedDrawing.xCords);
+                                selectedDrawing.y1 = Math.min(...selectedDrawing.yCords);
+                                selectedDrawing.x2 = Math.max(...selectedDrawing.xCords);
+                                selectedDrawing.y2 = Math.max(...selectedDrawing.yCords);
+                                //Create new path from existing path
+                                const newPath = new Path2D();
+                                const m = new DOMMatrix().translate(dx, dy);
+                                newPath.addPath(selectedDrawing.path, m);
+                                selectedDrawing.path = newPath;
+                                //Set start positions to current
+                                this.startX = mouseX;
+                                this.startY = mouseY;
+                            }
+                            else {
+                                const { from } = this.shouldResize;
+                                this.isResizing = true;
+                                this.resizePath(selectedDrawing, from, mouseX, mouseY);
+                            }
                         }
-                        //Update left, top, right and bottom
-                        selectedDrawing.x1 = Math.min(...selectedDrawing.xCords);
-                        selectedDrawing.y1 = Math.min(...selectedDrawing.yCords);
-                        selectedDrawing.x2 = Math.max(...selectedDrawing.xCords);
-                        selectedDrawing.y2 = Math.max(...selectedDrawing.yCords);
-                        //Create new path from existing path
-                        const newPath = new Path2D();
-                        const m = new DOMMatrix().translate(dx, dy);
-                        newPath.addPath(selectedDrawing.path, m);
-                        selectedDrawing.path = newPath;
-                        //Set start positions to current
-                        this.startX = mouseX;
-                        this.startY = mouseY;
-                    }
-                    else {
-                        const { from } = this.shouldResize;
-                        this.isResizing = true;
-                        this.resizePath(selectedDrawing, from, mouseX, mouseY);
-                    }
-                }
-                if (selectedDrawing.type === "text") {
-                    if (this.shouldMove) {
-                        this.isMoving = true;
-                        //Assign new coordinates
-                        selectedDrawing.x1 += dx;
-                        selectedDrawing.y1 += dy;
-                        selectedDrawing.x2 += dx;
-                        selectedDrawing.y2 += dy;
-                        this.startX = mouseX;
-                        this.startY = mouseY;
-                    }
-                    else {
-                        const { from } = this.shouldResize;
-                        this.isResizing = true;
-                        this.resizeText(selectedDrawing, from, mouseX, mouseY);
-                    }
-                }
-                if (selectedDrawing.type === "line") {
-                    if (this.shouldMove) {
-                        this.isMoving = true;
-                        //Assign new start and end coordinates
-                        selectedDrawing.startX += dx;
-                        selectedDrawing.startY += dy;
-                        selectedDrawing.endX += dx;
-                        selectedDrawing.endY += dy;
-                        selectedDrawing.x1 += dx;
-                        selectedDrawing.y1 += dy;
-                        selectedDrawing.x2 += dx;
-                        selectedDrawing.y2 += dy;
-                        //Create new path from existing path
-                        const newPath = new Path2D();
-                        const m = new DOMMatrix().translate(dx, dy);
-                        newPath.addPath(selectedDrawing.path, m);
-                        selectedDrawing.path = newPath;
-                        this.startX = mouseX;
-                        this.startY = mouseY;
-                    }
-                    else {
-                        const { from } = this.shouldResize;
-                    }
+                        break;
+                    case "text":
+                        {
+                            if (this.shouldMove) {
+                                this.isMoving = true;
+                                //Assign new coordinates
+                                selectedDrawing.x1 += dx;
+                                selectedDrawing.y1 += dy;
+                                selectedDrawing.x2 += dx;
+                                selectedDrawing.y2 += dy;
+                                this.startX = mouseX;
+                                this.startY = mouseY;
+                            }
+                            else {
+                                const { from } = this.shouldResize;
+                                this.isResizing = true;
+                                this.resizeText(selectedDrawing, from, mouseX, mouseY);
+                            }
+                        }
+                        break;
+                    case "line":
+                        {
+                            if (this.shouldMove) {
+                                this.isMoving = true;
+                                console.log("moving");
+                                //Assign new start and end coordinates
+                                selectedDrawing.startX += dx;
+                                selectedDrawing.startY += dy;
+                                selectedDrawing.endX += dx;
+                                selectedDrawing.endY += dy;
+                                selectedDrawing.x1 += dx;
+                                selectedDrawing.y1 += dy;
+                                selectedDrawing.x2 += dx;
+                                selectedDrawing.y2 += dy;
+                                //Create new path from existing path
+                                const newPath = new Path2D();
+                                const m = new DOMMatrix().translate(dx, dy);
+                                newPath.addPath(selectedDrawing.path, m);
+                                selectedDrawing.path = newPath;
+                                this.startX = mouseX;
+                                this.startY = mouseY;
+                            }
+                            else {
+                                const { from } = this.shouldResize;
+                            }
+                        }
+                        break;
                 }
                 this.redraw(this.drawingData);
             }
@@ -906,7 +916,6 @@ class DrawingCanvas {
             element.resizedPath = resizedPath;
         }
     }
-    //Reason for having this function is so that
     getLineCornerPosition(element, mouseX, mouseY) {
         const { startX, startY, endX, endY, x1, y1, x2, y2 } = element;
         let leftToRight = false;
@@ -917,24 +926,30 @@ class DrawingCanvas {
         const offset = 10;
         //IF drawn across x axis
         if (x2 - x1 > y2 - y1) {
-            //Check if the line was drawn from left to right or right to left
+            //Check origin of line
             if (startX < endX) {
                 leftToRight = true;
             }
             else {
                 rightToLeft = true;
             }
+            //IF drawn from left to right then leftX would be startX
+            const leftX = leftToRight ? startX : endX;
+            const leftY = leftToRight ? startY : endY;
+            const rightX = leftToRight ? endX : startX;
+            const rightY = leftToRight ? endY : startY;
+            //Left side left,right,top,bottom
+            const leftX1 = leftX - offset;
+            const leftX2 = leftX + offset;
+            const leftY1 = leftY - offset;
+            const leftY2 = leftY + offset;
+            //Right side left,right,top,bottom
+            const rightX1 = rightX - offset;
+            const rightX2 = rightX + offset;
+            const rightY1 = rightY - offset;
+            const rightY2 = rightY + offset;
             //IF its from left to right
             if (leftToRight) {
-                //IF we start at left then left would be startX
-                const leftX1 = startX - offset;
-                const leftX2 = startX + offset;
-                const leftY1 = startY - offset;
-                const leftY2 = startY + offset;
-                const rightX1 = endX - offset;
-                const rightX2 = endX + offset;
-                const rightY1 = endY - offset;
-                const rightY2 = endY + offset;
                 //Check if mouse is on the left side
                 if (mouseX >= leftX1 &&
                     mouseX <= leftX2 &&
@@ -952,15 +967,6 @@ class DrawingCanvas {
             }
             //Check IF drawn from right to left
             if (rightToLeft) {
-                //IF we start at right then left would be endX
-                const leftX1 = endX - offset;
-                const leftX2 = endX + offset;
-                const leftY1 = endY - offset;
-                const leftY2 = endY + offset;
-                const rightX1 = startX - offset;
-                const rightX2 = startX + offset;
-                const rightY1 = startY - offset;
-                const rightY2 = startY + offset;
                 //IF its on left side
                 if (mouseX >= leftX1 &&
                     mouseX <= leftX2 &&
@@ -984,15 +990,19 @@ class DrawingCanvas {
             else {
                 bottomToTop = true;
             }
+            const topX = topToBottom ? startX : endX;
+            const topY = topToBottom ? startY : endY;
+            const bottomX = topToBottom ? endX : startX;
+            const bottomY = topToBottom ? endY : startY;
+            const topX1 = topX - 10;
+            const topX2 = topX + 10;
+            const topY1 = topY - 10;
+            const topY2 = topY + 10;
+            const bottomX1 = bottomX - 10;
+            const bottomX2 = bottomX + 10;
+            const bottomY1 = bottomY - 10;
+            const bottomY2 = bottomY + 10;
             if (topToBottom) {
-                const topX1 = startX - 10;
-                const topX2 = startX + 10;
-                const topY1 = startY - 10;
-                const topY2 = startY + 10;
-                const bottomX1 = endX - 10;
-                const bottomX2 = endX + 10;
-                const bottomY1 = endY - 10;
-                const bottomY2 = endY + 10;
                 //Check if mouse is on top side
                 if (mouseX >= topX1 &&
                     mouseX <= topX2 &&
@@ -1009,14 +1019,6 @@ class DrawingCanvas {
                 }
             }
             if (bottomToTop) {
-                const topX1 = endX - 10;
-                const topX2 = endX + 10;
-                const topY1 = endY - 10;
-                const topY2 = endY + 10;
-                const bottomX1 = startX - 10;
-                const bottomX2 = startX + 10;
-                const bottomY1 = startY - 10;
-                const bottomY2 = startY + 10;
                 //Check if mouse is on top side
                 if (mouseX >= topX1 &&
                     mouseX <= topX2 &&
@@ -1033,49 +1035,6 @@ class DrawingCanvas {
             }
         }
         return cornerPosition;
-    }
-    mouseInLineCorner(x, y, drawing) {
-        const { x1, y1, x2, y2 } = drawing;
-        let mouseIsIn;
-        //IF the distance on the x axis is greater than y axis that means the line goes from left to right ELSE its from top to bottom
-        if (x2 - x1 > y2 - y1) {
-            const leftX1 = x1;
-            const leftX2 = x1 + 10;
-            const rightX1 = x2 - 10;
-            const rightX2 = x2;
-            //IF mouse is in left corner
-            if (x >= leftX1 && x <= leftX2) {
-                mouseIsIn = "l";
-                //IF mouse is is right corner
-            }
-            else if (x >= rightX1 && x <= rightX2) {
-                mouseIsIn = "r";
-            }
-            else {
-                mouseIsIn = false;
-            }
-        }
-        else {
-            const topY1 = y1;
-            const topY2 = y1 + 10;
-            const bottomY1 = y2 - 10;
-            const bottomY2 = y2;
-            //IF mouse is in top corner
-            if (y >= topY1 && y <= topY2) {
-                mouseIsIn = "t";
-                //IF mouse is in bottom corner
-            }
-            else if (y >= bottomY1 && y <= bottomY2) {
-                mouseIsIn = "b";
-            }
-            else if (y < bottomY1 && y > topY2) {
-                mouseIsIn = "m";
-            }
-            else {
-                mouseIsIn = false;
-            }
-        }
-        return mouseIsIn;
     }
     mouseInCorner(x, y, drawing) {
         const { x1, y1, x2, y2 } = drawing;
