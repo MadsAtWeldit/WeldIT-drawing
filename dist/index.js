@@ -1021,7 +1021,7 @@ class DrawingCanvas {
                     mouseX <= topX2 &&
                     mouseY >= topY1 &&
                     mouseY <= topY2) {
-                    cornerPosition = "top";
+                    cornerPosition = "t";
                 }
                 else if (mouseX >= bottomX1 &&
                     mouseX <= bottomX2 &&
