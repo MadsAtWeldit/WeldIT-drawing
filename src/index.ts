@@ -470,6 +470,9 @@ class DrawingCanvas implements OptionElementsI {
 
       //Loop through each drawing
       this.drawingData.forEach((drawing, i) => {
+        if (this.selectedDrawingIndex !== null) {
+          console.log("not null");
+        }
         switch (drawing.type) {
           case "stroke":
             {
@@ -478,38 +481,32 @@ class DrawingCanvas implements OptionElementsI {
                 //Get selected drawing
                 const selected = this.drawingData[this.selectedDrawingIndex];
 
-                //Check if mouse is on selected drawing corners
-                if (this.mouseInCorner(mouseX, mouseY, selected)) {
-                  //IF it is then get value of corner
-                  const corner = this.mouseInCorner(mouseX, mouseY, selected);
-                  //And store
-                  this.shouldResize.toggled = true;
-                  this.shouldResize.from = corner as string;
+                //Check if mouse is inside selection of selected
+                if (this.mouseWithinSelection(mouseX, mouseY, selected)) {
+                  //Get position
+                  const selectionPosition = this.mouseWithinSelection(
+                    mouseX,
+                    mouseY,
+                    selected
+                  );
 
-                  //Return because it is still within the selection
-                  return;
+                  //IF position is middle that means we want to move
+                  if (selectionPosition === "m") {
+                    this.shouldMove = true;
+                  } else {
+                    //We want to resize
+                    this.shouldResize.toggled = true;
+                    this.shouldResize.from = selectionPosition as string;
+                  }
+                  return; //Return because we know that we are in selection and its safe to move currently selected
                 }
+              }
 
-                //IF in selection of the selected
-                if (this.mouseInSelection(mouseX, mouseY, selected)) {
-                  this.shouldMove = true;
-
-                  return;
-                }
-
-                //IF NOT in corner or selection THEN check if its in another drawing path
-                this.context.isPointInStroke(drawing.path, mouseX, mouseY)
-                  ? (this.selectedDrawingIndex = i)
-                  : (this.selectedDrawingIndex = null);
-
-                //IF no selected drawing when we click
+              if (this.context.isPointInStroke(drawing.path, mouseX, mouseY)) {
+                this.selectedDrawingIndex = i;
+                this.shouldMove = true;
               } else {
-                if (
-                  this.context.isPointInStroke(drawing.path, mouseX, mouseY)
-                ) {
-                  this.selectedDrawingIndex = i;
-                  this.shouldMove = true;
-                }
+                this.selectedDrawingIndex = null;
               }
 
               this.redraw(this.drawingData);
@@ -520,56 +517,37 @@ class DrawingCanvas implements OptionElementsI {
               if (this.selectedDrawingIndex !== null) {
                 //Get selected drawing
                 const selected = this.drawingData[this.selectedDrawingIndex];
-                //IF in corner of selected drawing
-                if (this.mouseInCorner(mouseX, mouseY, selected)) {
-                  const corner = this.mouseInCorner(mouseX, mouseY, selected);
-
-                  this.shouldResize.toggled = true;
-                  this.shouldResize.from = corner as string;
-
+                //IF in selection of selected drawing
+                if (this.mouseWithinSelection(mouseX, mouseY, selected)) {
+                  const selectionPosition = this.mouseWithinSelection(
+                    mouseX,
+                    mouseY,
+                    selected
+                  );
+                  //Check if middle or corners
+                  if (selectionPosition === "m") {
+                    this.shouldMove = true;
+                  } else {
+                    this.shouldResize.toggled = true;
+                    this.shouldResize.from = selectionPosition as string;
+                  }
                   return;
-                }
-                //IF in selection of selected
-                if (this.mouseInSelection(mouseX, mouseY, selected)) {
-                  this.shouldMove = true;
-                  return;
-                }
-
-                //IF not in corner or selection
-                //Check if its in another unselected drawing
-                this.mouseInSelection(mouseX, mouseY, drawing)
-                  ? (this.selectedDrawingIndex = i)
-                  : (this.selectedDrawingIndex = null);
-
-                //IF no selected drawing then simply select
-              } else {
-                if (this.mouseInSelection(mouseX, mouseY, drawing)) {
-                  this.selectedDrawingIndex = i;
-                  this.shouldMove = true;
                 }
               }
+
+              if (this.mouseWithinSelection(mouseX, mouseY, drawing)) {
+                this.selectedDrawingIndex = i;
+                this.shouldMove = true;
+              } else {
+                this.selectedDrawingIndex = null;
+              }
+
               this.redraw(this.drawingData);
             }
             break;
           case "line":
             {
-              if (this.selectedDrawingIndex !== null) {
-                const selected = this.drawingData[
-                  this.selectedDrawingIndex
-                ] as LineElement;
-                if (this.mouseInLine(selected, mouseX, mouseY)) {
-                  const corner = this.mouseInLine(selected, mouseX, mouseY);
-
-                  this.shouldResize.toggled = true;
-                  this.shouldResize.from = corner as string;
-                  return;
-                }
-              }
-              if (this.context.isPointInStroke(drawing.path, mouseX, mouseY)) {
-                console.log(i);
-                this.selectedDrawingIndex = i;
-                this.shouldMove = true;
-              }
+              //LOL
             }
             break;
         }
@@ -842,32 +820,44 @@ class DrawingCanvas implements OptionElementsI {
         switch (drawing.type) {
           case "stroke":
             {
-              if (
-                this.context.isPointInStroke(drawing.path, mouseX, mouseY) ||
-                this.selectedDrawingIndex === i
-              ) {
-                if (this.mouseInSelection(mouseX, mouseY, drawing))
-                  this.canvas.style.cursor = "move";
+              if (this.context.isPointInStroke(drawing.path, mouseX, mouseY)) {
+                this.canvas.style.cursor = "move";
+              }
 
-                if (this.mouseInCorner(mouseX, mouseY, drawing)) {
-                  const corner = this.mouseInCorner(mouseX, mouseY, drawing);
-                  corner === "tl" || corner === "br"
-                    ? (this.canvas.style.cursor = "nwse-resize")
-                    : (this.canvas.style.cursor = "nesw-resize");
-                }
+              //IF mouse is within selection of selected drawing
+              if (
+                this.selectedDrawingIndex === i &&
+                this.mouseWithinSelection(mouseX, mouseY, drawing)
+              ) {
+                //Get position within selection
+                const selectionPosition = this.mouseWithinSelection(
+                  mouseX,
+                  mouseY,
+                  drawing
+                );
+
+                //Style accordingly
+                selectionPosition === "m"
+                  ? (this.canvas.style.cursor = "move")
+                  : selectionPosition === "tl" || selectionPosition === "br"
+                  ? (this.canvas.style.cursor = "nwse-resize")
+                  : (this.canvas.style.cursor = "nesw-resize");
               }
             }
             break;
 
           case "text":
             {
-              if (this.mouseInSelection(mouseX, mouseY, drawing))
-                this.canvas.style.cursor = "move";
+              if (this.mouseWithinSelection(mouseX, mouseY, drawing)) {
+                const selectionPosition = this.mouseWithinSelection(
+                  mouseX,
+                  mouseY,
+                  drawing
+                );
 
-              if (this.mouseInCorner(mouseX, mouseY, drawing)) {
-                const corner = this.mouseInCorner(mouseX, mouseY, drawing);
-
-                corner === "tl" || corner === "br"
+                selectionPosition === "m"
+                  ? (this.canvas.style.cursor = "move")
+                  : selectionPosition === "tl" || selectionPosition === "br"
                   ? (this.canvas.style.cursor = "nwse-resize")
                   : (this.canvas.style.cursor = "nesw-resize");
               }
@@ -879,7 +869,7 @@ class DrawingCanvas implements OptionElementsI {
             {
               if (this.context.isPointInStroke(drawing.path, mouseX, mouseY))
                 this.canvas.style.cursor = "move";
-              if (this.mouseInLine(drawing, mouseX, mouseY)) {
+              if (this.mouseInLineCorner(drawing, mouseX, mouseY)) {
                 this.canvas.style.cursor = "pointer";
               }
             }
@@ -896,6 +886,7 @@ class DrawingCanvas implements OptionElementsI {
 
       //Selected drawing
       const selectedDrawing = this.drawingData[this.selectedDrawingIndex];
+
       switch (selectedDrawing.type) {
         case "stroke":
           {
@@ -1227,7 +1218,11 @@ class DrawingCanvas implements OptionElementsI {
     }
   }
 
-  private mouseInLine(element: LineElement, mouseX: number, mouseY: number) {
+  private mouseInLineCorner(
+    element: LineElement,
+    mouseX: number,
+    mouseY: number
+  ) {
     const { startX, startY, endX, endY, x1, y1, x2, y2 } = element;
     let leftToRight = false;
     let rightToLeft = false;
@@ -1369,7 +1364,7 @@ class DrawingCanvas implements OptionElementsI {
     return cornerPosition;
   }
 
-  private mouseInCorner(
+  private mouseWithinSelection(
     x: number,
     y: number,
     drawing: DrawingElements
@@ -1414,6 +1409,8 @@ class DrawingCanvas implements OptionElementsI {
           y >= bottomLeftY1 &&
           y <= bottomLeftY2
         ? "bl"
+        : x >= x1 && x <= x2 && y >= y1 && y <= y2
+        ? "m"
         : false;
 
     return mouseIsIn;
