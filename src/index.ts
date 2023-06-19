@@ -478,7 +478,7 @@ class DrawingCanvas implements OptionElementsI {
             case "text":
             case "stroke":
               {
-                //Get position of mouse within selection of current selected drawing
+                //Get position of mouse within selection of currently selected drawing
                 const selectionPosition = this.mouseWithinSelection(
                   mouseX,
                   mouseY,
@@ -493,13 +493,13 @@ class DrawingCanvas implements OptionElementsI {
                       ? (this.selectedDrawingIndex = i)
                       : (this.selectedDrawingIndex = null);
                   } else if (drawing.type === "text") {
-                    this.mouseInSelection(mouseX, mouseY, drawing)
+                    this.mouseWithinSelection(mouseX, mouseY, drawing)
                       ? (this.selectedDrawingIndex = i)
                       : (this.selectedDrawingIndex = null);
                   }
-                  // return;
                 }
 
+                //Check if posistion is in middle else corners
                 if (selectionPosition === "m") {
                   this.shouldMove = true;
                 } else {
@@ -510,16 +510,18 @@ class DrawingCanvas implements OptionElementsI {
               break;
             case "line":
               {
-                //Check if mouse in corner
+                //Check if mouse in corner of line
                 const corner = this.mouseInLineCorner(selected, mouseX, mouseY);
 
                 //IF in corner then we want to resize
                 if (corner) {
                   this.shouldResize.toggled = true;
                   this.shouldResize.from = corner as string;
+
                   return;
                 }
-                //Check if mouse is still in selected
+
+                //Check if mouse is still in stroke of selected line
                 if (
                   this.context.isPointInStroke(selected.path, mouseX, mouseY)
                 ) {
@@ -528,13 +530,13 @@ class DrawingCanvas implements OptionElementsI {
                   return;
                 }
 
-                //IF not in corner or selected
+                //IF not in corner or stroke of selected THEN check if its in another drawing
                 if (drawing.type === "stroke" || drawing.type === "line") {
                   this.context.isPointInStroke(drawing.path, mouseX, mouseY)
                     ? (this.selectedDrawingIndex = i)
                     : (this.selectedDrawingIndex = null);
                 } else if (drawing.type === "text") {
-                  this.mouseInSelection(mouseX, mouseY, drawing)
+                  this.mouseWithinSelection(mouseX, mouseY, drawing)
                     ? (this.selectedDrawingIndex = i)
                     : (this.selectedDrawingIndex = null);
                 }
@@ -548,12 +550,14 @@ class DrawingCanvas implements OptionElementsI {
         switch (drawing.type) {
           case "stroke":
           case "line":
+            //For line and handdrawn we check if cursor is within stroke
             if (this.context.isPointInStroke(drawing.path, mouseX, mouseY)) {
               this.selectedDrawingIndex = i;
               this.shouldMove = true;
             }
             break;
           case "text":
+            //Since text is not handdrawn we check IF within selection block
             if (this.mouseWithinSelection(mouseX, mouseY, drawing)) {
               this.selectedDrawingIndex = i;
               this.shouldMove = true;
@@ -594,7 +598,7 @@ class DrawingCanvas implements OptionElementsI {
       textInput.addEventListener("blur", () => {
         this.redraw(this.drawingData);
 
-        //Assign value of text
+        //Store value of text in drawing for later refernce when drawing it
         this.textObject.text = textInput.value;
 
         //Set context props based on current drawing
@@ -610,6 +614,7 @@ class DrawingCanvas implements OptionElementsI {
         this.textObject.x2 = Math.round(this.textObject.x1 + textWidth);
         this.textObject.y2 = Math.round(this.textObject.y1 + textHeight);
 
+        //Draw the text
         this.context.fillText(this.textObject.text, mouseX, mouseY);
 
         //Save and store index
@@ -651,9 +656,9 @@ class DrawingCanvas implements OptionElementsI {
     if (this.toggleLine) {
       if (this.isLining) return;
 
-      //Start line path at mouse position
       this.lineObject.operation = "source-over";
 
+      //Signal that we are trying to draw a line
       this.shouldLine = true;
 
       this.lineObject.path.moveTo(mouseX, mouseY);
@@ -661,9 +666,6 @@ class DrawingCanvas implements OptionElementsI {
       this.lineObject.startX = mouseX;
       this.lineObject.startY = mouseY;
     }
-
-    //Begin new path
-    //this.context.beginPath();
   };
 
   //Runs whenever mouse is released
@@ -711,11 +713,11 @@ class DrawingCanvas implements OptionElementsI {
       this.pathObject.x2 = Math.max(...this.pathObject.xCords);
       this.pathObject.y2 = Math.max(...this.pathObject.yCords);
 
-      //Save object
+      //Save
       this.index = this.incOrDec(this.index, "increment", 1);
       this.drawingData.push(this.pathObject);
 
-      //Set new path
+      //Set new pathObject
       this.pathObject = {
         type: "stroke",
         path: new Path2D(),
@@ -754,10 +756,13 @@ class DrawingCanvas implements OptionElementsI {
       this.shouldLine = false;
       this.isLining = false;
 
+      //End of line
       this.lineObject.endX = this.mouseX;
       this.lineObject.endY = this.mouseY;
 
+      //Take the path and line it to end
       this.lineObject.path.lineTo(this.mouseX, this.mouseY);
+
       //Assign correct left, right, top and bottom
       //IF startX is on left
       if (this.lineObject.startX < this.lineObject.endX) {
