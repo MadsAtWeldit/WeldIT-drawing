@@ -764,20 +764,25 @@ class DrawingCanvas implements OptionElementsI {
       this.lineObject.path.lineTo(this.mouseX, this.mouseY);
 
       //Assign correct left, right, top and bottom
-      //IF startX is on left
-      if (this.lineObject.startX < this.lineObject.endX) {
+
+      const { drawnFromX, drawnFromY } = this.drawnFrom(
+        this.lineObject.startX,
+        this.lineObject.endX,
+        this.lineObject.startY,
+        this.lineObject.endY
+      );
+
+      if (drawnFromX === "leftToRight") {
+        //Left is startX since we started on left side
         this.lineObject.x1 = this.lineObject.startX;
         this.lineObject.x2 = this.lineObject.endX;
-        //IF startX is on right
       } else {
         this.lineObject.x1 = this.lineObject.endX;
         this.lineObject.x2 = this.lineObject.startX;
       }
-      //IF startY is on top
-      if (this.lineObject.startY < this.lineObject.endY) {
+      if (drawnFromY === "topToBottom") {
         this.lineObject.y1 = this.lineObject.startY;
         this.lineObject.y2 = this.lineObject.endY;
-        //IF startY is on bottom
       } else {
         this.lineObject.y1 = this.lineObject.endY;
         this.lineObject.y2 = this.lineObject.startY;
@@ -1230,6 +1235,31 @@ class DrawingCanvas implements OptionElementsI {
 
       element.resizedPath = resizedPath;
     }
+  }
+
+  //Checks where line is drawn from
+  private drawnFrom(
+    startX: number,
+    endX: number,
+    startY: number,
+    endY: number
+  ) {
+    let X;
+    let Y;
+
+    if (startX < endX) {
+      X = "leftToRight";
+    } else {
+      X = "rightToLeft";
+    }
+
+    if (startY < endY) {
+      Y = "topToBottom";
+    } else {
+      Y = "bottomToTop";
+    }
+
+    return { drawnFromX: X, drawnFromY: Y };
   }
 
   private mouseInLineCorner(
