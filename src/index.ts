@@ -508,6 +508,7 @@ class DrawingCanvas implements OptionElementsI {
                 }
               }
               break;
+
             case "line":
               {
                 //Check if mouse in corner of line
@@ -764,7 +765,6 @@ class DrawingCanvas implements OptionElementsI {
       this.lineObject.path.lineTo(this.mouseX, this.mouseY);
 
       //Assign correct left, right, top and bottom
-
       const { drawnFromX, drawnFromY } = this.drawnFrom(
         this.lineObject.startX,
         this.lineObject.endX,
@@ -780,6 +780,7 @@ class DrawingCanvas implements OptionElementsI {
         this.lineObject.x1 = this.lineObject.endX;
         this.lineObject.x2 = this.lineObject.startX;
       }
+
       if (drawnFromY === "topToBottom") {
         this.lineObject.y1 = this.lineObject.startY;
         this.lineObject.y2 = this.lineObject.endY;
@@ -964,7 +965,6 @@ class DrawingCanvas implements OptionElementsI {
           {
             if (this.shouldMove) {
               this.isMoving = true;
-              console.log("moving");
               //Assign new start and end coordinates
               selectedDrawing.startX += dx;
               selectedDrawing.startY += dy;
@@ -1276,10 +1276,17 @@ class DrawingCanvas implements OptionElementsI {
     let cornerPosition;
     const offset = 10;
 
+    const { drawnFromX, drawnFromY } = this.drawnFrom(
+      startX,
+      endX,
+      startY,
+      endY
+    );
+
     //IF drawn across x axis
     if (x2 - x1 > y2 - y1) {
       //Check origin of line
-      if (startX < endX) {
+      if (drawnFromX === "leftToRight") {
         leftToRight = true;
       } else {
         rightToLeft = true;
@@ -1344,7 +1351,7 @@ class DrawingCanvas implements OptionElementsI {
       }
     } else {
       //Check origin of line
-      if (startY < endY) {
+      if (drawnFromY === "topToBottom") {
         topToBottom = true;
       } else {
         bottomToTop = true;
@@ -1435,28 +1442,39 @@ class DrawingCanvas implements OptionElementsI {
     const bottomLeftY1 = y2 - 10;
     const bottomLeftY2 = y2;
 
-    const mouseIsIn =
-      x >= topLeftX1 && x <= topLeftX2 && y >= topLeftY1 && y <= topLeftY2
-        ? "tl"
-        : x >= topRightX1 &&
-          x <= topRightX2 &&
-          y >= topRightY1 &&
-          y <= topRightY2
-        ? "tr"
-        : x >= bottomRightX1 &&
-          x <= bottomRightX2 &&
-          y >= bottomRightY1 &&
-          y <= bottomRightY2
-        ? "br"
-        : x >= bottomLeftX1 &&
-          x <= bottomLeftX2 &&
-          y >= bottomLeftY1 &&
-          y <= bottomLeftY2
-        ? "bl"
-        : x >= x1 && x <= x2 && y >= y1 && y <= y2
-        ? "m"
-        : false;
-
+    const mouseIsIn = this.mouseWithin(
+      topLeftX1,
+      topLeftX2,
+      topLeftY1,
+      topLeftY2,
+      x,
+      y
+    )
+      ? "tl"
+      : this.mouseWithin(topRightX1, topRightX2, topRightY1, topRightY2, x, y)
+      ? "tr"
+      : this.mouseWithin(
+          bottomRightX1,
+          bottomRightX2,
+          bottomRightY1,
+          bottomRightY2,
+          x,
+          y
+        )
+      ? "br"
+      : this.mouseWithin(
+          bottomLeftX1,
+          bottomLeftX2,
+          bottomLeftY1,
+          bottomLeftY2,
+          x,
+          y
+        )
+      ? "bl"
+      : this.mouseWithin(x1, x2, y1, y2, x, y)
+      ? "m"
+      : false;
+    //IF mouseWithin(topRightX1, topRightX2, topRightY1, topRightY2)
     return mouseIsIn;
   }
 
@@ -1484,15 +1502,16 @@ class DrawingCanvas implements OptionElementsI {
     this.context.strokeRect(x1, y2, size, -size);
   }
 
-  //Checks if given point is in given drawing selection
-  private mouseInSelection(
-    mouseX: number,
-    mouseY: number,
-    drawing: DrawingElements
+  //Checks if mouse is within given coordinates
+  private mouseWithin(
+    x1: number,
+    x2: number,
+    y1: number,
+    y2: number,
+    x: number,
+    y: number
   ) {
-    const { x1, y1, x2, y2 } = drawing;
-    if (mouseX >= x1 && mouseX <= x2 && mouseY >= y1 && mouseY <= y2)
-      return true;
+    if (x >= x1 && x <= x2 && y >= y1 && y <= y2) return true;
 
     return false;
   }

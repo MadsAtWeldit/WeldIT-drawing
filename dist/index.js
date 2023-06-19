@@ -654,7 +654,6 @@ class DrawingCanvas {
                         {
                             if (this.shouldMove) {
                                 this.isMoving = true;
-                                console.log("moving");
                                 //Assign new start and end coordinates
                                 selectedDrawing.startX += dx;
                                 selectedDrawing.startY += dy;
@@ -935,10 +934,11 @@ class DrawingCanvas {
         let bottomToTop = false;
         let cornerPosition;
         const offset = 10;
+        const { drawnFromX, drawnFromY } = this.drawnFrom(startX, endX, startY, endY);
         //IF drawn across x axis
         if (x2 - x1 > y2 - y1) {
             //Check origin of line
-            if (startX < endX) {
+            if (drawnFromX === "leftToRight") {
                 leftToRight = true;
             }
             else {
@@ -995,7 +995,7 @@ class DrawingCanvas {
         }
         else {
             //Check origin of line
-            if (startY < endY) {
+            if (drawnFromY === "topToBottom") {
                 topToBottom = true;
             }
             else {
@@ -1069,26 +1069,18 @@ class DrawingCanvas {
         const bottomLeftX2 = x1 + 10;
         const bottomLeftY1 = y2 - 10;
         const bottomLeftY2 = y2;
-        const mouseIsIn = x >= topLeftX1 && x <= topLeftX2 && y >= topLeftY1 && y <= topLeftY2
+        const mouseIsIn = this.mouseWithin(topLeftX1, topLeftX2, topLeftY1, topLeftY2, x, y)
             ? "tl"
-            : x >= topRightX1 &&
-                x <= topRightX2 &&
-                y >= topRightY1 &&
-                y <= topRightY2
+            : this.mouseWithin(topRightX1, topRightX2, topRightY1, topRightY2, x, y)
                 ? "tr"
-                : x >= bottomRightX1 &&
-                    x <= bottomRightX2 &&
-                    y >= bottomRightY1 &&
-                    y <= bottomRightY2
+                : this.mouseWithin(bottomRightX1, bottomRightX2, bottomRightY1, bottomRightY2, x, y)
                     ? "br"
-                    : x >= bottomLeftX1 &&
-                        x <= bottomLeftX2 &&
-                        y >= bottomLeftY1 &&
-                        y <= bottomLeftY2
+                    : this.mouseWithin(bottomLeftX1, bottomLeftX2, bottomLeftY1, bottomLeftY2, x, y)
                         ? "bl"
-                        : x >= x1 && x <= x2 && y >= y1 && y <= y2
+                        : this.mouseWithin(x1, x2, y1, y2, x, y)
                             ? "m"
                             : false;
+        //IF mouseWithin(topRightX1, topRightX2, topRightY1, topRightY2)
         return mouseIsIn;
     }
     //Draw a selection rectangle for given coords
@@ -1105,10 +1097,9 @@ class DrawingCanvas {
         this.context.strokeRect(x2, y2, -size, -size);
         this.context.strokeRect(x1, y2, size, -size);
     }
-    //Checks if given point is in given drawing selection
-    mouseInSelection(mouseX, mouseY, drawing) {
-        const { x1, y1, x2, y2 } = drawing;
-        if (mouseX >= x1 && mouseX <= x2 && mouseY >= y1 && mouseY <= y2)
+    //Checks if mouse is within given coordinates
+    mouseWithin(x1, x2, y1, y2, x, y) {
+        if (x >= x1 && x <= x2 && y >= y1 && y <= y2)
             return true;
         return false;
     }
