@@ -114,19 +114,13 @@ class DrawingCanvas implements OptionElementsI {
   readonly pencil = document.getElementById("pencil") as HTMLButtonElement;
   readonly eraser = document.getElementById("eraser") as HTMLButtonElement;
   readonly colorPicker = document.getElementById("color") as HTMLInputElement;
-  readonly lineWidthPicker = document.getElementById(
-    "lineWidth"
-  ) as HTMLInputElement;
+  readonly lineWidthPicker = document.getElementById("lineWidth") as HTMLInputElement;
   readonly clearCanvas = document.getElementById("clear") as HTMLButtonElement;
-  readonly moveAndResize = document.getElementById(
-    "mv-rz"
-  ) as HTMLButtonElement;
+  readonly moveAndResize = document.getElementById("mv-rz") as HTMLButtonElement;
   readonly undo = document.getElementById("undo") as HTMLButtonElement;
   readonly text = document.getElementById("text") as HTMLButtonElement;
   readonly lineTool = document.getElementById("lineTool") as HTMLButtonElement;
-  readonly rectangle = document.getElementById(
-    "rectangle"
-  ) as HTMLButtonElement;
+  readonly rectangle = document.getElementById("rectangle") as HTMLButtonElement;
 
   //For state tracking
   private isDrawing = false;
@@ -274,18 +268,18 @@ class DrawingCanvas implements OptionElementsI {
         const classProp = currentProp as keyof OptionElementsI;
 
         if (currentElement.className) {
-          const element = document.querySelector(
-            "." + currentElement.className
-          ) as HTMLElement & HTMLButtonElement & HTMLInputElement; //Needs to be intersection to safely assign to lhs
+          const element = document.querySelector("." + currentElement.className) as HTMLElement &
+            HTMLButtonElement &
+            HTMLInputElement; //Needs to be intersection to safely assign to lhs
 
           //Same as saying this.element = element
           this.assignToProp(classProp, element);
         }
 
         if (currentElement.id) {
-          const element = document.getElementById(
-            currentElement.id
-          ) as HTMLElement & HTMLButtonElement & HTMLInputElement;
+          const element = document.getElementById(currentElement.id) as HTMLElement &
+            HTMLButtonElement &
+            HTMLInputElement;
 
           this.assignToProp(classProp, element);
         }
@@ -436,9 +430,7 @@ class DrawingCanvas implements OptionElementsI {
 
     if (this.isWriting) return;
     //Check if event is touch or mouse
-    const evtType = (e as TouchEvent).touches
-      ? (e as TouchEvent).touches[0]
-      : (e as MouseEvent);
+    const evtType = (e as TouchEvent).touches ? (e as TouchEvent).touches[0] : (e as MouseEvent);
 
     const mouseY = evtType.clientY - this.canvas.offsetTop;
     const mouseX = evtType.clientX - this.canvas.offsetLeft;
@@ -479,11 +471,7 @@ class DrawingCanvas implements OptionElementsI {
             case "stroke":
               {
                 //Get position of mouse within selection of currently selected drawing
-                const selectionPosition = this.mouseWithinSelection(
-                  mouseX,
-                  mouseY,
-                  selected
-                );
+                const selectionPosition = this.mouseWithinSelection(mouseX, mouseY, selected);
 
                 //IF not within current selection of selected element
                 if (!selectionPosition) {
@@ -523,9 +511,7 @@ class DrawingCanvas implements OptionElementsI {
                 }
 
                 //Check if mouse is still in stroke of selected line
-                if (
-                  this.context.isPointInStroke(selected.path, mouseX, mouseY)
-                ) {
+                if (this.context.isPointInStroke(selected.path, mouseX, mouseY)) {
                   this.shouldMove = true;
 
                   return;
@@ -569,25 +555,19 @@ class DrawingCanvas implements OptionElementsI {
     }
 
     if (this.toggleWrite) {
-      const canvasContainer = <HTMLElement>(
-        document.querySelector(".drawing-board")
-      );
+      const canvasContainer = <HTMLElement>document.querySelector(".drawing-board");
 
       //Create textinput
-      const textInput = <HTMLInputElement>this.createPersonalElement(
-        "input",
-        "text",
-        {
-          position: "fixed",
-          top: `${evtType.clientY}px`,
-          left: `${evtType.clientX}px`,
-          background: "transparent",
-          outline: "none",
-          border: "none",
-          "font-size": "30pt",
-          "font-family": "sans-serif",
-        }
-      );
+      const textInput = <HTMLInputElement>this.createPersonalElement("input", "text", {
+        position: "fixed",
+        top: `${evtType.clientY}px`,
+        left: `${evtType.clientX}px`,
+        background: "transparent",
+        outline: "none",
+        border: "none",
+        "font-size": "30pt",
+        "font-family": "sans-serif",
+      });
 
       //We are now writing
       this.isWriting = true;
@@ -820,9 +800,7 @@ class DrawingCanvas implements OptionElementsI {
   };
 
   private mouseMoveHandler = (e: MouseEvent | TouchEvent) => {
-    const evtType = (e as TouchEvent).touches
-      ? (e as TouchEvent).touches[0]
-      : (e as MouseEvent);
+    const evtType = (e as TouchEvent).touches ? (e as TouchEvent).touches[0] : (e as MouseEvent);
 
     //Current mouse positions
     const mouseX = evtType.clientX - this.canvas.offsetLeft;
@@ -850,11 +828,7 @@ class DrawingCanvas implements OptionElementsI {
                 this.mouseWithinSelection(mouseX, mouseY, drawing)
               ) {
                 //Get position within selection
-                const selectionPosition = this.mouseWithinSelection(
-                  mouseX,
-                  mouseY,
-                  drawing
-                );
+                const selectionPosition = this.mouseWithinSelection(mouseX, mouseY, drawing);
 
                 //Style accordingly
                 selectionPosition === "m"
@@ -869,11 +843,7 @@ class DrawingCanvas implements OptionElementsI {
           case "text":
             {
               if (this.mouseWithinSelection(mouseX, mouseY, drawing)) {
-                const selectionPosition = this.mouseWithinSelection(
-                  mouseX,
-                  mouseY,
-                  drawing
-                );
+                const selectionPosition = this.mouseWithinSelection(mouseX, mouseY, drawing);
 
                 selectionPosition === "m"
                   ? (this.canvas.style.cursor = "move")
@@ -994,10 +964,7 @@ class DrawingCanvas implements OptionElementsI {
       this.redraw(this.drawingData);
     }
 
-    if (
-      (this.shouldDraw && this.isDragging) ||
-      (this.shouldErase && this.isDragging)
-    ) {
+    if ((this.shouldDraw && this.isDragging) || (this.shouldErase && this.isDragging)) {
       this.shouldDraw ? (this.isDrawing = true) : (this.isDrawing = false);
       this.shouldErase ? (this.isErasing = true) : (this.isErasing = false);
       this.redraw(this.drawingData);
@@ -1068,16 +1035,12 @@ class DrawingCanvas implements OptionElementsI {
     currentMouseY: number
   ) {
     //IF scaling from the left side then start = left : start = right;
-    const startCornerX =
-      from === "tl" || from === "bl" ? element.x1 : element.x2;
-    const startCornerY =
-      from === "tl" || from === "tr" ? element.y1 : element.y2;
+    const startCornerX = from === "tl" || from === "bl" ? element.x1 : element.x2;
+    const startCornerY = from === "tl" || from === "tr" ? element.y1 : element.y2;
 
     //IF scaling from left side then origin is opposite side so that we scale inwards or outwards based on corner
-    const scaleOriginX =
-      from === "tl" || from === "bl" ? element.x2 : element.x1;
-    const scaleOriginY =
-      from === "tl" || from === "tr" ? element.y2 : element.y1;
+    const scaleOriginX = from === "tl" || from === "bl" ? element.x2 : element.x1;
+    const scaleOriginY = from === "tl" || from === "tr" ? element.y2 : element.y1;
 
     //For the scaling to work properly i also need where we scale from
     //Since scaling from left side to right side would not work with e.g (x1 - x2 so instead x2 - x1 for distance)
@@ -1117,13 +1080,8 @@ class DrawingCanvas implements OptionElementsI {
     currentMouseX: number,
     currentMouseY: number
   ): void {
-    const {
-      scaleOriginXPos,
-      scaleOriginYPos,
-      startCornerXPos,
-      startCornerYPos,
-      scale,
-    } = this.scaleCorrectly(from, element, currentMouseX, currentMouseY);
+    const { scaleOriginXPos, scaleOriginYPos, startCornerXPos, startCornerYPos, scale } =
+      this.scaleCorrectly(from, element, currentMouseX, currentMouseY);
 
     const startCornerX = startCornerXPos;
     const startCornerY = startCornerYPos;
@@ -1152,22 +1110,15 @@ class DrawingCanvas implements OptionElementsI {
     const newDistanceY = originalDistanceY * scaleFactor;
 
     //Replace original font size with resized
-    const newFont = fontStringCopy.replace(
-      fontSize.toString(),
-      resizedFontSize.toString()
-    );
+    const newFont = fontStringCopy.replace(fontSize.toString(), resizedFontSize.toString());
 
     //Assign new left, right, top and bottom based on which side we scaled from
     from === "tl" || from === "bl"
-      ? ((element.resizedX1 = scaleOriginX - newDistanceX),
-        (element.resizedX2 = scaleOriginX))
-      : ((element.resizedX2 = scaleOriginX - newDistanceX),
-        (element.resizedX1 = scaleOriginX));
+      ? ((element.resizedX1 = scaleOriginX - newDistanceX), (element.resizedX2 = scaleOriginX))
+      : ((element.resizedX2 = scaleOriginX - newDistanceX), (element.resizedX1 = scaleOriginX));
     from === "tl" || from === "tr"
-      ? ((element.resizedY1 = scaleOriginY - newDistanceY),
-        (element.resizedY2 = scaleOriginY))
-      : ((element.resizedY2 = scaleOriginY - newDistanceY),
-        (element.resizedY1 = scaleOriginY));
+      ? ((element.resizedY1 = scaleOriginY - newDistanceY), (element.resizedY2 = scaleOriginY))
+      : ((element.resizedY2 = scaleOriginY - newDistanceY), (element.resizedY1 = scaleOriginY));
 
     //Store the new font size
     element.resizedFont = newFont;
@@ -1238,12 +1189,7 @@ class DrawingCanvas implements OptionElementsI {
   }
 
   //Checks where line is drawn from
-  private drawnFrom(
-    startX: number,
-    endX: number,
-    startY: number,
-    endY: number
-  ) {
+  private drawnFrom(startX: number, endX: number, startY: number, endY: number) {
     let X;
     let Y;
 
@@ -1262,11 +1208,7 @@ class DrawingCanvas implements OptionElementsI {
     return { drawnFromX: X, drawnFromY: Y };
   }
 
-  private mouseInLineCorner(
-    element: LineElement,
-    mouseX: number,
-    mouseY: number
-  ) {
+  private mouseInLineCorner(element: LineElement, mouseX: number, mouseY: number) {
     const { startX, startY, endX, endY, x1, y1, x2, y2 } = element;
     let leftToRight = false;
     let rightToLeft = false;
@@ -1276,12 +1218,7 @@ class DrawingCanvas implements OptionElementsI {
     let cornerPosition;
     const offset = 10;
 
-    const { drawnFromX, drawnFromY } = this.drawnFrom(
-      startX,
-      endX,
-      startY,
-      endY
-    );
+    const { drawnFromX, drawnFromY } = this.drawnFrom(startX, endX, startY, endY);
 
     //IF drawn across x axis
     if (x2 - x1 > y2 - y1) {
@@ -1313,12 +1250,7 @@ class DrawingCanvas implements OptionElementsI {
       //IF its from left to right
       if (leftToRight) {
         //Check if mouse is on the left side
-        if (
-          mouseX >= leftX1 &&
-          mouseX <= leftX2 &&
-          mouseY >= leftY1 &&
-          mouseY <= leftY2
-        ) {
+        if (mouseX >= leftX1 && mouseX <= leftX2 && mouseY >= leftY1 && mouseY <= leftY2) {
           cornerPosition = "l";
           //ELSE right side
         } else if (
@@ -1333,12 +1265,7 @@ class DrawingCanvas implements OptionElementsI {
       //Check IF drawn from right to left
       if (rightToLeft) {
         //IF its on left side
-        if (
-          mouseX >= leftX1 &&
-          mouseX <= leftX2 &&
-          mouseY >= leftY1 &&
-          mouseY <= leftY2
-        ) {
+        if (mouseX >= leftX1 && mouseX <= leftX2 && mouseY >= leftY1 && mouseY <= leftY2) {
           cornerPosition = "l";
         } else if (
           mouseX >= rightX1 &&
@@ -1374,12 +1301,7 @@ class DrawingCanvas implements OptionElementsI {
 
       if (topToBottom) {
         //Check if mouse is on top side
-        if (
-          mouseX >= topX1 &&
-          mouseX <= topX2 &&
-          mouseY >= topY1 &&
-          mouseY <= topY2
-        ) {
+        if (mouseX >= topX1 && mouseX <= topX2 && mouseY >= topY1 && mouseY <= topY2) {
           cornerPosition = "t";
           //Check if on bottom side
         } else if (
@@ -1394,12 +1316,7 @@ class DrawingCanvas implements OptionElementsI {
 
       if (bottomToTop) {
         //Check if mouse is on top side
-        if (
-          mouseX >= topX1 &&
-          mouseX <= topX2 &&
-          mouseY >= topY1 &&
-          mouseY <= topY2
-        ) {
+        if (mouseX >= topX1 && mouseX <= topX2 && mouseY >= topY1 && mouseY <= topY2) {
           cornerPosition = "t";
         } else if (
           mouseX >= bottomX1 &&
@@ -1415,11 +1332,7 @@ class DrawingCanvas implements OptionElementsI {
     return cornerPosition;
   }
 
-  private mouseWithinSelection(
-    x: number,
-    y: number,
-    drawing: DrawingElements
-  ): boolean | string {
+  private mouseWithinSelection(x: number, y: number, drawing: DrawingElements): boolean | string {
     const { x1, y1, x2, y2 } = drawing;
     //Top left rectangle
     const topLeftX1 = x1;
@@ -1442,34 +1355,13 @@ class DrawingCanvas implements OptionElementsI {
     const bottomLeftY1 = y2 - 10;
     const bottomLeftY2 = y2;
 
-    const mouseIsIn = this.mouseWithin(
-      topLeftX1,
-      topLeftX2,
-      topLeftY1,
-      topLeftY2,
-      x,
-      y
-    )
+    const mouseIsIn = this.mouseWithin(topLeftX1, topLeftX2, topLeftY1, topLeftY2, x, y)
       ? "tl"
       : this.mouseWithin(topRightX1, topRightX2, topRightY1, topRightY2, x, y)
       ? "tr"
-      : this.mouseWithin(
-          bottomRightX1,
-          bottomRightX2,
-          bottomRightY1,
-          bottomRightY2,
-          x,
-          y
-        )
+      : this.mouseWithin(bottomRightX1, bottomRightX2, bottomRightY1, bottomRightY2, x, y)
       ? "br"
-      : this.mouseWithin(
-          bottomLeftX1,
-          bottomLeftX2,
-          bottomLeftY1,
-          bottomLeftY2,
-          x,
-          y
-        )
+      : this.mouseWithin(bottomLeftX1, bottomLeftX2, bottomLeftY1, bottomLeftY2, x, y)
       ? "bl"
       : this.mouseWithin(x1, x2, y1, y2, x, y)
       ? "m"
@@ -1479,13 +1371,7 @@ class DrawingCanvas implements OptionElementsI {
   }
 
   //Draw a selection rectangle for given coords
-  private createDrawingSelection(
-    x1: number,
-    y1: number,
-    x2: number,
-    y2: number,
-    px?: number
-  ) {
+  private createDrawingSelection(x1: number, y1: number, x2: number, y2: number, px?: number) {
     const width = x2 - x1;
     const height = y2 - y1;
     const size = px ? px : 10;
@@ -1503,14 +1389,7 @@ class DrawingCanvas implements OptionElementsI {
   }
 
   //Checks if mouse is within given coordinates
-  private mouseWithin(
-    x1: number,
-    x2: number,
-    y1: number,
-    y2: number,
-    x: number,
-    y: number
-  ) {
+  private mouseWithin(x1: number, x2: number, y1: number, y2: number, x: number, y: number) {
     if (x >= x1 && x <= x2 && y >= y1 && y <= y2) return true;
 
     return false;
@@ -1557,12 +1436,7 @@ class DrawingCanvas implements OptionElementsI {
             return;
           }
 
-          this.createDrawingSelection(
-            drawing.x1,
-            drawing.y1,
-            drawing.x2,
-            drawing.y2
-          );
+          this.createDrawingSelection(drawing.x1, drawing.y1, drawing.x2, drawing.y2);
         }
 
         this.setCtxStyles(drawing);
@@ -1576,11 +1450,7 @@ class DrawingCanvas implements OptionElementsI {
             this.setCtxStyles(drawing);
 
             this.context.font = drawing.resizedFont;
-            this.context.fillText(
-              drawing.text,
-              drawing.resizedX1,
-              drawing.resizedY1
-            );
+            this.context.fillText(drawing.text, drawing.resizedX1, drawing.resizedY1);
             this.createDrawingSelection(
               drawing.resizedX1,
               drawing.resizedY1,
@@ -1589,12 +1459,7 @@ class DrawingCanvas implements OptionElementsI {
             );
             return;
           }
-          this.createDrawingSelection(
-            drawing.x1,
-            drawing.y1,
-            drawing.x2,
-            drawing.y2
-          );
+          this.createDrawingSelection(drawing.x1, drawing.y1, drawing.x2, drawing.y2);
         }
         this.setCtxStyles(drawing);
 
@@ -1681,11 +1546,7 @@ class DrawingCanvas implements OptionElementsI {
     return element;
   };
 
-  private incOrDec(
-    index: number,
-    type: "increment" | "decrement",
-    steps: number
-  ) {
+  private incOrDec(index: number, type: "increment" | "decrement", steps: number) {
     if (type === "increment") {
       return (index += steps);
     } else {

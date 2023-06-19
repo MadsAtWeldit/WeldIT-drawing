@@ -226,9 +226,7 @@ class DrawingCanvas {
             if (this.isWriting)
                 return;
             //Check if event is touch or mouse
-            const evtType = e.touches
-                ? e.touches[0]
-                : e;
+            const evtType = e.touches ? e.touches[0] : e;
             const mouseY = evtType.clientY - this.canvas.offsetTop;
             const mouseX = evtType.clientX - this.canvas.offsetLeft;
             //Store starting positions
@@ -336,7 +334,7 @@ class DrawingCanvas {
                 });
             }
             if (this.toggleWrite) {
-                const canvasContainer = (document.querySelector(".drawing-board"));
+                const canvasContainer = document.querySelector(".drawing-board");
                 //Create textinput
                 const textInput = this.createPersonalElement("input", "text", {
                     position: "fixed",
@@ -537,9 +535,7 @@ class DrawingCanvas {
             // this.context.closePath();
         };
         this.mouseMoveHandler = (e) => {
-            const evtType = e.touches
-                ? e.touches[0]
-                : e;
+            const evtType = e.touches ? e.touches[0] : e;
             //Current mouse positions
             const mouseX = evtType.clientX - this.canvas.offsetLeft;
             const mouseY = evtType.clientY - this.canvas.offsetTop;
@@ -679,8 +675,7 @@ class DrawingCanvas {
                 }
                 this.redraw(this.drawingData);
             }
-            if ((this.shouldDraw && this.isDragging) ||
-                (this.shouldErase && this.isDragging)) {
+            if ((this.shouldDraw && this.isDragging) || (this.shouldErase && this.isDragging)) {
                 this.shouldDraw ? (this.isDrawing = true) : (this.isDrawing = false);
                 this.shouldErase ? (this.isErasing = true) : (this.isErasing = false);
                 this.redraw(this.drawingData);
@@ -832,7 +827,7 @@ class DrawingCanvas {
     }
     //Resize text based on origin of mouse
     resizeText(element, from, currentMouseX, currentMouseY) {
-        const { scaleOriginXPos, scaleOriginYPos, startCornerXPos, startCornerYPos, scale, } = this.scaleCorrectly(from, element, currentMouseX, currentMouseY);
+        const { scaleOriginXPos, scaleOriginYPos, startCornerXPos, startCornerYPos, scale } = this.scaleCorrectly(from, element, currentMouseX, currentMouseY);
         const startCornerX = startCornerXPos;
         const startCornerY = startCornerYPos;
         const scaleOriginX = scaleOriginXPos;
@@ -855,15 +850,11 @@ class DrawingCanvas {
         const newFont = fontStringCopy.replace(fontSize.toString(), resizedFontSize.toString());
         //Assign new left, right, top and bottom based on which side we scaled from
         from === "tl" || from === "bl"
-            ? ((element.resizedX1 = scaleOriginX - newDistanceX),
-                (element.resizedX2 = scaleOriginX))
-            : ((element.resizedX2 = scaleOriginX - newDistanceX),
-                (element.resizedX1 = scaleOriginX));
+            ? ((element.resizedX1 = scaleOriginX - newDistanceX), (element.resizedX2 = scaleOriginX))
+            : ((element.resizedX2 = scaleOriginX - newDistanceX), (element.resizedX1 = scaleOriginX));
         from === "tl" || from === "tr"
-            ? ((element.resizedY1 = scaleOriginY - newDistanceY),
-                (element.resizedY2 = scaleOriginY))
-            : ((element.resizedY2 = scaleOriginY - newDistanceY),
-                (element.resizedY1 = scaleOriginY));
+            ? ((element.resizedY1 = scaleOriginY - newDistanceY), (element.resizedY2 = scaleOriginY))
+            : ((element.resizedY2 = scaleOriginY - newDistanceY), (element.resizedY1 = scaleOriginY));
         //Store the new font size
         element.resizedFont = newFont;
     }
@@ -962,10 +953,7 @@ class DrawingCanvas {
             //IF its from left to right
             if (leftToRight) {
                 //Check if mouse is on the left side
-                if (mouseX >= leftX1 &&
-                    mouseX <= leftX2 &&
-                    mouseY >= leftY1 &&
-                    mouseY <= leftY2) {
+                if (mouseX >= leftX1 && mouseX <= leftX2 && mouseY >= leftY1 && mouseY <= leftY2) {
                     cornerPosition = "l";
                     //ELSE right side
                 }
@@ -979,10 +967,7 @@ class DrawingCanvas {
             //Check IF drawn from right to left
             if (rightToLeft) {
                 //IF its on left side
-                if (mouseX >= leftX1 &&
-                    mouseX <= leftX2 &&
-                    mouseY >= leftY1 &&
-                    mouseY <= leftY2) {
+                if (mouseX >= leftX1 && mouseX <= leftX2 && mouseY >= leftY1 && mouseY <= leftY2) {
                     cornerPosition = "l";
                 }
                 else if (mouseX >= rightX1 &&
@@ -1015,10 +1000,7 @@ class DrawingCanvas {
             const bottomY2 = bottomY + 10;
             if (topToBottom) {
                 //Check if mouse is on top side
-                if (mouseX >= topX1 &&
-                    mouseX <= topX2 &&
-                    mouseY >= topY1 &&
-                    mouseY <= topY2) {
+                if (mouseX >= topX1 && mouseX <= topX2 && mouseY >= topY1 && mouseY <= topY2) {
                     cornerPosition = "t";
                     //Check if on bottom side
                 }
@@ -1031,10 +1013,7 @@ class DrawingCanvas {
             }
             if (bottomToTop) {
                 //Check if mouse is on top side
-                if (mouseX >= topX1 &&
-                    mouseX <= topX2 &&
-                    mouseY >= topY1 &&
-                    mouseY <= topY2) {
+                if (mouseX >= topX1 && mouseX <= topX2 && mouseY >= topY1 && mouseY <= topY2) {
                     cornerPosition = "t";
                 }
                 else if (mouseX >= bottomX1 &&
