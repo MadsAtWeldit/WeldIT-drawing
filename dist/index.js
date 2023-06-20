@@ -919,6 +919,7 @@ class DrawingCanvas {
     }
     //Check if mouse is in corner of line
     mouseInLineCorner(element, mouseX, mouseY) {
+        //Current line element
         const { startX, startY, endX, endY, x1, y1, x2, y2 } = element;
         let leftToRight = false;
         let rightToLeft = false;
@@ -926,91 +927,48 @@ class DrawingCanvas {
         let bottomToTop = false;
         let cornerPosition;
         const offset = 10;
+        //Get info on where line was drawn from
         const { drawnFromX, drawnFromY } = this.drawnFrom(startX, endX, startY, endY);
-        //IF drawn across x axis
         if (x2 - x1 > y2 - y1) {
-            //Check origin of line
-            if (drawnFromX === "leftToRight") {
-                leftToRight = true;
+            //IF drawn across the x axis we wanna say that its either from left to right OR right to left
+            drawnFromX === "leftToRight" ? (leftToRight = true) : (rightToLeft = true);
+        }
+        else {
+            //IF drawn across y axis we wanna say that its either from top to bottom OR bottom to top
+            drawnFromY === "topToBottom" ? (topToBottom = true) : (bottomToTop = true);
+        }
+        //IF left to right THEN leftX is startX : leftX is endX
+        //IF top to bottom THEN topX is startX : topX is endX
+        const leftAndTopX = leftToRight || topToBottom ? startX : endX;
+        const rightAndBottomX = leftToRight || topToBottom ? endX : startX;
+        const leftAndTopY = leftToRight || topToBottom ? startY : endY;
+        const rightAndBottomY = leftToRight || topToBottom ? endY : startY;
+        const leftAndTopX1 = leftAndTopX - offset;
+        const leftAndTopX2 = leftAndTopX + offset;
+        const leftAndTopY1 = leftAndTopY - offset;
+        const leftAndTopY2 = leftAndTopY + offset;
+        const rightAndBottomX1 = rightAndBottomX - offset;
+        const rightAndBottomX2 = rightAndBottomX + offset;
+        const rightAndBottomY1 = rightAndBottomY - offset;
+        const rightAndBottomY2 = rightAndBottomY + offset;
+        if (leftToRight || rightToLeft) {
+            if (this.mouseWithin(leftAndTopX1, leftAndTopX2, leftAndTopY1, leftAndTopY2, mouseX, mouseY)) {
+                console.log("left side");
+                cornerPosition = "l";
             }
-            else {
-                rightToLeft = true;
-            }
-            //IF drawn from left to right then leftX would be startX
-            const leftX = leftToRight ? startX : endX;
-            const leftY = leftToRight ? startY : endY;
-            const rightX = leftToRight ? endX : startX;
-            const rightY = leftToRight ? endY : startY;
-            //Left side left,right,top,bottom
-            const leftX1 = leftX - offset;
-            const leftX2 = leftX + offset;
-            const leftY1 = leftY - offset;
-            const leftY2 = leftY + offset;
-            //Right side left,right,top,bottom
-            const rightX1 = rightX - offset;
-            const rightX2 = rightX + offset;
-            const rightY1 = rightY - offset;
-            const rightY2 = rightY + offset;
-            //IF its from left to right
-            if (leftToRight) {
-                //Check if mouse is on the left side
-                if (this.mouseWithin(leftX1, leftX2, leftY1, leftY2, mouseX, mouseY)) {
-                    cornerPosition = "l";
-                    //ELSE right side
-                }
-                else if (this.mouseWithin(rightX1, rightX2, rightY1, rightY2, mouseX, mouseY)) {
-                    cornerPosition = "r";
-                }
-            }
-            //Check IF drawn from right to left
-            if (rightToLeft) {
-                //IF its on left side
-                if (this.mouseWithin(leftX1, leftX2, leftY1, leftY2, mouseX, mouseY)) {
-                    cornerPosition = "l";
-                }
-                else if (this.mouseWithin(rightX1, rightX2, rightY1, rightY2, mouseX, mouseY)) {
-                    cornerPosition = "r";
-                }
+            else if (this.mouseWithin(rightAndBottomX1, rightAndBottomX2, rightAndBottomY1, rightAndBottomY2, mouseX, mouseY)) {
+                console.log("right side");
+                cornerPosition = "r";
             }
         }
         else {
-            //Check origin of line
-            if (drawnFromY === "topToBottom") {
-                topToBottom = true;
+            if (this.mouseWithin(leftAndTopX1, leftAndTopX2, leftAndTopY1, leftAndTopY2, mouseX, mouseY)) {
+                console.log("top side");
+                cornerPosition = "t";
             }
-            else {
-                bottomToTop = true;
-            }
-            const topX = topToBottom ? startX : endX;
-            const topY = topToBottom ? startY : endY;
-            const bottomX = topToBottom ? endX : startX;
-            const bottomY = topToBottom ? endY : startY;
-            const topX1 = topX - 10;
-            const topX2 = topX + 10;
-            const topY1 = topY - 10;
-            const topY2 = topY + 10;
-            const bottomX1 = bottomX - 10;
-            const bottomX2 = bottomX + 10;
-            const bottomY1 = bottomY - 10;
-            const bottomY2 = bottomY + 10;
-            if (topToBottom) {
-                //Check if mouse is on top side
-                if (this.mouseWithin(topX1, topX2, topY1, topY2, mouseX, mouseY)) {
-                    cornerPosition = "t";
-                    //Check if on bottom side
-                }
-                else if (this.mouseWithin(bottomX1, bottomX2, bottomY1, bottomY2, mouseX, mouseY)) {
-                    cornerPosition = "b";
-                }
-            }
-            if (bottomToTop) {
-                //Check if mouse is on top side
-                if (this.mouseWithin(topX1, topX2, topY1, topY2, mouseX, mouseY)) {
-                    cornerPosition = "t";
-                }
-                else if (this.mouseWithin(bottomX1, bottomX2, bottomY1, bottomY2, mouseX, mouseY)) {
-                    cornerPosition = "b";
-                }
+            else if (this.mouseWithin(rightAndBottomX1, rightAndBottomX2, rightAndBottomY1, rightAndBottomY2, mouseX, mouseY)) {
+                console.log("bottom side");
+                cornerPosition = "b";
             }
         }
         return cornerPosition;
