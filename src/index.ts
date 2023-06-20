@@ -470,10 +470,10 @@ class DrawingCanvas implements OptionElementsI {
             case "text":
             case "stroke":
               {
-                //Get position of mouse within selection of currently selected drawing
+                //Get position of mouse within selected element
                 const selectionPosition = this.mouseWithinSelection(mouseX, mouseY, selected);
 
-                //IF not within current selection of selected element
+                //IF not within selection anymore
                 if (!selectionPosition) {
                   //Check if its in another drawing
                   if (drawing.type === "stroke" || drawing.type === "line") {
@@ -485,6 +485,7 @@ class DrawingCanvas implements OptionElementsI {
                       ? (this.selectedDrawingIndex = i)
                       : (this.selectedDrawingIndex = null);
                   }
+                  return; //Return because we dont want to move or resize
                 }
 
                 //Check if posistion is in middle else corners
@@ -499,33 +500,30 @@ class DrawingCanvas implements OptionElementsI {
 
             case "line":
               {
-                //Check if mouse in corner of line
-                const corner = this.mouseInLineCorner(selected, mouseX, mouseY);
+                //Get mouse position within selected element
+                const selectionPosition = this.mouseWithinLineSelection(selected, mouseX, mouseY);
+
+                //IF mouse is not within selected anymore
+                if (!selectionPosition) {
+                  //Check if its in another drawing
+                  if (drawing.type === "stroke" || drawing.type === "line") {
+                    this.context.isPointInStroke(drawing.path, mouseX, mouseY)
+                      ? (this.selectedDrawingIndex = i)
+                      : (this.selectedDrawingIndex = null);
+                  } else if (drawing.type === "text") {
+                    this.mouseWithinSelection(mouseX, mouseY, drawing)
+                      ? (this.selectedDrawingIndex = i)
+                      : (this.selectedDrawingIndex = null);
+                  }
+                  return;
+                }
 
                 //IF in corner then we want to resize
-                if (corner) {
-                  this.shouldResize.toggled = true;
-                  this.shouldResize.from = corner as string;
-
-                  return;
-                }
-
-                //Check if mouse is still in stroke of selected line
-                if (this.context.isPointInStroke(selected.path, mouseX, mouseY)) {
+                if (selectionPosition === "m") {
                   this.shouldMove = true;
-
-                  return;
-                }
-
-                //IF not in corner or stroke of selected THEN check if its in another drawing
-                if (drawing.type === "stroke" || drawing.type === "line") {
-                  this.context.isPointInStroke(drawing.path, mouseX, mouseY)
-                    ? (this.selectedDrawingIndex = i)
-                    : (this.selectedDrawingIndex = null);
-                } else if (drawing.type === "text") {
-                  this.mouseWithinSelection(mouseX, mouseY, drawing)
-                    ? (this.selectedDrawingIndex = i)
-                    : (this.selectedDrawingIndex = null);
+                } else {
+                  this.shouldResize.toggled = true;
+                  this.shouldResize.from = selectionPosition as string;
                 }
               }
 
@@ -857,10 +855,11 @@ class DrawingCanvas implements OptionElementsI {
 
           case "line":
             {
-              if (this.context.isPointInStroke(drawing.path, mouseX, mouseY))
-                this.canvas.style.cursor = "move";
-              if (this.mouseInLineCorner(drawing, mouseX, mouseY)) {
-                this.canvas.style.cursor = "pointer";
+              if (this.mouseWithinLineSelection(drawing, mouseX, mouseY)) {
+                const selectionPosition = this.mouseWithinLineSelection(drawing, mouseX, mouseY);
+                selectionPosition === "m"
+                  ? (this.canvas.style.cursor = "move")
+                  : (this.canvas.style.cursor = "pointer");
               }
             }
 
@@ -1209,7 +1208,7 @@ class DrawingCanvas implements OptionElementsI {
   }
 
   //Check if mouse is in corner of line
-  private mouseInLineCorner(element: LineElement, mouseX: number, mouseY: number) {
+  private mouseWithinLineSelection(element: LineElement, mouseX: number, mouseY: number) {
     //Current line element
     const { startX, startY, endX, endY, x1, y1, x2, y2, path } = element;
     let leftToRight = false;
@@ -1217,7 +1216,7 @@ class DrawingCanvas implements OptionElementsI {
 
     let topToBottom = false;
     let bottomToTop = false;
-    let cornerPosition;
+    let mousePosition;
 
     const offset = 10;
 
@@ -1252,8 +1251,7 @@ class DrawingCanvas implements OptionElementsI {
 
     if (this.mouseWithin(leftAndTopX1, leftAndTopX2, leftAndTopY1, leftAndTopY2, mouseX, mouseY)) {
       //Conditional because we dont want to say that its on the left side when its on the top side and so on
-      cornerPosition = leftToRight || rightToLeft ? "l" : "t";
-      console.log(cornerPosition);
+      mousePosition = leftToRight || rightToLeft ? "l" : "t";
     } else if (
       this.mouseWithin(
         rightAndBottomX1,
@@ -1264,13 +1262,16 @@ class DrawingCanvas implements OptionElementsI {
         mouseY
       )
     ) {
-      cornerPosition = leftToRight || rightToLeft ? "r" : "b";
-      console.log(cornerPosition);
+      mousePosition = leftToRight || rightToLeft ? "r" : "b";
     } else if (this.context.isPointInStroke(path, mouseX, mouseY)) {
-      console.log("m");
+      //IF its not in corner but inside stroke
+      mousePosition = "m";
+    } else {
+      //IF not in line at all
+      mousePosition = false;
     }
 
-    return cornerPosition;
+    return mousePosition;
   }
 
   //Checks if mouse is within selection rectangle for those that have it
