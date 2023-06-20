@@ -1146,7 +1146,7 @@ class DrawingCanvas implements OptionElementsI {
     if (element.type === "stroke") {
       const resizedPath = new Path2D();
 
-      //Create copy of element coordinates
+      //Create copy
       const resizedXCords = [...element.xCords];
       const resizedYCords = [...element.yCords];
 
@@ -1175,7 +1175,7 @@ class DrawingCanvas implements OptionElementsI {
         resizedPath.lineTo(resizedXCords[i], resizedYCords[i]);
       }
 
-      //Assign resized path to element
+      //Set resized left, right, top and bottom
       element.resizedX1 = Math.min(...resizedXCords);
       element.resizedY1 = Math.min(...resizedYCords);
       element.resizedX2 = Math.max(...resizedXCords);
@@ -1208,6 +1208,7 @@ class DrawingCanvas implements OptionElementsI {
     return { drawnFromX: X, drawnFromY: Y };
   }
 
+  //Check if mouse is in corner of line
   private mouseInLineCorner(element: LineElement, mouseX: number, mouseY: number) {
     const { startX, startY, endX, endY, x1, y1, x2, y2 } = element;
     let leftToRight = false;
@@ -1250,29 +1251,19 @@ class DrawingCanvas implements OptionElementsI {
       //IF its from left to right
       if (leftToRight) {
         //Check if mouse is on the left side
-        if (mouseX >= leftX1 && mouseX <= leftX2 && mouseY >= leftY1 && mouseY <= leftY2) {
+        if (this.mouseWithin(leftX1, leftX2, leftY1, leftY2, mouseX, mouseY)) {
           cornerPosition = "l";
           //ELSE right side
-        } else if (
-          mouseX >= rightX1 &&
-          mouseX <= rightX2 &&
-          mouseY >= rightY1 &&
-          mouseY <= rightY2
-        ) {
+        } else if (this.mouseWithin(rightX1, rightX2, rightY1, rightY2, mouseX, mouseY)) {
           cornerPosition = "r";
         }
       }
       //Check IF drawn from right to left
       if (rightToLeft) {
         //IF its on left side
-        if (mouseX >= leftX1 && mouseX <= leftX2 && mouseY >= leftY1 && mouseY <= leftY2) {
+        if (this.mouseWithin(leftX1, leftX2, leftY1, leftY2, mouseX, mouseY)) {
           cornerPosition = "l";
-        } else if (
-          mouseX >= rightX1 &&
-          mouseX <= rightX2 &&
-          mouseY >= rightY1 &&
-          mouseY <= rightY2
-        ) {
+        } else if (this.mouseWithin(rightX1, rightX2, rightY1, rightY2, mouseX, mouseY)) {
           cornerPosition = "r";
         }
       }
@@ -1301,29 +1292,19 @@ class DrawingCanvas implements OptionElementsI {
 
       if (topToBottom) {
         //Check if mouse is on top side
-        if (mouseX >= topX1 && mouseX <= topX2 && mouseY >= topY1 && mouseY <= topY2) {
+        if (this.mouseWithin(topX1, topX2, topY1, topY2, mouseX, mouseY)) {
           cornerPosition = "t";
           //Check if on bottom side
-        } else if (
-          mouseX >= bottomX1 &&
-          mouseX <= bottomX2 &&
-          mouseY >= bottomY1 &&
-          mouseY <= bottomY2
-        ) {
+        } else if (this.mouseWithin(bottomX1, bottomX2, bottomY1, bottomY2, mouseX, mouseY)) {
           cornerPosition = "b";
         }
       }
 
       if (bottomToTop) {
         //Check if mouse is on top side
-        if (mouseX >= topX1 && mouseX <= topX2 && mouseY >= topY1 && mouseY <= topY2) {
+        if (this.mouseWithin(topX1, topX2, topY1, topY2, mouseX, mouseY)) {
           cornerPosition = "t";
-        } else if (
-          mouseX >= bottomX1 &&
-          mouseX <= bottomX2 &&
-          mouseY >= bottomY1 &&
-          mouseY <= bottomY2
-        ) {
+        } else if (this.mouseWithin(bottomX1, bottomX2, bottomY1, bottomY2, mouseX, mouseY)) {
           cornerPosition = "b";
         }
       }
@@ -1332,6 +1313,7 @@ class DrawingCanvas implements OptionElementsI {
     return cornerPosition;
   }
 
+  //Checks if mouse is within selection rectangle for those that have it
   private mouseWithinSelection(x: number, y: number, drawing: DrawingElements): boolean | string {
     const { x1, y1, x2, y2 } = drawing;
     //Top left rectangle
@@ -1366,7 +1348,7 @@ class DrawingCanvas implements OptionElementsI {
       : this.mouseWithin(x1, x2, y1, y2, x, y)
       ? "m"
       : false;
-    //IF mouseWithin(topRightX1, topRightX2, topRightY1, topRightY2)
+
     return mouseIsIn;
   }
 
