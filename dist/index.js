@@ -920,7 +920,7 @@ class DrawingCanvas {
     //Check if mouse is in corner of line
     mouseInLineCorner(element, mouseX, mouseY) {
         //Current line element
-        const { startX, startY, endX, endY, x1, y1, x2, y2 } = element;
+        const { startX, startY, endX, endY, x1, y1, x2, y2, path } = element;
         let leftToRight = false;
         let rightToLeft = false;
         let topToBottom = false;
@@ -951,25 +951,17 @@ class DrawingCanvas {
         const rightAndBottomX2 = rightAndBottomX + offset;
         const rightAndBottomY1 = rightAndBottomY - offset;
         const rightAndBottomY2 = rightAndBottomY + offset;
-        if (leftToRight || rightToLeft) {
-            if (this.mouseWithin(leftAndTopX1, leftAndTopX2, leftAndTopY1, leftAndTopY2, mouseX, mouseY)) {
-                console.log("left side");
-                cornerPosition = "l";
-            }
-            else if (this.mouseWithin(rightAndBottomX1, rightAndBottomX2, rightAndBottomY1, rightAndBottomY2, mouseX, mouseY)) {
-                console.log("right side");
-                cornerPosition = "r";
-            }
+        if (this.mouseWithin(leftAndTopX1, leftAndTopX2, leftAndTopY1, leftAndTopY2, mouseX, mouseY)) {
+            //Conditional because we dont want to say that its on the left side when its on the top side and so on
+            cornerPosition = leftToRight || rightToLeft ? "l" : "t";
+            console.log(cornerPosition);
         }
-        else {
-            if (this.mouseWithin(leftAndTopX1, leftAndTopX2, leftAndTopY1, leftAndTopY2, mouseX, mouseY)) {
-                console.log("top side");
-                cornerPosition = "t";
-            }
-            else if (this.mouseWithin(rightAndBottomX1, rightAndBottomX2, rightAndBottomY1, rightAndBottomY2, mouseX, mouseY)) {
-                console.log("bottom side");
-                cornerPosition = "b";
-            }
+        else if (this.mouseWithin(rightAndBottomX1, rightAndBottomX2, rightAndBottomY1, rightAndBottomY2, mouseX, mouseY)) {
+            cornerPosition = leftToRight || rightToLeft ? "r" : "b";
+            console.log(cornerPosition);
+        }
+        else if (this.context.isPointInStroke(path, mouseX, mouseY)) {
+            console.log("m");
         }
         return cornerPosition;
     }
