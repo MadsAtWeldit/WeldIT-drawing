@@ -515,6 +515,7 @@ class DrawingCanvas implements OptionElementsI {
                       ? (this.selectedDrawingIndex = i)
                       : (this.selectedDrawingIndex = null);
                   }
+
                   return;
                 }
 
@@ -1314,21 +1315,28 @@ class DrawingCanvas implements OptionElementsI {
   }
 
   //Draw a selection rectangle for given coords
-  private createDrawingSelection(x1: number, y1: number, x2: number, y2: number, px?: number) {
+  private createDrawingSelection(
+    x1: number,
+    y1: number,
+    x2: number,
+    y2: number,
+    cornerOffset?: number
+  ) {
     const width = x2 - x1;
     const height = y2 - y1;
-    const size = px ? px : 10;
+    const offset = cornerOffset ? cornerOffset : 10;
 
     this.context.globalCompositeOperation = "source-over";
-    this.context.strokeStyle = "#7678ed";
+    this.context.strokeStyle = "#738FE5";
+
     this.context.lineWidth = 1;
 
     this.context.strokeRect(x1, y1, width, height);
 
-    this.context.strokeRect(x1, y1, size, size);
-    this.context.strokeRect(x2, y1, -size, size);
-    this.context.strokeRect(x2, y2, -size, -size);
-    this.context.strokeRect(x1, y2, size, -size);
+    this.context.strokeRect(x1, y1, offset, offset);
+    this.context.strokeRect(x2, y1, -offset, offset);
+    this.context.strokeRect(x2, y2, -offset, -offset);
+    this.context.strokeRect(x1, y2, offset, -offset);
   }
 
   //Checks if mouse is within given coordinates
@@ -1362,77 +1370,77 @@ class DrawingCanvas implements OptionElementsI {
     if (drawingData.length <= 0) return;
 
     drawingData.forEach((drawing, i) => {
-      if (drawing.type === "stroke") {
-        if (this.selectedDrawingIndex === i) {
-          if (this.isResizing) {
-            this.setCtxStyles(drawing);
+      switch (drawing.type) {
+        case "stroke":
+          if (this.selectedDrawingIndex === i) {
+            if (this.isResizing) {
+              this.setCtxStyles(drawing);
 
-            this.context.stroke(drawing.resizedPath as Path2D);
+              this.context.stroke(drawing.resizedPath as Path2D);
 
-            this.createDrawingSelection(
-              drawing.resizedX1,
-              drawing.resizedY1,
-              drawing.resizedX2,
-              drawing.resizedY2
-            );
+              this.createDrawingSelection(
+                drawing.resizedX1,
+                drawing.resizedY1,
+                drawing.resizedX2,
+                drawing.resizedY2
+              );
 
-            return;
+              return;
+            }
+
+            this.createDrawingSelection(drawing.x1, drawing.y1, drawing.x2, drawing.y2);
           }
 
-          this.createDrawingSelection(drawing.x1, drawing.y1, drawing.x2, drawing.y2);
-        }
+          this.setCtxStyles(drawing);
 
-        this.setCtxStyles(drawing);
+          this.context.stroke(drawing.path);
+          break;
+        case "text":
+          if (this.selectedDrawingIndex === i) {
+            if (this.isResizing) {
+              this.setCtxStyles(drawing);
 
-        this.context.stroke(drawing.path);
-      }
-
-      if (drawing.type === "text") {
-        if (this.selectedDrawingIndex === i) {
-          if (this.isResizing) {
-            this.setCtxStyles(drawing);
-
-            this.context.font = drawing.resizedFont;
-            this.context.fillText(drawing.text, drawing.resizedX1, drawing.resizedY1);
-            this.createDrawingSelection(
-              drawing.resizedX1,
-              drawing.resizedY1,
-              drawing.resizedX2,
-              drawing.resizedY2
-            );
-            return;
+              this.context.font = drawing.resizedFont;
+              this.context.fillText(drawing.text, drawing.resizedX1, drawing.resizedY1);
+              this.createDrawingSelection(
+                drawing.resizedX1,
+                drawing.resizedY1,
+                drawing.resizedX2,
+                drawing.resizedY2
+              );
+              return;
+            }
+            this.createDrawingSelection(drawing.x1, drawing.y1, drawing.x2, drawing.y2);
           }
-          this.createDrawingSelection(drawing.x1, drawing.y1, drawing.x2, drawing.y2);
-        }
-        this.setCtxStyles(drawing);
+          this.setCtxStyles(drawing);
 
-        this.context.fillText(drawing.text, drawing.x1, drawing.y1);
-      }
+          this.context.fillText(drawing.text, drawing.x1, drawing.y1);
+          break;
+        case "line":
+          this.setCtxStyles(drawing);
 
-      if (drawing.type === "line") {
-        this.setCtxStyles(drawing);
+          this.context.stroke(drawing.path);
+          if (this.selectedDrawingIndex === i) {
+            this.context.strokeStyle = "#738FE5";
+            this.context.globalCompositeOperation = "source-over";
+            //Draw first circle
+            this.context.beginPath();
+            this.context.arc(drawing.startX, drawing.startY, 1, 0, 2 * Math.PI);
+            this.context.stroke();
 
-        this.context.stroke(drawing.path);
-        if (this.selectedDrawingIndex === i) {
-          this.context.strokeStyle = "cyan";
-          this.context.globalCompositeOperation = "source-over";
-          //Draw first circle
-          this.context.beginPath();
-          this.context.arc(drawing.startX, drawing.startY, 1, 0, 2 * Math.PI);
-          this.context.stroke();
+            //Draw line from start to end
+            this.context.lineWidth = 1;
+            this.context.moveTo(drawing.startX, drawing.startY);
+            this.context.lineTo(drawing.endX, drawing.endY);
+            this.context.stroke();
 
-          //Draw line from start to end
-          this.context.lineWidth = 1;
-          this.context.moveTo(drawing.startX, drawing.startY);
-          this.context.lineTo(drawing.endX, drawing.endY);
-          this.context.stroke();
-
-          //Draw second circle
-          this.context.lineWidth = 5;
-          this.context.beginPath();
-          this.context.arc(drawing.endX, drawing.endY, 1, 0, 2 * Math.PI);
-          this.context.stroke();
-        }
+            //Draw second circle
+            this.context.lineWidth = 5;
+            this.context.beginPath();
+            this.context.arc(drawing.endX, drawing.endY, 1, 0, 2 * Math.PI);
+            this.context.stroke();
+          }
+          break;
       }
     });
   }
