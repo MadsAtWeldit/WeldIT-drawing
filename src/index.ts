@@ -1315,13 +1315,8 @@ class DrawingCanvas implements OptionElementsI {
   }
 
   //Draw a selection rectangle for given coords
-  private createDrawingSelection(
-    x1: number,
-    y1: number,
-    x2: number,
-    y2: number,
-    cornerOffset?: number
-  ) {
+  private createDrawingSelection(drawing: DrawingElements, cornerOffset?: number) {
+    const { x1, y1, x2, y2 } = drawing;
     const width = x2 - x1;
     const height = y2 - y1;
     const offset = cornerOffset ? cornerOffset : 10;
@@ -1330,13 +1325,53 @@ class DrawingCanvas implements OptionElementsI {
     this.context.strokeStyle = "#738FE5";
 
     this.context.lineWidth = 1;
+    if (this.isResizing) {
+      if (drawing.type === "stroke" || drawing.type === "text") {
+        //Main selection rectangle
+        this.context.strokeRect(
+          drawing.resizedX1,
+          drawing.resizedY1,
+          drawing.resizedX2 - drawing.resizedX1,
+          drawing.resizedY2 - drawing.resizedY1
+        );
 
-    this.context.strokeRect(x1, y1, width, height);
+        //Top left
+        this.context.strokeRect(drawing.resizedX1, drawing.resizedY1, offset, offset);
+        //Top right
+        this.context.strokeRect(drawing.resizedX2, drawing.resizedY1, -offset, offset);
 
-    this.context.strokeRect(x1, y1, offset, offset);
-    this.context.strokeRect(x2, y1, -offset, offset);
-    this.context.strokeRect(x2, y2, -offset, -offset);
-    this.context.strokeRect(x1, y2, offset, -offset);
+        this.context.strokeRect(drawing.resizedX2, drawing.resizedY2, -offset, -offset);
+
+        this.context.strokeRect(drawing.resizedX1, drawing.resizedY2, offset, -offset);
+      }
+      return;
+    }
+    if (drawing.type === "stroke" || drawing.type === "text") {
+      this.context.strokeRect(x1, y1, width, height);
+
+      this.context.strokeRect(x1, y1, offset, offset);
+      this.context.strokeRect(x2, y1, -offset, offset);
+      this.context.strokeRect(x2, y2, -offset, -offset);
+      this.context.strokeRect(x1, y2, offset, -offset);
+    } else {
+      this.context.lineWidth = 5;
+      //Draw first circle
+      this.context.beginPath();
+      this.context.arc(drawing.startX, drawing.startY, 1, 0, 2 * Math.PI);
+      this.context.stroke();
+
+      //Draw line from start to end
+      this.context.lineWidth = 1;
+      this.context.moveTo(drawing.startX, drawing.startY);
+      this.context.lineTo(drawing.endX, drawing.endY);
+      this.context.stroke();
+
+      //Draw second circle
+      this.context.lineWidth = 5;
+      this.context.beginPath();
+      this.context.arc(drawing.endX, drawing.endY, 1, 0, 2 * Math.PI);
+      this.context.stroke();
+    }
   }
 
   //Checks if mouse is within given coordinates
@@ -1378,17 +1413,12 @@ class DrawingCanvas implements OptionElementsI {
 
               this.context.stroke(drawing.resizedPath as Path2D);
 
-              this.createDrawingSelection(
-                drawing.resizedX1,
-                drawing.resizedY1,
-                drawing.resizedX2,
-                drawing.resizedY2
-              );
+              this.createDrawingSelection(drawing);
 
               return;
             }
 
-            this.createDrawingSelection(drawing.x1, drawing.y1, drawing.x2, drawing.y2);
+            this.createDrawingSelection(drawing);
           }
 
           this.setCtxStyles(drawing);
@@ -1402,15 +1432,12 @@ class DrawingCanvas implements OptionElementsI {
 
               this.context.font = drawing.resizedFont;
               this.context.fillText(drawing.text, drawing.resizedX1, drawing.resizedY1);
-              this.createDrawingSelection(
-                drawing.resizedX1,
-                drawing.resizedY1,
-                drawing.resizedX2,
-                drawing.resizedY2
-              );
+              this.createDrawingSelection(drawing);
+
               return;
             }
-            this.createDrawingSelection(drawing.x1, drawing.y1, drawing.x2, drawing.y2);
+
+            this.createDrawingSelection(drawing);
           }
           this.setCtxStyles(drawing);
 
@@ -1421,24 +1448,7 @@ class DrawingCanvas implements OptionElementsI {
 
           this.context.stroke(drawing.path);
           if (this.selectedDrawingIndex === i) {
-            this.context.strokeStyle = "#738FE5";
-            this.context.globalCompositeOperation = "source-over";
-            //Draw first circle
-            this.context.beginPath();
-            this.context.arc(drawing.startX, drawing.startY, 1, 0, 2 * Math.PI);
-            this.context.stroke();
-
-            //Draw line from start to end
-            this.context.lineWidth = 1;
-            this.context.moveTo(drawing.startX, drawing.startY);
-            this.context.lineTo(drawing.endX, drawing.endY);
-            this.context.stroke();
-
-            //Draw second circle
-            this.context.lineWidth = 5;
-            this.context.beginPath();
-            this.context.arc(drawing.endX, drawing.endY, 1, 0, 2 * Math.PI);
-            this.context.stroke();
+            this.createDrawingSelection(drawing);
           }
           break;
       }
