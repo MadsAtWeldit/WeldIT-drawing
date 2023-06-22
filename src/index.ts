@@ -93,6 +93,10 @@ interface LineElement {
   startY: number;
   endX: number;
   endY: number;
+  resizedStartX: number;
+  resizedStartY: number;
+  resizedEndX: number;
+  resizedEndY: number;
   x1: number;
   y1: number;
   x2: number;
@@ -204,6 +208,10 @@ class DrawingCanvas implements OptionElementsI {
     startY: 0,
     endX: 0,
     endY: 0,
+    resizedStartX: 0,
+    resizedStartY: 0,
+    resizedEndX: 0,
+    resizedEndY: 0,
     x1: 0,
     y1: 0,
     x2: 0,
@@ -784,6 +792,10 @@ class DrawingCanvas implements OptionElementsI {
         startY: 0,
         endX: 0,
         endY: 0,
+        resizedStartX: 0,
+        resizedStartY: 0,
+        resizedEndX: 0,
+        resizedEndY: 0,
         x1: 0,
         y1: 0,
         x2: 0,
@@ -1448,6 +1460,14 @@ class DrawingCanvas implements OptionElementsI {
           this.context.fillText(drawing.text, drawing.x1, drawing.y1);
           break;
         case "line":
+          if (this.selectedDrawingIndex === i) {
+            if (this.isResizing) {
+              this.setCtxStyles(drawing);
+              this.context.stroke(drawing.resizedPath as Path2D);
+              this.createDrawingSelection(drawing);
+              return;
+            }
+          }
           this.setCtxStyles(drawing);
 
           this.context.stroke(drawing.path);
