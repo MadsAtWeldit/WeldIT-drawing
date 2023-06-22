@@ -1315,95 +1315,69 @@ class DrawingCanvas implements OptionElementsI {
   }
 
   //Draw a selection for selected drawing
-  private createDrawingSelection(drawing: DrawingElements, cornerOffset?: number) {
-    const { x1, y1, x2, y2 } = drawing;
-
-    const width = x2 - x1;
-    const height = y2 - y1;
-    const offset = cornerOffset ? cornerOffset : 10;
-
+  private createDrawingSelection(drawing: DrawingElements) {
     this.context.globalCompositeOperation = "source-over";
     this.context.strokeStyle = "#738FE5";
 
     this.context.lineWidth = 1;
-    if (this.isResizing) {
-      if (drawing.type === "stroke" || drawing.type === "text") {
-        //Main selection rectangle
-        this.context.strokeRect(
-          drawing.resizedX1,
-          drawing.resizedY1,
-          drawing.resizedX2 - drawing.resizedX1,
-          drawing.resizedY2 - drawing.resizedY1
-        );
-
-        this.context.lineWidth = 5;
-        //Top left
-        this.context.beginPath();
-        this.context.arc(drawing.resizedX1, drawing.resizedY1, 1, 0, 2 * Math.PI);
-        this.context.stroke();
-
-        //Top right
-        this.context.beginPath();
-        this.context.arc(drawing.resizedX2, drawing.resizedY1, 1, 0, 2 * Math.PI);
-        this.context.stroke();
-
-        //Bottom right
-        this.context.beginPath();
-        this.context.arc(drawing.resizedX2, drawing.resizedY2, 1, 0, 2 * Math.PI);
-        this.context.stroke();
-
-        //Bottom left
-        this.context.beginPath();
-        this.context.arc(drawing.resizedX1, drawing.resizedY2, 1, 0, 2 * Math.PI);
-        this.context.stroke();
-      }
-
-      return;
-    }
 
     if (drawing.type === "stroke" || drawing.type === "text") {
+      const { x1, y1, x2, y2 } = this.getCurrentCoords(drawing); //Check if we are resizing and use coords based on that
+      const width = x2 - x1;
+      const height = y2 - y1;
       //Draw main rectangle
       this.context.strokeRect(x1, y1, width, height);
 
-      this.context.lineWidth = 5;
-
-      //Draw circle in top left
-      this.context.beginPath();
-      this.context.arc(x1, y1, 1, 0, 2 * Math.PI);
-      this.context.stroke();
-      //Top right
-      this.context.beginPath();
-      this.context.arc(x2, y1, 1, 0, 2 * Math.PI);
-      this.context.stroke();
-      //Bottom right
-      this.context.beginPath();
-      this.context.arc(x2, y2, 1, 0, 2 * Math.PI);
-      this.context.stroke();
-      //Bottom left
-      this.context.beginPath();
-      this.context.arc(x1, y2, 1, 0, 2 * Math.PI);
-      this.context.stroke();
+      //Draw corners
+      this.drawCornerPoints(x1, y1, x2, y2);
     } else {
-      this.context.lineWidth = 5;
-      //Draw first circle
-      this.context.beginPath();
-      this.context.arc(drawing.startX, drawing.startY, 1, 0, 2 * Math.PI);
-      this.context.stroke();
-
       //Draw line from start to end
       this.context.lineWidth = 1;
       this.context.moveTo(drawing.startX, drawing.startY);
       this.context.lineTo(drawing.endX, drawing.endY);
       this.context.stroke();
 
-      //Draw second circle
       this.context.lineWidth = 5;
       this.context.beginPath();
+      this.context.arc(drawing.startX, drawing.startY, 1, 0, 2 * Math.PI);
+      this.context.stroke();
+
+      this.context.beginPath();
       this.context.arc(drawing.endX, drawing.endY, 1, 0, 2 * Math.PI);
+      this.context.stroke();
+      // this.drawCornerPoints(drawing);
+    }
+  }
+  //Draw points in corner
+  private drawCornerPoints(x1: number, y1: number, x2: number, y2: number) {
+    this.context.lineWidth = 5;
+    let x;
+    let y;
+
+    //Selection has 4 corners
+    for (let i = 0; i < 4; i++) {
+      i === 0
+        ? ((x = x1), (y = y1)) //First draw top left corner
+        : i === 1
+        ? ((x = x2), (y = y1)) //Second draw top right corner
+        : i === 2
+        ? ((x = x1), (y = y2)) //Third draw bottom left corner
+        : ((x = x2), (y = y2)); //Last draw bottom right corner
+      this.context.beginPath();
+      this.context.arc(x, y, 1, 0, 2 * Math.PI);
       this.context.stroke();
     }
   }
 
+  //Checks if we should use the resized coords or normal coords
+  private getCurrentCoords(drawing: PathElement | TextElement) {
+    const { x1, y1, x2, y2, resizedX1, resizedY1, resizedX2, resizedY2 } = drawing;
+    if (this.isResizing) {
+      return { x1: resizedX1, y1: resizedY1, x2: resizedX2, y2: resizedY2 };
+    } else {
+      return { x1: x1, y1: y1, x2: x2, y2: y2 };
+    }
+  }
   //Checks if mouse is within given coordinates
   private mouseWithin(x1: number, x2: number, y1: number, y2: number, x: number, y: number) {
     if (x >= x1 && x <= x2 && y >= y1 && y <= y2) return true;
