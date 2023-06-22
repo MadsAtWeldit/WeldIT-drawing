@@ -1314,9 +1314,10 @@ class DrawingCanvas implements OptionElementsI {
     return mouseIsIn;
   }
 
-  //Draw a selection rectangle for given coords
+  //Draw a selection for selected drawing
   private createDrawingSelection(drawing: DrawingElements, cornerOffset?: number) {
     const { x1, y1, x2, y2 } = drawing;
+
     const width = x2 - x1;
     const height = y2 - y1;
     const offset = cornerOffset ? cornerOffset : 10;
@@ -1335,24 +1336,53 @@ class DrawingCanvas implements OptionElementsI {
           drawing.resizedY2 - drawing.resizedY1
         );
 
+        this.context.lineWidth = 5;
         //Top left
-        this.context.strokeRect(drawing.resizedX1, drawing.resizedY1, offset, offset);
+        this.context.beginPath();
+        this.context.arc(drawing.resizedX1, drawing.resizedY1, 1, 0, 2 * Math.PI);
+        this.context.stroke();
+
         //Top right
-        this.context.strokeRect(drawing.resizedX2, drawing.resizedY1, -offset, offset);
+        this.context.beginPath();
+        this.context.arc(drawing.resizedX2, drawing.resizedY1, 1, 0, 2 * Math.PI);
+        this.context.stroke();
 
-        this.context.strokeRect(drawing.resizedX2, drawing.resizedY2, -offset, -offset);
+        //Bottom right
+        this.context.beginPath();
+        this.context.arc(drawing.resizedX2, drawing.resizedY2, 1, 0, 2 * Math.PI);
+        this.context.stroke();
 
-        this.context.strokeRect(drawing.resizedX1, drawing.resizedY2, offset, -offset);
+        //Bottom left
+        this.context.beginPath();
+        this.context.arc(drawing.resizedX1, drawing.resizedY2, 1, 0, 2 * Math.PI);
+        this.context.stroke();
       }
+
       return;
     }
+
     if (drawing.type === "stroke" || drawing.type === "text") {
+      //Draw main rectangle
       this.context.strokeRect(x1, y1, width, height);
 
-      this.context.strokeRect(x1, y1, offset, offset);
-      this.context.strokeRect(x2, y1, -offset, offset);
-      this.context.strokeRect(x2, y2, -offset, -offset);
-      this.context.strokeRect(x1, y2, offset, -offset);
+      this.context.lineWidth = 5;
+
+      //Draw circle in top left
+      this.context.beginPath();
+      this.context.arc(x1, y1, 1, 0, 2 * Math.PI);
+      this.context.stroke();
+      //Top right
+      this.context.beginPath();
+      this.context.arc(x2, y1, 1, 0, 2 * Math.PI);
+      this.context.stroke();
+      //Bottom right
+      this.context.beginPath();
+      this.context.arc(x2, y2, 1, 0, 2 * Math.PI);
+      this.context.stroke();
+      //Bottom left
+      this.context.beginPath();
+      this.context.arc(x1, y2, 1, 0, 2 * Math.PI);
+      this.context.stroke();
     } else {
       this.context.lineWidth = 5;
       //Draw first circle
