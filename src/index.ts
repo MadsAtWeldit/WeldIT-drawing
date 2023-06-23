@@ -752,12 +752,7 @@ class DrawingCanvas implements OptionElementsI {
       this.lineObject.path.lineTo(this.mouseX, this.mouseY);
 
       //Assign correct left, right, top and bottom
-      const { drawnFromX, drawnFromY } = this.drawnFrom(
-        this.lineObject.startX,
-        this.lineObject.endX,
-        this.lineObject.startY,
-        this.lineObject.endY
-      );
+      const { drawnFromX, drawnFromY } = this.drawnFrom(this.lineObject);
 
       if (drawnFromX === "leftToRight") {
         //Left is startX since we started on left side
@@ -968,8 +963,105 @@ class DrawingCanvas implements OptionElementsI {
               this.startY = mouseY;
             } else {
               const { from } = this.shouldResize;
+              const { drawnFromX, drawnFromY } = this.drawnFrom(selectedDrawing);
+
+              let resizeStartCoords = false;
+              let resizeEndCoords = false;
+
+              this.isResizing = true;
+
+              const resizedPath = new Path2D();
+
+              //TODO check if distance on x axis is greater than distance on the y axis
+
+              if (from === "l") {
+                if (drawnFromX === "leftToRight") {
+                  console.log("resize start coords");
+                  selectedDrawing.resizedStartX = mouseX;
+                  selectedDrawing.resizedStartY = mouseY;
+
+                  selectedDrawing.resizedEndX = selectedDrawing.endX;
+                  selectedDrawing.resizedEndY = selectedDrawing.endY;
+                  resizeStartCoords = true;
+                } else {
+                  console.log("resize end coords");
+                  selectedDrawing.resizedEndX = mouseX;
+                  selectedDrawing.resizedEndY = mouseY;
+
+                  selectedDrawing.resizedStartX = selectedDrawing.startX;
+                  selectedDrawing.resizedStartY = selectedDrawing.startY;
+                  resizeEndCoords = true;
+                }
+              } else if (from === "r") {
+                if (drawnFromX === "leftToRight") {
+                  console.log("resize end coords");
+                  selectedDrawing.resizedEndX = mouseX;
+                  selectedDrawing.resizedEndY = mouseY;
+
+                  selectedDrawing.resizedStartX = selectedDrawing.startX;
+                  selectedDrawing.resizedStartY = selectedDrawing.startY;
+                  resizeEndCoords = true;
+                } else {
+                  console.log("resize start coords");
+                  selectedDrawing.resizedStartX = mouseX;
+                  selectedDrawing.resizedStartY = mouseY;
+
+                  selectedDrawing.resizedEndX = selectedDrawing.endX;
+                  selectedDrawing.resizedEndY = selectedDrawing.endY;
+                  resizeStartCoords = true;
+                }
+              } else if (from === "t") {
+                if (drawnFromY === "topToBottom") {
+                  console.log("resize start coords");
+                  selectedDrawing.resizedStartX = mouseX;
+                  selectedDrawing.resizedStartY = mouseY;
+
+                  selectedDrawing.resizedEndX = selectedDrawing.endX;
+                  selectedDrawing.resizedEndY = selectedDrawing.endY;
+                  resizeStartCoords = true;
+                } else {
+                  console.log("resize end coords");
+                  selectedDrawing.resizedEndX = mouseX;
+                  selectedDrawing.resizedEndY = mouseY;
+
+                  selectedDrawing.resizedStartX = selectedDrawing.startX;
+                  selectedDrawing.resizedStartY = selectedDrawing.startY;
+                  resizeEndCoords = true;
+                }
+              } else if (from === "b") {
+                if (drawnFromY === "topToBottom") {
+                  console.log("resize end coords");
+                  selectedDrawing.resizedEndX = mouseX;
+                  selectedDrawing.resizedEndY = mouseY;
+
+                  selectedDrawing.resizedStartX = selectedDrawing.startX;
+                  selectedDrawing.resizedStartY = selectedDrawing.startY;
+                  resizeEndCoords = true;
+                } else {
+                  console.log("resize start coords");
+                  selectedDrawing.resizedStartX = mouseX;
+                  selectedDrawing.resizedStartY = mouseY;
+
+                  selectedDrawing.resizedEndX = selectedDrawing.endX;
+                  selectedDrawing.resizedEndY = selectedDrawing.endY;
+                  resizeStartCoords = true;
+                }
+              }
+
+              if (resizeStartCoords) {
+                this.context.beginPath();
+                resizedPath.moveTo(selectedDrawing.resizedStartX, selectedDrawing.resizedStartY);
+                resizedPath.lineTo(selectedDrawing.endX, selectedDrawing.endY);
+              } else {
+                this.context.beginPath();
+                resizedPath.moveTo(selectedDrawing.resizedEndX, selectedDrawing.resizedEndY);
+                resizedPath.lineTo(selectedDrawing.startX, selectedDrawing.startY);
+              }
+
+              selectedDrawing.resizedPath = resizedPath;
             }
           }
+
           break;
       }
 
@@ -1029,6 +1121,66 @@ class DrawingCanvas implements OptionElementsI {
       drawing.y1 = drawing.resizedY1;
       drawing.x2 = drawing.resizedX2;
       drawing.y2 = drawing.resizedY2;
+    } else {
+      const { drawnFromX, drawnFromY } = this.drawnFrom(drawing);
+
+      if (drawnFromX === "leftToRight") {
+        //Resized startX is left side and endX is right side
+        //So if the resized left side is now on the right side of right side
+        //Left = startX; right = endX
+        if (drawing.resizedStartX > drawing.endX) {
+          console.log("left is now on right");
+          drawing.startX = drawing.endX;
+          drawing.startY = drawing.endY;
+
+          drawing.endX = drawing.resizedStartX;
+          drawing.endY = drawing.resizedStartY;
+          console.log(drawing.startX, drawing.endX);
+          return;
+        }
+        //IF right is less than left
+        if (drawing.resizedEndX < drawing.startX) {
+          console.log("right is now on left");
+          drawing.endX = drawing.startX; //End is now where start used to be
+          drawing.endY = drawing.startY;
+
+          drawing.startX = drawing.resizedEndX;
+          drawing.startY = drawing.resizedEndY;
+          console.log(drawing.startX, drawing.endX);
+          return;
+        }
+      } else {
+        //Left = endX; Right = startX
+        //IF left is greater than right
+        if (drawing.resizedEndX > drawing.startX) {
+          console.log("left is now on right");
+          drawing.endX = drawing.startX; //Left is now where right used to be
+          drawing.endY = drawing.startY;
+
+          drawing.startX = drawing.resizedEndX;
+          drawing.startY = drawing.resizedEndY;
+          console.log(drawing.startX, drawing.endX);
+          return;
+        }
+        //IF right is less than left
+        if (drawing.resizedStartX < drawing.endX) {
+          console.log("right is now on left");
+          drawing.startX = drawing.endX;
+          drawing.startY = drawing.endY;
+
+          drawing.endX = drawing.resizedStartX;
+          drawing.endY = drawing.resizedStartY;
+          console.log(drawing.startX, drawing.endX);
+          return;
+        }
+      }
+      drawing.startX = drawing.resizedStartX;
+      drawing.endX = drawing.resizedEndX;
+
+      drawing.startY = drawing.resizedStartY;
+      drawing.endY = drawing.resizedEndY;
+
+      drawing.path = drawing.resizedPath as Path2D;
     }
   }
 
@@ -1201,10 +1353,10 @@ class DrawingCanvas implements OptionElementsI {
   }
 
   //Checks where line is drawn from
-  private drawnFrom(startX: number, endX: number, startY: number, endY: number) {
+  private drawnFrom(drawing: LineElement) {
     let X;
     let Y;
-
+    const { startX, endX, startY, endY } = drawing;
     if (startX < endX) {
       X = "leftToRight";
     } else {
@@ -1221,9 +1373,9 @@ class DrawingCanvas implements OptionElementsI {
   }
 
   //Check if mouse is in corner of line
-  private mouseWithinLineSelection(element: LineElement, mouseX: number, mouseY: number) {
+  private mouseWithinLineSelection(drawing: LineElement, mouseX: number, mouseY: number) {
     //Current line element
-    const { startX, startY, endX, endY, x1, y1, x2, y2, path } = element;
+    const { startX, startY, endX, endY, x1, y1, x2, y2, path } = drawing;
     let leftToRight = false;
     let rightToLeft = false;
 
@@ -1234,7 +1386,7 @@ class DrawingCanvas implements OptionElementsI {
     const offset = 10;
 
     //Get info on where line was drawn from
-    const { drawnFromX, drawnFromY } = this.drawnFrom(startX, endX, startY, endY);
+    const { drawnFromX, drawnFromY } = this.drawnFrom(drawing);
 
     if (x2 - x1 > y2 - y1) {
       //IF drawn across the x axis we wanna say that its either from left to right OR right to left
