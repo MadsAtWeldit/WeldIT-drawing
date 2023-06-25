@@ -949,6 +949,7 @@ class DrawingCanvas implements OptionElementsI {
               const { from } = this.shouldResize;
               const { drawnFromX, drawnFromY } = this.drawnFrom(selectedDrawing);
 
+              //For tracking if we should resize the start or end of the line
               let resizeStartCoords = false;
               let resizeEndCoords = false;
 
@@ -1071,11 +1072,8 @@ class DrawingCanvas implements OptionElementsI {
       drawing.x2 = drawing.resizedX2;
       drawing.y2 = drawing.resizedY2;
     } else {
-      const { drawnFromX, drawnFromY } = this.drawnFrom(drawing);
-
       drawing.startX = drawing.resizedStartX;
       drawing.endX = drawing.resizedEndX;
-
       drawing.startY = drawing.resizedStartY;
       drawing.endY = drawing.resizedEndY;
 
@@ -1163,10 +1161,10 @@ class DrawingCanvas implements OptionElementsI {
     //Create copy of original font string
     const fontStringCopy = element.font.slice();
 
-    //Convert font size to number
+    //Convert font size to number/float
     const fontSize = parseFloat(fontStringCopy);
 
-    //Get original distance from scale origin to start corner
+    //Get original distance from scale origin to start corner/current mouse
     const originalDistanceX = scaleOriginX - startCornerX;
     const originalDistanceY = scaleOriginY - startCornerY;
 
@@ -1180,7 +1178,7 @@ class DrawingCanvas implements OptionElementsI {
     //Replace original font size with resized
     const newFont = fontStringCopy.replace(fontSize.toString(), resizedFontSize.toString());
 
-    //Assign new left, right, top and bottom based on which side we scaled from
+    //Store new left, right, top and bottom based on which side we scaled from
     from === "tl" || from === "bl"
       ? ((element.resizedX1 = scaleOriginX - newDistanceX), (element.resizedX2 = scaleOriginX))
       : ((element.resizedX2 = scaleOriginX - newDistanceX), (element.resizedX1 = scaleOriginX));
@@ -1194,7 +1192,7 @@ class DrawingCanvas implements OptionElementsI {
 
   //Resize drawing with provided scale factor and scale origin
   private resizePath(
-    element: DrawingElements,
+    element: PathElement,
     from: string,
     currentMouseX: number,
     currentMouseY: number
@@ -1211,49 +1209,47 @@ class DrawingCanvas implements OptionElementsI {
 
     const scaleFactor = scale;
 
-    if (element.type === "stroke") {
-      const resizedPath = new Path2D();
+    const resizedPath = new Path2D();
 
-      //Create copy
-      const resizedXCords = [...element.xCords];
-      const resizedYCords = [...element.yCords];
+    //Create copy
+    const resizedXCords = [...element.xCords];
+    const resizedYCords = [...element.yCords];
 
-      const originalDistanceX = [];
-      const originalDistanceY = [];
+    const originalDistanceX = [];
+    const originalDistanceY = [];
 
-      //Calculate original distance between origin and x,y coordinates
-      for (let i = 0; i < element.xCords.length; i++) {
-        originalDistanceX[i] = scaleOriginX - element.xCords[i];
-        originalDistanceY[i] = scaleOriginY - element.yCords[i];
-      }
-
-      //Update to resized coords
-      for (let i = 0; i < resizedXCords.length; i++) {
-        //Calculate new distance based on scale factor
-        const newDistanceX = originalDistanceX[i] * scaleFactor;
-        const newDistanceY = originalDistanceY[i] * scaleFactor;
-
-        //Place resized coords in the correct place
-        resizedXCords[i] = scaleOriginX - newDistanceX;
-        resizedYCords[i] = scaleOriginY - newDistanceY;
-
-        //Move path to new coords
-        resizedPath.moveTo(resizedXCords[i - 1], resizedYCords[i - 1]);
-        //Create line to new coords
-        resizedPath.lineTo(resizedXCords[i], resizedYCords[i]);
-      }
-
-      //Set resized left, right, top and bottom
-      element.resizedX1 = Math.min(...resizedXCords);
-      element.resizedY1 = Math.min(...resizedYCords);
-      element.resizedX2 = Math.max(...resizedXCords);
-      element.resizedY2 = Math.max(...resizedYCords);
-
-      element.resizedXCords = resizedXCords;
-      element.resizedYCords = resizedYCords;
-
-      element.resizedPath = resizedPath;
+    //Calculate original distance between origin and x,y coordinates
+    for (let i = 0; i < element.xCords.length; i++) {
+      originalDistanceX[i] = scaleOriginX - element.xCords[i];
+      originalDistanceY[i] = scaleOriginY - element.yCords[i];
     }
+
+    //Update to resized coords
+    for (let i = 0; i < resizedXCords.length; i++) {
+      //Calculate new distance based on scale factor
+      const newDistanceX = originalDistanceX[i] * scaleFactor;
+      const newDistanceY = originalDistanceY[i] * scaleFactor;
+
+      //Place resized coords in the correct place
+      resizedXCords[i] = scaleOriginX - newDistanceX;
+      resizedYCords[i] = scaleOriginY - newDistanceY;
+
+      //Move path to new coords
+      resizedPath.moveTo(resizedXCords[i - 1], resizedYCords[i - 1]);
+      //Create line to new coords
+      resizedPath.lineTo(resizedXCords[i], resizedYCords[i]);
+    }
+
+    //Set resized left, right, top and bottom
+    element.resizedX1 = Math.min(...resizedXCords);
+    element.resizedY1 = Math.min(...resizedYCords);
+    element.resizedX2 = Math.max(...resizedXCords);
+    element.resizedY2 = Math.max(...resizedYCords);
+
+    element.resizedXCords = resizedXCords;
+    element.resizedYCords = resizedYCords;
+
+    element.resizedPath = resizedPath;
   }
 
   //Checks where line is drawn from
