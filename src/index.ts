@@ -750,25 +750,10 @@ class DrawingCanvas implements OptionElementsI {
       //Take the path and line it to end
       this.lineObject.path.lineTo(this.mouseX, this.mouseY);
 
-      //Assign correct left, right, top and bottom
-      const { drawnFromX, drawnFromY } = this.drawnFrom(this.lineObject);
-
-      if (drawnFromX === "leftToRight") {
-        //Left is startX since we started on left side
-        this.lineObject.x1 = this.lineObject.startX;
-        this.lineObject.x2 = this.lineObject.endX;
-      } else {
-        this.lineObject.x1 = this.lineObject.endX;
-        this.lineObject.x2 = this.lineObject.startX;
-      }
-
-      if (drawnFromY === "topToBottom") {
-        this.lineObject.y1 = this.lineObject.startY;
-        this.lineObject.y2 = this.lineObject.endY;
-      } else {
-        this.lineObject.y1 = this.lineObject.endY;
-        this.lineObject.y2 = this.lineObject.startY;
-      }
+      this.lineObject.x1 = Math.min(this.lineObject.startX, this.lineObject.endX);
+      this.lineObject.x2 = Math.max(this.lineObject.startX, this.lineObject.endX);
+      this.lineObject.y1 = Math.min(this.lineObject.startY, this.lineObject.endY);
+      this.lineObject.y2 = Math.max(this.lineObject.startY, this.lineObject.endY);
 
       //Save new line
       this.index = this.incOrDec(this.index, "increment", 1);
@@ -1096,22 +1081,10 @@ class DrawingCanvas implements OptionElementsI {
 
       drawing.path = drawing.resizedPath as Path2D;
 
-      if (drawnFromX === "leftToRight") {
-        //Left is startX since we started on left side
-        drawing.x1 = drawing.startX;
-        drawing.x2 = drawing.endX;
-      } else {
-        drawing.x1 = drawing.endX;
-        drawing.x2 = drawing.startX;
-      }
-
-      if (drawnFromY === "topToBottom") {
-        drawing.y1 = drawing.startY;
-        drawing.y2 = drawing.endY;
-      } else {
-        drawing.y1 = drawing.endY;
-        drawing.y2 = drawing.startY;
-      }
+      drawing.x1 = Math.min(drawing.startX, drawing.endX);
+      drawing.x2 = Math.max(drawing.startX, drawing.endX);
+      drawing.y1 = Math.min(drawing.startY, drawing.endY);
+      drawing.y2 = Math.max(drawing.startY, drawing.endY);
     }
   }
 
