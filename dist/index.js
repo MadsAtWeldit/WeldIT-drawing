@@ -685,96 +685,45 @@ class DrawingCanvas {
                                 let resizeEndCoords = false;
                                 this.isResizing = true;
                                 const resizedPath = new Path2D();
+                                //Init resized start and end
+                                selectedDrawing.resizedStartX = selectedDrawing.startX;
+                                selectedDrawing.resizedStartY = selectedDrawing.startY;
+                                selectedDrawing.resizedEndX = selectedDrawing.endX;
+                                selectedDrawing.resizedEndY = selectedDrawing.endY;
                                 switch (from) {
-                                    //IF from left
+                                    //IF we should resize from left and its drawn from left that means that start coords is on the left side
+                                    //So resizeStartCoords
                                     case "l":
-                                        //Check if left is startX or endX
-                                        if (drawnFromX === "leftToRight") {
-                                            console.log("resize start coords");
-                                            //Left is startX and startY
-                                            selectedDrawing.resizedStartX = mouseX;
-                                            selectedDrawing.resizedStartY = mouseY;
-                                            selectedDrawing.resizedEndX = selectedDrawing.endX;
-                                            selectedDrawing.resizedEndY = selectedDrawing.endY;
-                                            resizeStartCoords = true;
-                                        }
-                                        else {
-                                            console.log("resize end coords");
-                                            //Left is endX and endY
-                                            selectedDrawing.resizedEndX = mouseX;
-                                            selectedDrawing.resizedEndY = mouseY;
-                                            selectedDrawing.resizedStartX = selectedDrawing.startX;
-                                            selectedDrawing.resizedStartY = selectedDrawing.startY;
-                                            resizeEndCoords = true;
-                                        }
+                                        drawnFromX === "leftToRight"
+                                            ? (resizeStartCoords = true)
+                                            : (resizeEndCoords = true);
                                         break;
                                     case "r":
-                                        if (drawnFromX === "leftToRight") {
-                                            console.log("resize end coords");
-                                            //Right is endX and endY
-                                            selectedDrawing.resizedEndX = mouseX;
-                                            selectedDrawing.resizedEndY = mouseY;
-                                            selectedDrawing.resizedStartX = selectedDrawing.startX;
-                                            selectedDrawing.resizedStartY = selectedDrawing.startY;
-                                            resizeEndCoords = true;
-                                        }
-                                        else {
-                                            console.log("resize start coords");
-                                            //Right is startX and startY
-                                            selectedDrawing.resizedStartX = mouseX;
-                                            selectedDrawing.resizedStartY = mouseY;
-                                            selectedDrawing.resizedEndX = selectedDrawing.endX;
-                                            selectedDrawing.resizedEndY = selectedDrawing.endY;
-                                            resizeStartCoords = true;
-                                        }
+                                        drawnFromX === "leftToRight"
+                                            ? (resizeEndCoords = true)
+                                            : (resizeStartCoords = true);
                                         break;
                                     case "t":
-                                        if (drawnFromY === "topToBottom") {
-                                            console.log("resize start coords");
-                                            //Top is startX and startY
-                                            selectedDrawing.resizedStartX = mouseX;
-                                            selectedDrawing.resizedStartY = mouseY;
-                                            selectedDrawing.resizedEndX = selectedDrawing.endX;
-                                            selectedDrawing.resizedEndY = selectedDrawing.endY;
-                                            resizeStartCoords = true;
-                                        }
-                                        else {
-                                            console.log("resize end coords");
-                                            //Top is endX and endY
-                                            selectedDrawing.resizedEndX = mouseX;
-                                            selectedDrawing.resizedEndY = mouseY;
-                                            selectedDrawing.resizedStartX = selectedDrawing.startX;
-                                            selectedDrawing.resizedStartY = selectedDrawing.startY;
-                                            resizeEndCoords = true;
-                                        }
+                                        drawnFromY === "topToBottom"
+                                            ? (resizeStartCoords = true)
+                                            : (resizeEndCoords = true);
                                         break;
                                     case "b":
-                                        if (drawnFromY === "topToBottom") {
-                                            console.log("resize end coords");
-                                            //Bottom is endX and endY
-                                            selectedDrawing.resizedEndX = mouseX;
-                                            selectedDrawing.resizedEndY = mouseY;
-                                            selectedDrawing.resizedStartX = selectedDrawing.startX;
-                                            selectedDrawing.resizedStartY = selectedDrawing.startY;
-                                            resizeEndCoords = true;
-                                        }
-                                        else {
-                                            console.log("resize start coords");
-                                            //Bottom is startX and startY
-                                            selectedDrawing.resizedStartX = mouseX;
-                                            selectedDrawing.resizedStartY = mouseY;
-                                            selectedDrawing.resizedEndX = selectedDrawing.endX;
-                                            selectedDrawing.resizedEndY = selectedDrawing.endY;
-                                            resizeStartCoords = true;
-                                        }
+                                        drawnFromY === "topToBottom"
+                                            ? (resizeEndCoords = true)
+                                            : (resizeStartCoords = true);
                                         break;
                                 }
                                 if (resizeStartCoords) {
+                                    selectedDrawing.resizedStartX = mouseX;
+                                    selectedDrawing.resizedStartY = mouseY;
                                     this.context.beginPath();
                                     resizedPath.moveTo(selectedDrawing.resizedStartX, selectedDrawing.resizedStartY);
                                     resizedPath.lineTo(selectedDrawing.endX, selectedDrawing.endY);
                                 }
                                 else {
+                                    selectedDrawing.resizedEndX = mouseX;
+                                    selectedDrawing.resizedEndY = mouseY;
                                     this.context.beginPath();
                                     resizedPath.moveTo(selectedDrawing.resizedEndX, selectedDrawing.resizedEndY);
                                     resizedPath.lineTo(selectedDrawing.startX, selectedDrawing.startY);
@@ -904,7 +853,6 @@ class DrawingCanvas {
             drawing.endY = drawing.resizedEndY;
             drawing.path = drawing.resizedPath;
             if (drawnFromX === "leftToRight") {
-                console.log("ran");
                 //Left is startX since we started on left side
                 drawing.x1 = drawing.startX;
                 drawing.x2 = drawing.endX;
