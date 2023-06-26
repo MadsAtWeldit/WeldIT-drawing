@@ -1066,8 +1066,8 @@ class DrawingCanvas {
         this.context.globalCompositeOperation = "source-over";
         this.context.strokeStyle = "#738FE5";
         this.context.lineWidth = 1;
+        const { x1, y1, x2, y2, startX, startY, endX, endY } = this.getCurrentCoords(drawing); //Checks if current state of drawing and returns coordinates based on if we are resizing or not and what element we are selecting
         if (drawing.type === "stroke" || drawing.type === "text") {
-            const { x1, y1, x2, y2 } = this.getCurrentCoords(drawing); //Check if we are resizing and use coords based on that
             const width = x2 - x1;
             const height = y2 - y1;
             //Draw main rectangle
@@ -1076,7 +1076,6 @@ class DrawingCanvas {
             this.drawCornerPoints(drawing);
         }
         else {
-            const { startX, startY, endX, endY } = this.getCurrentLineCoords(drawing);
             //Draw line from start to end
             this.context.lineWidth = 1;
             this.context.moveTo(startX, startY);
@@ -1090,8 +1089,8 @@ class DrawingCanvas {
         this.context.lineWidth = 5;
         let x;
         let y;
+        const { x1, y1, x2, y2, startX, startY, endX, endY } = this.getCurrentCoords(drawing);
         if (drawing.type === "stroke" || drawing.type === "text") {
-            const { x1, y1, x2, y2 } = this.getCurrentCoords(drawing);
             //Selection has 4 corners
             for (let i = 0; i < 4; i++) {
                 i === 0
@@ -1107,7 +1106,7 @@ class DrawingCanvas {
             }
         }
         else {
-            const { startX, startY, endX, endY } = this.getCurrentLineCoords(drawing);
+            //Selection has 2 ends
             for (let i = 0; i < 2; i++) {
                 i === 0 ? ((x = startX), (y = startY)) : ((x = endX), (y = endY));
                 this.context.beginPath();
@@ -1125,15 +1124,32 @@ class DrawingCanvas {
             return { startX: startX, startY: startY, endX: endX, endY: endY };
         }
     }
-    //Checks if we should use the resized coords or normal coords
+    //Checks current state of drawing and returns current coordinates
     getCurrentCoords(drawing) {
-        const { x1, y1, x2, y2, resizedX1, resizedY1, resizedX2, resizedY2 } = drawing;
-        if (this.isResizing) {
-            return { x1: resizedX1, y1: resizedY1, x2: resizedX2, y2: resizedY2 };
+        const coords = {};
+        if (drawing.type === "line") {
+            coords.startX = this.isResizing ? drawing.resizedStartX : drawing.startX;
+            coords.startY = this.isResizing ? drawing.resizedStartY : drawing.startY;
+            coords.endX = this.isResizing ? drawing.resizedEndX : drawing.endX;
+            coords.endY = this.isResizing ? drawing.resizedEndY : drawing.endY;
         }
         else {
-            return { x1: x1, y1: y1, x2: x2, y2: y2 };
+            //Replace startX with x1
+            coords["x1"] = coords["startX"];
+            coords["y1"] = coords["startY"];
+            coords["x2"] = coords["endX"];
+            coords["y2"] = coords["endY"];
+            //Remove previous coords
+            delete coords["startX"];
+            delete coords["startY"];
+            delete coords["endX"];
+            delete coords["endY"];
+            coords.x1 = this.isResizing ? drawing.resizedX1 : drawing.x1;
+            coords.y1 = this.isResizing ? drawing.resizedY1 : drawing.y1;
+            coords.x2 = this.isResizing ? drawing.resizedX2 : drawing.x2;
+            coords.y2 = this.isResizing ? drawing.resizedY2 : drawing.y2;
         }
+        return coords;
     }
     //Checks if mouse is within given coordinates
     mouseWithin(x1, x2, y1, y2, x, y) {
