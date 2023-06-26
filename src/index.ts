@@ -862,6 +862,7 @@ class DrawingCanvas implements OptionElementsI {
 
     //IF we have a selected drawing and we are dragging
     if (this.selectedDrawingIndex !== null && this.isDragging) {
+      //Move with respect to current mouse
       const dx = mouseX - this.startX;
       const dy = mouseY - this.startY;
 
@@ -1393,46 +1394,58 @@ class DrawingCanvas implements OptionElementsI {
       this.context.strokeRect(x1, y1, width, height);
 
       //Draw corners
-      this.drawCornerPoints(x1, y1, x2, y2);
+      this.drawCornerPoints(drawing);
     } else {
+      const { startX, startY, endX, endY } = this.getCurrentLineCoords(drawing);
       //Draw line from start to end
       this.context.lineWidth = 1;
-      this.context.moveTo(drawing.startX, drawing.startY);
-      this.context.lineTo(drawing.endX, drawing.endY);
+      this.context.moveTo(startX, startY);
+      this.context.lineTo(endX, endY);
       this.context.stroke();
 
-      this.context.lineWidth = 5;
-      this.context.beginPath();
-      this.context.arc(drawing.startX, drawing.startY, 1, 0, 2 * Math.PI);
-      this.context.stroke();
-
-      this.context.beginPath();
-      this.context.arc(drawing.endX, drawing.endY, 1, 0, 2 * Math.PI);
-      this.context.stroke();
-      // this.drawCornerPoints(drawing);
+      this.drawCornerPoints(drawing);
     }
   }
   //Draw points in corner
-  private drawCornerPoints(x1: number, y1: number, x2: number, y2: number) {
+  private drawCornerPoints(drawing: DrawingElements) {
     this.context.lineWidth = 5;
     let x;
     let y;
+    if (drawing.type === "stroke" || drawing.type === "text") {
+      const { x1, y1, x2, y2 } = this.getCurrentCoords(drawing);
+      //Selection has 4 corners
+      for (let i = 0; i < 4; i++) {
+        i === 0
+          ? ((x = x1), (y = y1)) //First draw top left corner
+          : i === 1
+          ? ((x = x2), (y = y1)) //Second draw top right corner
+          : i === 2
+          ? ((x = x1), (y = y2)) //Third draw bottom left corner
+          : ((x = x2), (y = y2)); //Last draw bottom right corner
+        this.context.beginPath();
+        this.context.arc(x, y, 1, 0, 2 * Math.PI);
+        this.context.stroke();
+      }
+    } else {
+      const { startX, startY, endX, endY } = this.getCurrentLineCoords(drawing);
+      for (let i = 0; i < 2; i++) {
+        i === 0 ? ((x = startX), (y = startY)) : ((x = endX), (y = endY));
 
-    //Selection has 4 corners
-    for (let i = 0; i < 4; i++) {
-      i === 0
-        ? ((x = x1), (y = y1)) //First draw top left corner
-        : i === 1
-        ? ((x = x2), (y = y1)) //Second draw top right corner
-        : i === 2
-        ? ((x = x1), (y = y2)) //Third draw bottom left corner
-        : ((x = x2), (y = y2)); //Last draw bottom right corner
-      this.context.beginPath();
-      this.context.arc(x, y, 1, 0, 2 * Math.PI);
-      this.context.stroke();
+        this.context.beginPath();
+        this.context.arc(x, y, 1, 0, 2 * Math.PI);
+        this.context.stroke();
+      }
     }
   }
-
+  private getCurrentLineCoords(drawing: LineElement) {
+    const { startX, startY, endX, endY, resizedStartX, resizedStartY, resizedEndX, resizedEndY } =
+      drawing;
+    if (this.isResizing) {
+      return { startX: resizedStartX, startY: resizedStartY, endX: resizedEndX, endY: resizedEndY };
+    } else {
+      return { startX: startX, startY: startY, endX: endX, endY: endY };
+    }
+  }
   //Checks if we should use the resized coords or normal coords
   private getCurrentCoords(drawing: PathElement | TextElement) {
     const { x1, y1, x2, y2, resizedX1, resizedY1, resizedX2, resizedY2 } = drawing;
@@ -1442,6 +1455,7 @@ class DrawingCanvas implements OptionElementsI {
       return { x1: x1, y1: y1, x2: x2, y2: y2 };
     }
   }
+
   //Checks if mouse is within given coordinates
   private mouseWithin(x1: number, x2: number, y1: number, y2: number, x: number, y: number) {
     if (x >= x1 && x <= x2 && y >= y1 && y <= y2) return true;
