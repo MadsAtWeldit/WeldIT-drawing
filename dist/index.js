@@ -108,10 +108,6 @@ class DrawingCanvas {
             resizedStartY: 0,
             resizedEndX: 0,
             resizedEndY: 0,
-            x1: 0,
-            y1: 0,
-            x2: 0,
-            y2: 0,
         };
         this.drawingData = [];
         this.startX = 0;
@@ -495,10 +491,6 @@ class DrawingCanvas {
                 this.lineObject.endY = this.mouseY;
                 //Take the path and line it to end
                 this.lineObject.path.lineTo(this.mouseX, this.mouseY);
-                this.lineObject.x1 = Math.min(this.lineObject.startX, this.lineObject.endX);
-                this.lineObject.x2 = Math.max(this.lineObject.startX, this.lineObject.endX);
-                this.lineObject.y1 = Math.min(this.lineObject.startY, this.lineObject.endY);
-                this.lineObject.y2 = Math.max(this.lineObject.startY, this.lineObject.endY);
                 //Save new line
                 this.index = this.incOrDec(this.index, "increment", 1);
                 this.drawingData.push(this.lineObject);
@@ -518,10 +510,6 @@ class DrawingCanvas {
                     resizedStartY: 0,
                     resizedEndX: 0,
                     resizedEndY: 0,
-                    x1: 0,
-                    y1: 0,
-                    x2: 0,
-                    y2: 0,
                 };
             }
             this.redraw(this.drawingData);
@@ -652,10 +640,6 @@ class DrawingCanvas {
                                 selectedDrawing.startY += dy;
                                 selectedDrawing.endX += dx;
                                 selectedDrawing.endY += dy;
-                                selectedDrawing.x1 += dx;
-                                selectedDrawing.y1 += dy;
-                                selectedDrawing.x2 += dx;
-                                selectedDrawing.y2 += dy;
                                 //Create new path from existing path
                                 const newPath = new Path2D();
                                 const m = new DOMMatrix().translate(dx, dy);
@@ -838,10 +822,6 @@ class DrawingCanvas {
             drawing.startY = drawing.resizedStartY;
             drawing.endY = drawing.resizedEndY;
             drawing.path = drawing.resizedPath;
-            drawing.x1 = Math.min(drawing.startX, drawing.endX);
-            drawing.x2 = Math.max(drawing.startX, drawing.endX);
-            drawing.y1 = Math.min(drawing.startY, drawing.endY);
-            drawing.y2 = Math.max(drawing.startY, drawing.endY);
         }
     }
     //Adds each coordinate to array
@@ -977,7 +957,7 @@ class DrawingCanvas {
     //Check if mouse is in corner of line
     mouseWithinLineSelection(drawing, mouseX, mouseY) {
         //Current line element
-        const { startX, startY, endX, endY, x1, y1, x2, y2, path } = drawing;
+        const { startX, startY, endX, endY, path } = drawing;
         let leftToRight = false;
         let rightToLeft = false;
         let topToBottom = false;
@@ -986,7 +966,9 @@ class DrawingCanvas {
         const offset = 10;
         //Get info on where line was drawn from
         const { drawnFromX, drawnFromY } = this.drawnFrom(drawing);
-        if (x2 - x1 > y2 - y1) {
+        const distanceX = drawnFromX === "leftToRight" ? drawing.endX - drawing.startX : drawing.startX - drawing.endX;
+        const distanceY = drawnFromY === "topToBottom" ? drawing.endY - drawing.startY : drawing.startY - drawing.endY;
+        if (distanceX > distanceY) {
             //IF drawn across the x axis we wanna say that its either from left to right OR right to left
             drawnFromX === "leftToRight" ? (leftToRight = true) : (rightToLeft = true);
         }
