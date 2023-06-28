@@ -43,6 +43,31 @@ interface ToggledStates {
   toggleLine: boolean;
 }
 
+interface SelectionCoords {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+}
+
+//Take each prop of T and combine the K in keyof T which is inferred to type PropertyKey so we add & string so its inferred to type string
+//Then cast it as "resizedX1" by concatenating the values
+type PrefixCoords<T, P extends string> = {
+  [K in keyof T & string as `${P}${Capitalize<K>}`]: T[K];
+};
+
+type ResizedSelectionCoords = PrefixCoords<SelectionCoords, "resized">;
+
+//Loop each key in T and cast key as "startX" instead of "x1"
+type RenameSelectionCoords<T, U> = {
+  [K in keyof T as U extends string ? U : never]: T[K];
+};
+
+type LineSelectionCoords = RenameSelectionCoords<
+  SelectionCoords,
+  "startX" | "startY" | "endX" | "endY"
+>;
+
 interface PathElement {
   type: "stroke";
   path: Path2D;
