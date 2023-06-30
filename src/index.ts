@@ -1,17 +1,4 @@
-//Values for different types of elements
-enum DrawingElementType {
-  controller = "controller",
-  pencil = "pencil",
-  eraser = "eraser",
-  colorPicker = "colorPicker",
-  lineWidth = "lineWidth",
-  clearCanvas = "clearCanvas",
-  moveAndResize = "moveAndResize",
-  undo = "undo",
-  text = "text",
-  lineTool = "lineTool",
-  rectangle = "rectangle",
-}
+import { DrawingElementType } from "./enums/enum.js";
 
 //Props for storing elements passed to options
 interface OptionElementsI {
@@ -50,18 +37,7 @@ interface SelectionCoords {
   y2?: number;
 }
 
-//Take each prop of T and combine the K in keyof T which is inferred to type PropertyKey so we add & string so its inferred to type string
-//Then cast it as "resizedX1" by concatenating the values
-type PrefixCoords<T, P extends string> = {
-  [K in keyof T & string as `${P}${Capitalize<K>}`]?: T[K];
-};
-
 type ResizedSelectionCoords = PrefixCoords<SelectionCoords, "resized">;
-
-//Loop each key in T and cast key as "startX" instead of "x1"
-type RenameSelectionCoords<T, U> = {
-  [K in keyof T as U extends string ? U : never]: T[K];
-};
 
 type LineSelectionCoords = RenameSelectionCoords<
   SelectionCoords,
@@ -106,11 +82,7 @@ interface LineElement {
   coords: LineSelectionCoords;
   resizedCoords: ResizedLineSelectionCoords;
 }
-
 type DrawingElements = PathElement | TextElement | LineElement;
-
-//Type that removes readonly so we can assign values inside class
-type Writable<T> = { -readonly [K in keyof T]: T[K] };
 type WritableDrawingCanvas = Writable<DrawingCanvas>;
 
 class DrawingCanvas implements OptionElementsI {
@@ -816,7 +788,7 @@ class DrawingCanvas implements OptionElementsI {
 
       //Selected drawing
       const selectedDrawing = this.drawingData[this.selectedDrawingIndex];
-      //Coords are required IF not then throw an error
+      //Coords are required IF not present then throw an error
       this.assertRequired(selectedDrawing.coords);
 
       switch (selectedDrawing.type) {
@@ -1359,8 +1331,8 @@ class DrawingCanvas implements OptionElementsI {
     this.context.strokeStyle = "#738FE5";
 
     this.context.lineWidth = 1;
-    const coords = this.getCurrentCoords(drawing); //Checks if current state of drawing and returns coordinates based on if we are resizing or not and what element we are selecting
 
+    const coords = this.getCurrentCoords(drawing); //Checks if current state of drawing and returns coordinates based on if we are resizing or not and what element we are selecting
     if (drawing.type === "stroke" || drawing.type === "text") {
       const width = coords.x2 - coords.x1;
       const height = coords.y2 - coords.y1;
@@ -1382,8 +1354,8 @@ class DrawingCanvas implements OptionElementsI {
   //Draw points in corner
   private drawCornerPoints(drawing: DrawingElements) {
     this.context.lineWidth = 5;
-    let x;
-    let y;
+    let x: number;
+    let y: number;
 
     const coords = this.getCurrentCoords(drawing);
 
@@ -1416,7 +1388,7 @@ class DrawingCanvas implements OptionElementsI {
     }
   }
 
-  //Checks current state of drawing and returns current coordinates
+  //Returns resized or original coords
   private getCurrentCoords(drawing: DrawingElements) {
     let coords: SelectionCoords & LineSelectionCoords;
 
@@ -1435,7 +1407,9 @@ class DrawingCanvas implements OptionElementsI {
         y2: this.isResizing ? drawing.resizedCoords.resizedY2 : drawing.coords.y2,
       };
     }
+    //Make sure that coords are not undefined before returning them
     this.assertRequired(coords);
+
     return coords;
   }
 

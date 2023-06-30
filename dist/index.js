@@ -1,19 +1,4 @@
-"use strict";
-//Values for different types of elements
-var DrawingElementType;
-(function (DrawingElementType) {
-    DrawingElementType["controller"] = "controller";
-    DrawingElementType["pencil"] = "pencil";
-    DrawingElementType["eraser"] = "eraser";
-    DrawingElementType["colorPicker"] = "colorPicker";
-    DrawingElementType["lineWidth"] = "lineWidth";
-    DrawingElementType["clearCanvas"] = "clearCanvas";
-    DrawingElementType["moveAndResize"] = "moveAndResize";
-    DrawingElementType["undo"] = "undo";
-    DrawingElementType["text"] = "text";
-    DrawingElementType["lineTool"] = "lineTool";
-    DrawingElementType["rectangle"] = "rectangle";
-})(DrawingElementType || (DrawingElementType = {}));
+import { DrawingElementType } from "./enums/enum.js";
 class DrawingCanvas {
     constructor(elementId, options) {
         var _a;
@@ -541,7 +526,7 @@ class DrawingCanvas {
                 const dy = mouseY - this.startY;
                 //Selected drawing
                 const selectedDrawing = this.drawingData[this.selectedDrawingIndex];
-                //Coords are required IF not then throw an error
+                //Coords are required IF not present then throw an error
                 this.assertRequired(selectedDrawing.coords);
                 switch (selectedDrawing.type) {
                     case "stroke":
@@ -1078,7 +1063,7 @@ class DrawingCanvas {
             }
         }
     }
-    //Checks current state of drawing and returns current coordinates
+    //Returns resized or original coords
     getCurrentCoords(drawing) {
         let coords;
         if (drawing.type === "line") {
@@ -1097,6 +1082,7 @@ class DrawingCanvas {
                 y2: this.isResizing ? drawing.resizedCoords.resizedY2 : drawing.coords.y2,
             };
         }
+        //Make sure that coords are not undefined before returning them
         this.assertRequired(coords);
         return coords;
     }
