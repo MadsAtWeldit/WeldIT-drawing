@@ -1,19 +1,4 @@
-"use strict";
-//Values for different types of elements
-var DrawingElementType;
-(function (DrawingElementType) {
-    DrawingElementType["controller"] = "controller";
-    DrawingElementType["pencil"] = "pencil";
-    DrawingElementType["eraser"] = "eraser";
-    DrawingElementType["colorPicker"] = "colorPicker";
-    DrawingElementType["lineWidth"] = "lineWidth";
-    DrawingElementType["clearCanvas"] = "clearCanvas";
-    DrawingElementType["moveAndResize"] = "moveAndResize";
-    DrawingElementType["undo"] = "undo";
-    DrawingElementType["text"] = "text";
-    DrawingElementType["lineTool"] = "lineTool";
-    DrawingElementType["rectangle"] = "rectangle";
-})(DrawingElementType || (DrawingElementType = {}));
+import { DrawingElementType } from "./enums/enum.js";
 class DrawingCanvas {
     constructor(elementId, options) {
         var _a;
@@ -62,14 +47,8 @@ class DrawingCanvas {
             lineWidth: 5,
             strokeStyle: "black",
             operation: "source-over",
-            x1: 0,
-            y1: 0,
-            x2: 0,
-            y2: 0,
-            resizedX1: 0,
-            resizedY1: 0,
-            resizedX2: 0,
-            resizedY2: 0,
+            coords: {},
+            resizedCoords: {},
             xCords: [],
             yCords: [],
             resizedXCords: [],
@@ -82,15 +61,9 @@ class DrawingCanvas {
             font: "30pt sans-serif",
             resizedFont: "",
             baseline: "top",
-            x1: 0,
-            y1: 0,
-            x2: 0,
-            y2: 0,
-            resizedX1: 0,
-            resizedY1: 0,
-            resizedX2: 0,
-            resizedY2: 0,
             operation: "source-over",
+            coords: {},
+            resizedCoords: {},
         };
         //Create default line object
         this.lineObject = {
@@ -100,18 +73,8 @@ class DrawingCanvas {
             lineWidth: 5,
             strokeStyle: "black",
             operation: "source-over",
-            startX: 0,
-            startY: 0,
-            endX: 0,
-            endY: 0,
-            resizedStartX: 0,
-            resizedStartY: 0,
-            resizedEndX: 0,
-            resizedEndY: 0,
-            x1: 0,
-            y1: 0,
-            x2: 0,
-            y2: 0,
+            coords: {},
+            resizedCoords: {},
         };
         this.drawingData = [];
         this.startX = 0;
@@ -366,10 +329,13 @@ class DrawingCanvas {
                     //Measure the drawn text
                     const textWidth = this.context.measureText(textInput.value).width;
                     const textHeight = parseInt(this.context.font);
-                    this.textObject.x1 = mouseX;
-                    this.textObject.y1 = mouseY;
-                    this.textObject.x2 = Math.round(this.textObject.x1 + textWidth);
-                    this.textObject.y2 = Math.round(this.textObject.y1 + textHeight);
+                    //Init coordinates
+                    this.textObject.coords = {
+                        x1: mouseX,
+                        y1: mouseY,
+                        x2: Math.round(mouseX + textWidth),
+                        y2: Math.round(mouseY + textHeight),
+                    };
                     //Draw the text
                     this.context.fillText(this.textObject.text, mouseX, mouseY);
                     //Save and store index
@@ -384,15 +350,9 @@ class DrawingCanvas {
                         font: "30pt sans-serif",
                         resizedFont: "",
                         baseline: "top",
-                        x1: 0,
-                        y1: 0,
-                        x2: 0,
-                        y2: 0,
-                        resizedX1: 0,
-                        resizedY1: 0,
-                        resizedX2: 0,
-                        resizedY2: 0,
                         operation: "source-over",
+                        coords: {},
+                        resizedCoords: {},
                     };
                 });
                 textInput.addEventListener("keypress", (e) => {
@@ -404,13 +364,13 @@ class DrawingCanvas {
             }
             if (this.toggleLine) {
                 if (this.isLining)
-                    return;
+                    return; //So it jumps to mouseup
                 this.lineObject.operation = "source-over";
                 //Signal that we are trying to draw a line
                 this.shouldLine = true;
                 this.lineObject.path.moveTo(mouseX, mouseY);
-                this.lineObject.startX = mouseX;
-                this.lineObject.startY = mouseY;
+                //Init start coordinates
+                this.lineObject.coords = { startX: mouseX, startY: mouseY };
             }
         };
         //Runs whenever mouse is released
@@ -433,14 +393,8 @@ class DrawingCanvas {
                         lineWidth: this.context.lineWidth,
                         strokeStyle: String(this.context.strokeStyle),
                         operation: "source-over",
-                        x1: 0,
-                        y1: 0,
-                        x2: 0,
-                        y2: 0,
-                        resizedX1: 0,
-                        resizedY1: 0,
-                        resizedX2: 0,
-                        resizedY2: 0,
+                        coords: {},
+                        resizedCoords: {},
                         xCords: [],
                         yCords: [],
                         resizedXCords: [],
@@ -448,11 +402,13 @@ class DrawingCanvas {
                     };
                     return;
                 }
-                //Set init value for left, top right and bottom
-                this.pathObject.x1 = Math.min(...this.pathObject.xCords);
-                this.pathObject.y1 = Math.min(...this.pathObject.yCords);
-                this.pathObject.x2 = Math.max(...this.pathObject.xCords);
-                this.pathObject.y2 = Math.max(...this.pathObject.yCords);
+                //Init coords
+                this.pathObject.coords = {
+                    x1: Math.min(...this.pathObject.xCords),
+                    y1: Math.min(...this.pathObject.yCords),
+                    x2: Math.max(...this.pathObject.xCords),
+                    y2: Math.max(...this.pathObject.yCords),
+                };
                 //Save
                 this.index = this.incOrDec(this.index, "increment", 1);
                 this.drawingData.push(this.pathObject);
@@ -464,14 +420,8 @@ class DrawingCanvas {
                     lineWidth: this.context.lineWidth,
                     strokeStyle: String(this.context.strokeStyle),
                     operation: "source-over",
-                    x1: 0,
-                    y1: 0,
-                    x2: 0,
-                    y2: 0,
-                    resizedX1: 0,
-                    resizedY1: 0,
-                    resizedX2: 0,
-                    resizedY2: 0,
+                    coords: {},
+                    resizedCoords: {},
                     xCords: [],
                     yCords: [],
                     resizedXCords: [],
@@ -490,15 +440,11 @@ class DrawingCanvas {
             if (this.isLining) {
                 this.shouldLine = false;
                 this.isLining = false;
-                //End of line
-                this.lineObject.endX = this.mouseX;
-                this.lineObject.endY = this.mouseY;
+                //Set end points
+                this.lineObject.coords.endX = this.mouseX;
+                this.lineObject.coords.endY = this.mouseY;
                 //Take the path and line it to end
                 this.lineObject.path.lineTo(this.mouseX, this.mouseY);
-                this.lineObject.x1 = Math.min(this.lineObject.startX, this.lineObject.endX);
-                this.lineObject.x2 = Math.max(this.lineObject.startX, this.lineObject.endX);
-                this.lineObject.y1 = Math.min(this.lineObject.startY, this.lineObject.endY);
-                this.lineObject.y2 = Math.max(this.lineObject.startY, this.lineObject.endY);
                 //Save new line
                 this.index = this.incOrDec(this.index, "increment", 1);
                 this.drawingData.push(this.lineObject);
@@ -510,24 +456,11 @@ class DrawingCanvas {
                     lineWidth: 5,
                     strokeStyle: "black",
                     operation: "source-over",
-                    startX: 0,
-                    startY: 0,
-                    endX: 0,
-                    endY: 0,
-                    resizedStartX: 0,
-                    resizedStartY: 0,
-                    resizedEndX: 0,
-                    resizedEndY: 0,
-                    x1: 0,
-                    y1: 0,
-                    x2: 0,
-                    y2: 0,
+                    coords: {},
+                    resizedCoords: {},
                 };
             }
             this.redraw(this.drawingData);
-            //Save stroke
-            // this.context.stroke();
-            // this.context.closePath();
         };
         this.mouseMoveHandler = (e) => {
             const evtType = e.touches ? e.touches[0] : e;
@@ -593,6 +526,8 @@ class DrawingCanvas {
                 const dy = mouseY - this.startY;
                 //Selected drawing
                 const selectedDrawing = this.drawingData[this.selectedDrawingIndex];
+                //Coords are required IF not present then throw an error
+                this.assertRequired(selectedDrawing.coords);
                 switch (selectedDrawing.type) {
                     case "stroke":
                         {
@@ -604,10 +539,10 @@ class DrawingCanvas {
                                     selectedDrawing.yCords[i] += dy;
                                 }
                                 //Update left, top, right and bottom
-                                selectedDrawing.x1 = Math.min(...selectedDrawing.xCords);
-                                selectedDrawing.y1 = Math.min(...selectedDrawing.yCords);
-                                selectedDrawing.x2 = Math.max(...selectedDrawing.xCords);
-                                selectedDrawing.y2 = Math.max(...selectedDrawing.yCords);
+                                selectedDrawing.coords.x1 = Math.min(...selectedDrawing.xCords);
+                                selectedDrawing.coords.y1 = Math.min(...selectedDrawing.yCords);
+                                selectedDrawing.coords.x2 = Math.max(...selectedDrawing.xCords);
+                                selectedDrawing.coords.y2 = Math.max(...selectedDrawing.yCords);
                                 //Create new path from existing path
                                 const newPath = new Path2D();
                                 const m = new DOMMatrix().translate(dx, dy);
@@ -629,10 +564,10 @@ class DrawingCanvas {
                             if (this.shouldMove) {
                                 this.isMoving = true;
                                 //Assign new coordinates
-                                selectedDrawing.x1 += dx;
-                                selectedDrawing.y1 += dy;
-                                selectedDrawing.x2 += dx;
-                                selectedDrawing.y2 += dy;
+                                selectedDrawing.coords.x1 += dx;
+                                selectedDrawing.coords.y1 += dy;
+                                selectedDrawing.coords.x2 += dx;
+                                selectedDrawing.coords.y2 += dy;
                                 this.startX = mouseX;
                                 this.startY = mouseY;
                             }
@@ -648,14 +583,10 @@ class DrawingCanvas {
                             if (this.shouldMove) {
                                 this.isMoving = true;
                                 //Assign new start and end coordinates
-                                selectedDrawing.startX += dx;
-                                selectedDrawing.startY += dy;
-                                selectedDrawing.endX += dx;
-                                selectedDrawing.endY += dy;
-                                selectedDrawing.x1 += dx;
-                                selectedDrawing.y1 += dy;
-                                selectedDrawing.x2 += dx;
-                                selectedDrawing.y2 += dy;
+                                selectedDrawing.coords.startX += dx;
+                                selectedDrawing.coords.startY += dy;
+                                selectedDrawing.coords.endX += dx;
+                                selectedDrawing.coords.endY += dy;
                                 //Create new path from existing path
                                 const newPath = new Path2D();
                                 const m = new DOMMatrix().translate(dx, dy);
@@ -673,10 +604,12 @@ class DrawingCanvas {
                                 this.isResizing = true;
                                 const resizedPath = new Path2D();
                                 //Init resized start and end
-                                selectedDrawing.resizedStartX = selectedDrawing.startX;
-                                selectedDrawing.resizedStartY = selectedDrawing.startY;
-                                selectedDrawing.resizedEndX = selectedDrawing.endX;
-                                selectedDrawing.resizedEndY = selectedDrawing.endY;
+                                selectedDrawing.resizedCoords = {
+                                    resizedStartX: selectedDrawing.coords.startX,
+                                    resizedStartY: selectedDrawing.coords.startY,
+                                    resizedEndX: selectedDrawing.coords.endX,
+                                    resizedEndY: selectedDrawing.coords.endY,
+                                };
                                 switch (from) {
                                     //IF we should resize from left and its drawn from left that means that start coords is on the left side
                                     //So resizeStartCoords
@@ -702,18 +635,18 @@ class DrawingCanvas {
                                         break;
                                 }
                                 if (resizeStartCoords) {
-                                    selectedDrawing.resizedStartX = mouseX;
-                                    selectedDrawing.resizedStartY = mouseY;
+                                    selectedDrawing.resizedCoords.resizedStartX = mouseX;
+                                    selectedDrawing.resizedCoords.resizedStartY = mouseY;
                                     this.context.beginPath();
-                                    resizedPath.moveTo(selectedDrawing.resizedStartX, selectedDrawing.resizedStartY);
-                                    resizedPath.lineTo(selectedDrawing.endX, selectedDrawing.endY);
+                                    resizedPath.moveTo(selectedDrawing.resizedCoords.resizedStartX, selectedDrawing.resizedCoords.resizedStartY);
+                                    resizedPath.lineTo(selectedDrawing.coords.endX, selectedDrawing.coords.endY);
                                 }
                                 else {
-                                    selectedDrawing.resizedEndX = mouseX;
-                                    selectedDrawing.resizedEndY = mouseY;
+                                    selectedDrawing.resizedCoords.resizedEndX = mouseX;
+                                    selectedDrawing.resizedCoords.resizedEndY = mouseY;
                                     this.context.beginPath();
-                                    resizedPath.moveTo(selectedDrawing.resizedEndX, selectedDrawing.resizedEndY);
-                                    resizedPath.lineTo(selectedDrawing.startX, selectedDrawing.startY);
+                                    resizedPath.moveTo(selectedDrawing.resizedCoords.resizedEndX, selectedDrawing.resizedCoords.resizedEndY);
+                                    resizedPath.lineTo(selectedDrawing.coords.startX, selectedDrawing.coords.startY);
                                 }
                                 selectedDrawing.resizedPath = resizedPath;
                             }
@@ -740,7 +673,7 @@ class DrawingCanvas {
                 //Begin current path
                 this.context.beginPath();
                 //Move context to start position of lineObject
-                this.context.moveTo(this.lineObject.startX, this.lineObject.startY);
+                this.context.moveTo(this.lineObject.coords.startX, this.lineObject.coords.startY); //We know that since we "shouldLine" we have clicked so we can say as
                 //Draw a line to current mouse position
                 this.context.lineTo(mouseX, mouseY);
                 //Close the path and save -> repeat while moving
@@ -820,28 +753,24 @@ class DrawingCanvas {
             drawing.xCords = drawing.resizedXCords;
             drawing.yCords = drawing.resizedYCords;
             drawing.path = drawing.resizedPath;
-            drawing.x1 = Math.min(...drawing.xCords);
-            drawing.y1 = Math.min(...drawing.yCords);
-            drawing.x2 = Math.max(...drawing.xCords);
-            drawing.y2 = Math.max(...drawing.yCords);
+            drawing.coords.x1 = Math.min(...drawing.xCords);
+            drawing.coords.y1 = Math.min(...drawing.yCords);
+            drawing.coords.x2 = Math.max(...drawing.xCords);
+            drawing.coords.y2 = Math.max(...drawing.yCords);
         }
         else if (drawing.type === "text") {
             drawing.font = drawing.resizedFont;
-            drawing.x1 = drawing.resizedX1;
-            drawing.y1 = drawing.resizedY1;
-            drawing.x2 = drawing.resizedX2;
-            drawing.y2 = drawing.resizedY2;
+            drawing.coords.x1 = drawing.resizedCoords.resizedX1;
+            drawing.coords.y1 = drawing.resizedCoords.resizedY1;
+            drawing.coords.x2 = drawing.resizedCoords.resizedX2;
+            drawing.coords.y2 = drawing.resizedCoords.resizedY2;
         }
         else {
-            drawing.startX = drawing.resizedStartX;
-            drawing.endX = drawing.resizedEndX;
-            drawing.startY = drawing.resizedStartY;
-            drawing.endY = drawing.resizedEndY;
+            drawing.coords.startX = drawing.resizedCoords.resizedStartX;
+            drawing.coords.endX = drawing.resizedCoords.resizedEndX;
+            drawing.coords.startY = drawing.resizedCoords.resizedStartY;
+            drawing.coords.endY = drawing.resizedCoords.resizedEndY;
             drawing.path = drawing.resizedPath;
-            drawing.x1 = Math.min(drawing.startX, drawing.endX);
-            drawing.x2 = Math.max(drawing.startX, drawing.endX);
-            drawing.y1 = Math.min(drawing.startY, drawing.endY);
-            drawing.y2 = Math.max(drawing.startY, drawing.endY);
         }
     }
     //Adds each coordinate to array
@@ -852,12 +781,13 @@ class DrawingCanvas {
     }
     //Helper function that takes care of returning values for scaling correctly
     scaleCorrectly(from, element, currentMouseX, currentMouseY) {
+        this.assertRequired(element.coords);
         //IF scaling from the left side then start = left : start = right;
-        const startCornerX = from === "tl" || from === "bl" ? element.x1 : element.x2;
-        const startCornerY = from === "tl" || from === "tr" ? element.y1 : element.y2;
+        const startCornerX = from === "tl" || from === "bl" ? element.coords.x1 : element.coords.x2;
+        const startCornerY = from === "tl" || from === "tr" ? element.coords.y1 : element.coords.y2;
         //IF scaling from left side then origin is opposite side so that we scale inwards or outwards based on corner
-        const scaleOriginX = from === "tl" || from === "bl" ? element.x2 : element.x1;
-        const scaleOriginY = from === "tl" || from === "tr" ? element.y2 : element.y1;
+        const scaleOriginX = from === "tl" || from === "bl" ? element.coords.x2 : element.coords.x1;
+        const scaleOriginY = from === "tl" || from === "tr" ? element.coords.y2 : element.coords.y1;
         //For the scaling to work properly i also need where we scale from
         //Since scaling from left side to right side would not work with e.g (x1 - x2 so instead x2 - x1 for distance)
         const originalDistance = from === "tl" || from === "bl"
@@ -908,11 +838,15 @@ class DrawingCanvas {
         const newFont = fontStringCopy.replace(fontSize.toString(), resizedFontSize.toString());
         //Store new left, right, top and bottom based on which side we scaled from
         from === "tl" || from === "bl"
-            ? ((element.resizedX1 = scaleOriginX - newDistanceX), (element.resizedX2 = scaleOriginX))
-            : ((element.resizedX2 = scaleOriginX - newDistanceX), (element.resizedX1 = scaleOriginX));
+            ? ((element.resizedCoords.resizedX1 = scaleOriginX - newDistanceX),
+                (element.resizedCoords.resizedX2 = scaleOriginX))
+            : ((element.resizedCoords.resizedX2 = scaleOriginX - newDistanceX),
+                (element.resizedCoords.resizedX1 = scaleOriginX));
         from === "tl" || from === "tr"
-            ? ((element.resizedY1 = scaleOriginY - newDistanceY), (element.resizedY2 = scaleOriginY))
-            : ((element.resizedY2 = scaleOriginY - newDistanceY), (element.resizedY1 = scaleOriginY));
+            ? ((element.resizedCoords.resizedY1 = scaleOriginY - newDistanceY),
+                (element.resizedCoords.resizedY2 = scaleOriginY))
+            : ((element.resizedCoords.resizedY2 = scaleOriginY - newDistanceY),
+                (element.resizedCoords.resizedY1 = scaleOriginY));
         //Store the new font size
         element.resizedFont = newFont;
     }
@@ -947,10 +881,10 @@ class DrawingCanvas {
             resizedPath.lineTo(resizedXCords[i], resizedYCords[i]);
         }
         //Set resized left, right, top and bottom
-        element.resizedX1 = Math.min(...resizedXCords);
-        element.resizedY1 = Math.min(...resizedYCords);
-        element.resizedX2 = Math.max(...resizedXCords);
-        element.resizedY2 = Math.max(...resizedYCords);
+        element.resizedCoords.resizedX1 = Math.min(...resizedXCords);
+        element.resizedCoords.resizedY1 = Math.min(...resizedYCords);
+        element.resizedCoords.resizedX2 = Math.max(...resizedXCords);
+        element.resizedCoords.resizedY2 = Math.max(...resizedYCords);
         element.resizedXCords = resizedXCords;
         element.resizedYCords = resizedYCords;
         element.resizedPath = resizedPath;
@@ -959,7 +893,8 @@ class DrawingCanvas {
     drawnFrom(drawing) {
         let X;
         let Y;
-        const { startX, endX, startY, endY } = drawing;
+        this.assertRequired(drawing.coords);
+        const { startX, endX, startY, endY } = drawing.coords;
         if (startX < endX) {
             X = "leftToRight";
         }
@@ -976,8 +911,10 @@ class DrawingCanvas {
     }
     //Check if mouse is in corner of line
     mouseWithinLineSelection(drawing, mouseX, mouseY) {
+        //Throw error if coords is undefined
+        this.assertRequired(drawing.coords);
         //Current line element
-        const { startX, startY, endX, endY, x1, y1, x2, y2, path } = drawing;
+        const { startX, startY, endX, endY } = drawing.coords;
         let leftToRight = false;
         let rightToLeft = false;
         let topToBottom = false;
@@ -986,7 +923,9 @@ class DrawingCanvas {
         const offset = 10;
         //Get info on where line was drawn from
         const { drawnFromX, drawnFromY } = this.drawnFrom(drawing);
-        if (x2 - x1 > y2 - y1) {
+        const distanceX = drawnFromX === "leftToRight" ? endX - startX : startX - endX;
+        const distanceY = drawnFromY === "topToBottom" ? endY - startY : startY - endY;
+        if (distanceX > distanceY) {
             //IF drawn across the x axis we wanna say that its either from left to right OR right to left
             drawnFromX === "leftToRight" ? (leftToRight = true) : (rightToLeft = true);
         }
@@ -1015,7 +954,7 @@ class DrawingCanvas {
         else if (this.mouseWithin(rightAndBottomX1, rightAndBottomX2, rightAndBottomY1, rightAndBottomY2, mouseX, mouseY)) {
             mousePosition = leftToRight || rightToLeft ? "r" : "b";
         }
-        else if (this.context.isPointInStroke(path, mouseX, mouseY)) {
+        else if (this.context.isPointInStroke(drawing.path, mouseX, mouseY)) {
             //IF its not in corner but inside stroke
             mousePosition = "m";
         }
@@ -1025,9 +964,16 @@ class DrawingCanvas {
         }
         return mousePosition;
     }
+    //Throws error if value is falsy
+    assertDefined(value) {
+        if (value == null) {
+            throw new Error(`Error: value ${value} cannot be null/undefined`);
+        }
+    }
     //Checks if mouse is within selection rectangle for those that have it
     mouseWithinSelection(x, y, drawing) {
-        const { x1, y1, x2, y2 } = drawing;
+        this.assertRequired(drawing.coords);
+        const { x1, y1, x2, y2 } = drawing.coords;
         //Top left rectangle
         const topLeftX1 = x1;
         const topLeftX2 = x1 + 10;
@@ -1066,21 +1012,20 @@ class DrawingCanvas {
         this.context.globalCompositeOperation = "source-over";
         this.context.strokeStyle = "#738FE5";
         this.context.lineWidth = 1;
+        const coords = this.getCurrentCoords(drawing); //Checks if current state of drawing and returns coordinates based on if we are resizing or not and what element we are selecting
         if (drawing.type === "stroke" || drawing.type === "text") {
-            const { x1, y1, x2, y2 } = this.getCurrentCoords(drawing); //Check if we are resizing and use coords based on that
-            const width = x2 - x1;
-            const height = y2 - y1;
+            const width = coords.x2 - coords.x1;
+            const height = coords.y2 - coords.y1;
             //Draw main rectangle
-            this.context.strokeRect(x1, y1, width, height);
+            this.context.strokeRect(coords.x1, coords.y1, width, height);
             //Draw corners
             this.drawCornerPoints(drawing);
         }
         else {
-            const { startX, startY, endX, endY } = this.getCurrentLineCoords(drawing);
             //Draw line from start to end
             this.context.lineWidth = 1;
-            this.context.moveTo(startX, startY);
-            this.context.lineTo(endX, endY);
+            this.context.moveTo(coords.startX, coords.startY);
+            this.context.lineTo(coords.endX, coords.endY);
             this.context.stroke();
             this.drawCornerPoints(drawing);
         }
@@ -1090,50 +1035,56 @@ class DrawingCanvas {
         this.context.lineWidth = 5;
         let x;
         let y;
+        const coords = this.getCurrentCoords(drawing);
         if (drawing.type === "stroke" || drawing.type === "text") {
-            const { x1, y1, x2, y2 } = this.getCurrentCoords(drawing);
             //Selection has 4 corners
             for (let i = 0; i < 4; i++) {
                 i === 0
-                    ? ((x = x1), (y = y1)) //First draw top left corner
+                    ? ((x = coords.x1), (y = coords.y1)) //First draw top left corner
                     : i === 1
-                        ? ((x = x2), (y = y1)) //Second draw top right corner
+                        ? ((x = coords.x2), (y = coords.y1)) //Second draw top right corner
                         : i === 2
-                            ? ((x = x1), (y = y2)) //Third draw bottom left corner
-                            : ((x = x2), (y = y2)); //Last draw bottom right corner
+                            ? ((x = coords.x1), (y = coords.y2)) //Third draw bottom left corner
+                            : ((x = coords.x2), (y = coords.y2)); //Last draw bottom right corner
                 this.context.beginPath();
                 this.context.arc(x, y, 1, 0, 2 * Math.PI);
                 this.context.stroke();
             }
         }
         else {
-            const { startX, startY, endX, endY } = this.getCurrentLineCoords(drawing);
+            //Selection has 2 ends
             for (let i = 0; i < 2; i++) {
-                i === 0 ? ((x = startX), (y = startY)) : ((x = endX), (y = endY));
+                i === 0
+                    ? ((x = coords.startX), (y = coords.startY))
+                    : ((x = coords.endX), (y = coords.endY));
                 this.context.beginPath();
                 this.context.arc(x, y, 1, 0, 2 * Math.PI);
                 this.context.stroke();
             }
         }
     }
-    getCurrentLineCoords(drawing) {
-        const { startX, startY, endX, endY, resizedStartX, resizedStartY, resizedEndX, resizedEndY } = drawing;
-        if (this.isResizing) {
-            return { startX: resizedStartX, startY: resizedStartY, endX: resizedEndX, endY: resizedEndY };
-        }
-        else {
-            return { startX: startX, startY: startY, endX: endX, endY: endY };
-        }
-    }
-    //Checks if we should use the resized coords or normal coords
+    //Returns resized or original coords
     getCurrentCoords(drawing) {
-        const { x1, y1, x2, y2, resizedX1, resizedY1, resizedX2, resizedY2 } = drawing;
-        if (this.isResizing) {
-            return { x1: resizedX1, y1: resizedY1, x2: resizedX2, y2: resizedY2 };
+        let coords;
+        if (drawing.type === "line") {
+            coords = {
+                startX: this.isResizing ? drawing.resizedCoords.resizedStartX : drawing.coords.startX,
+                startY: this.isResizing ? drawing.resizedCoords.resizedStartY : drawing.coords.startY,
+                endX: this.isResizing ? drawing.resizedCoords.resizedEndX : drawing.coords.endX,
+                endY: this.isResizing ? drawing.resizedCoords.resizedEndY : drawing.coords.endY,
+            };
         }
         else {
-            return { x1: x1, y1: y1, x2: x2, y2: y2 };
+            coords = {
+                x1: this.isResizing ? drawing.resizedCoords.resizedX1 : drawing.coords.x1,
+                y1: this.isResizing ? drawing.resizedCoords.resizedY1 : drawing.coords.y1,
+                x2: this.isResizing ? drawing.resizedCoords.resizedX2 : drawing.coords.x2,
+                y2: this.isResizing ? drawing.resizedCoords.resizedY2 : drawing.coords.y2,
+            };
         }
+        //Make sure that coords are not undefined before returning them
+        this.assertRequired(coords);
+        return coords;
     }
     //Checks if mouse is within given coordinates
     mouseWithin(x1, x2, y1, y2, x, y) {
@@ -1181,16 +1132,17 @@ class DrawingCanvas {
                 case "text":
                     if (this.selectedDrawingIndex === i) {
                         if (this.isResizing) {
+                            this.assertRequired(drawing.resizedCoords);
                             this.setCtxStyles(drawing);
                             this.context.font = drawing.resizedFont;
-                            this.context.fillText(drawing.text, drawing.resizedX1, drawing.resizedY1);
+                            this.context.fillText(drawing.text, drawing.resizedCoords.resizedX1, drawing.resizedCoords.resizedY1);
                             this.createDrawingSelection(drawing);
                             return;
                         }
                         this.createDrawingSelection(drawing);
                     }
                     this.setCtxStyles(drawing);
-                    this.context.fillText(drawing.text, drawing.x1, drawing.y1);
+                    this.context.fillText(drawing.text, drawing.coords.x1, drawing.coords.y1);
                     break;
                 case "line":
                     if (this.selectedDrawingIndex === i) {
@@ -1229,6 +1181,17 @@ class DrawingCanvas {
         else {
             return (index -= steps);
         }
+    }
+    //Function that throws an error if coords are undefined or not typeof number
+    assertRequired(coords) {
+        //IF there is no props in the provided object
+        if (Object.keys(coords).length <= 0)
+            throw new Error(`Error: no coords exist on this object`);
+        //IF the provided value of said object is not type of a number
+        Object.entries(coords).forEach(([k, v]) => {
+            if (typeof v !== "number")
+                throw new Error(`Error type ${k}:${v} must be of type number`);
+        });
     }
 }
 new DrawingCanvas("drawing-board", {
