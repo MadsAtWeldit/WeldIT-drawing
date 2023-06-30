@@ -187,7 +187,7 @@ class DrawingCanvas {
                 ]);
             }
         };
-        //Runs whenever mouse is clicked
+        //Handles pressdown/click
         this.pressDownHandler = (e) => {
             this.mouseIsDown = true;
             if (this.isWriting)
@@ -373,7 +373,7 @@ class DrawingCanvas {
                 this.lineObject.coords = { startX: mouseX, startY: mouseY };
             }
         };
-        //Runs whenever mouse is released
+        //Handles mouse release
         this.mouseUpHandler = () => {
             //Reset states
             this.mouseIsDown = false;
@@ -462,6 +462,7 @@ class DrawingCanvas {
             }
             this.redraw(this.drawingData);
         };
+        //Handles moving mouse
         this.mouseMoveHandler = (e) => {
             const evtType = e.touches ? e.touches[0] : e;
             //Current mouse positions
@@ -682,6 +683,7 @@ class DrawingCanvas {
             }
             e.preventDefault();
         };
+        //Function for creating a html element
         this.createPersonalElement = (tagName, type, styles) => {
             const element = document.createElement(tagName);
             if (type)
@@ -697,6 +699,7 @@ class DrawingCanvas {
             }
             return element;
         };
+        //Handles toggling between buttons
         this.handleToggle = (activeElements, inactiveElements) => {
             activeElements.forEach((element) => {
                 var _a;
@@ -747,7 +750,7 @@ class DrawingCanvas {
         controller === null || controller === void 0 ? void 0 : controller.addEventListener("change", this.changeHandler);
         controller === null || controller === void 0 ? void 0 : controller.addEventListener("click", this.toolSelectHandler);
     }
-    //Updates drawing to resized
+    //Function that updates given drawings coords to resized coords
     updateToResized(drawing) {
         if (drawing.type === "stroke") {
             drawing.xCords = drawing.resizedXCords;
@@ -779,7 +782,7 @@ class DrawingCanvas {
         this.pathObject.yCords.push(y);
         this.isDragging = dragging;
     }
-    //Helper function that takes care of returning values for scaling correctly
+    //Function that returns correct coordinates and scalefactor for scaling
     scaleCorrectly(from, element, currentMouseX, currentMouseY) {
         this.assertRequired(element.coords);
         //IF scaling from the left side then start = left : start = right;
@@ -889,7 +892,7 @@ class DrawingCanvas {
         element.resizedYCords = resizedYCords;
         element.resizedPath = resizedPath;
     }
-    //Checks where line is drawn from
+    //Checks where LineElement is drawn from
     drawnFrom(drawing) {
         let X;
         let Y;
@@ -909,7 +912,7 @@ class DrawingCanvas {
         }
         return { drawnFromX: X, drawnFromY: Y };
     }
-    //Check if mouse is in corner of line
+    //Check if mouse is in corner of LineElement
     mouseWithinLineSelection(drawing, mouseX, mouseY) {
         //Throw error if coords is undefined
         this.assertRequired(drawing.coords);
@@ -964,12 +967,6 @@ class DrawingCanvas {
         }
         return mousePosition;
     }
-    //Throws error if value is falsy
-    assertDefined(value) {
-        if (value == null) {
-            throw new Error(`Error: value ${value} cannot be null/undefined`);
-        }
-    }
     //Checks if mouse is within selection rectangle for those that have it
     mouseWithinSelection(x, y, drawing) {
         this.assertRequired(drawing.coords);
@@ -1007,12 +1004,12 @@ class DrawingCanvas {
                             : false;
         return mouseIsIn;
     }
-    //Draw a selection for selected drawing
+    //Function for well.. creating a drawing selection
     createDrawingSelection(drawing) {
         this.context.globalCompositeOperation = "source-over";
         this.context.strokeStyle = "#738FE5";
         this.context.lineWidth = 1;
-        const coords = this.getCurrentCoords(drawing); //Checks if current state of drawing and returns coordinates based on if we are resizing or not and what element we are selecting
+        const coords = this.getCorrectCoords(drawing);
         if (drawing.type === "stroke" || drawing.type === "text") {
             const width = coords.x2 - coords.x1;
             const height = coords.y2 - coords.y1;
@@ -1030,12 +1027,12 @@ class DrawingCanvas {
             this.drawCornerPoints(drawing);
         }
     }
-    //Draw points in corner
+    //Function for drawing corner points :P
     drawCornerPoints(drawing) {
         this.context.lineWidth = 5;
         let x;
         let y;
-        const coords = this.getCurrentCoords(drawing);
+        const coords = this.getCorrectCoords(drawing);
         if (drawing.type === "stroke" || drawing.type === "text") {
             //Selection has 4 corners
             for (let i = 0; i < 4; i++) {
@@ -1063,8 +1060,8 @@ class DrawingCanvas {
             }
         }
     }
-    //Returns resized or original coords
-    getCurrentCoords(drawing) {
+    //Function that returns the correct coords of given drawing based on if we are resizing or not
+    getCorrectCoords(drawing) {
         let coords;
         if (drawing.type === "line") {
             coords = {
@@ -1092,7 +1089,7 @@ class DrawingCanvas {
             return true;
         return false;
     }
-    //Sets context styles based on drawing styles
+    //Function for setting styles based on drawing
     setCtxStyles(drawing) {
         this.context.globalCompositeOperation = drawing.operation;
         this.context.lineCap = "round";
@@ -1109,7 +1106,7 @@ class DrawingCanvas {
             this.context.strokeStyle = drawing.strokeStyle;
         }
     }
-    //Loop and redraw each drawing as drawn
+    //Function for redrawing canvas when interactive
     redraw(drawingData) {
         this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
         if (drawingData.length <= 0)
@@ -1162,9 +1159,11 @@ class DrawingCanvas {
             }
         });
     }
+    //Function for assigning value to readonly props
     assignToProp(propName, element) {
         this[propName] = element;
     }
+    //Function that checks if given element is target
     targetIs(element, target) {
         if ((target.id && target.id === element.id) ||
             (target.className && target.className === element.className)) {
@@ -1174,12 +1173,19 @@ class DrawingCanvas {
             return false;
         }
     }
+    //Function for incrementing and decrementing
     incOrDec(index, type, steps) {
         if (type === "increment") {
             return (index += steps);
         }
         else {
             return (index -= steps);
+        }
+    }
+    //Throws error if value is null or undefined
+    assertDefined(value) {
+        if (value == null) {
+            throw new Error(`Error: value ${value} cannot be null/undefined`);
         }
     }
     //Function that throws an error if coords are undefined or not typeof number

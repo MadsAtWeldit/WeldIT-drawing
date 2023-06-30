@@ -386,7 +386,7 @@ class DrawingCanvas implements OptionElementsI {
     }
   };
 
-  //Runs whenever mouse is clicked
+  //Handles pressdown/click
   private pressDownHandler = (e: MouseEvent | TouchEvent) => {
     this.mouseIsDown = true;
 
@@ -604,7 +604,7 @@ class DrawingCanvas implements OptionElementsI {
     }
   };
 
-  //Runs whenever mouse is released
+  //Handles mouse release
   private mouseUpHandler = () => {
     //Reset states
     this.mouseIsDown = false;
@@ -709,6 +709,7 @@ class DrawingCanvas implements OptionElementsI {
     this.redraw(this.drawingData);
   };
 
+  //Handles moving mouse
   private mouseMoveHandler = (e: MouseEvent | TouchEvent) => {
     const evtType = (e as TouchEvent).touches ? (e as TouchEvent).touches[0] : (e as MouseEvent);
 
@@ -985,7 +986,7 @@ class DrawingCanvas implements OptionElementsI {
     e.preventDefault();
   };
 
-  //Updates drawing to resized
+  //Function that updates given drawings coords to resized coords
   private updateToResized(drawing: DrawingElements) {
     if (drawing.type === "stroke") {
       drawing.xCords = drawing.resizedXCords;
@@ -1020,7 +1021,7 @@ class DrawingCanvas implements OptionElementsI {
     this.isDragging = dragging;
   }
 
-  //Helper function that takes care of returning values for scaling correctly
+  //Function that returns correct coordinates and scalefactor for scaling
   private scaleCorrectly(
     from: string,
     element: PathElement | TextElement,
@@ -1183,7 +1184,7 @@ class DrawingCanvas implements OptionElementsI {
     element.resizedPath = resizedPath;
   }
 
-  //Checks where line is drawn from
+  //Checks where LineElement is drawn from
   private drawnFrom(drawing: LineElement) {
     let X;
     let Y;
@@ -1206,7 +1207,7 @@ class DrawingCanvas implements OptionElementsI {
     return { drawnFromX: X, drawnFromY: Y };
   }
 
-  //Check if mouse is in corner of line
+  //Check if mouse is in corner of LineElement
   private mouseWithinLineSelection(drawing: LineElement, mouseX: number, mouseY: number) {
     //Throw error if coords is undefined
     this.assertRequired(drawing.coords);
@@ -1276,12 +1277,6 @@ class DrawingCanvas implements OptionElementsI {
     return mousePosition;
   }
 
-  //Throws error if value is falsy
-  private assertDefined<T>(value: T | null | undefined): asserts value is T {
-    if (value == null) {
-      throw new Error(`Error: value ${value} cannot be null/undefined`);
-    }
-  }
   //Checks if mouse is within selection rectangle for those that have it
   private mouseWithinSelection(
     x: number,
@@ -1322,17 +1317,18 @@ class DrawingCanvas implements OptionElementsI {
       : this.mouseWithin(x1, x2, y1, y2, x, y)
       ? "m"
       : false;
+
     return mouseIsIn;
   }
 
-  //Draw a selection for selected drawing
+  //Function for well.. creating a drawing selection
   private createDrawingSelection(drawing: DrawingElements) {
     this.context.globalCompositeOperation = "source-over";
     this.context.strokeStyle = "#738FE5";
 
     this.context.lineWidth = 1;
 
-    const coords = this.getCurrentCoords(drawing); //Checks if current state of drawing and returns coordinates based on if we are resizing or not and what element we are selecting
+    const coords = this.getCorrectCoords(drawing);
     if (drawing.type === "stroke" || drawing.type === "text") {
       const width = coords.x2 - coords.x1;
       const height = coords.y2 - coords.y1;
@@ -1351,13 +1347,14 @@ class DrawingCanvas implements OptionElementsI {
       this.drawCornerPoints(drawing);
     }
   }
-  //Draw points in corner
+
+  //Function for drawing corner points :P
   private drawCornerPoints(drawing: DrawingElements) {
     this.context.lineWidth = 5;
     let x: number;
     let y: number;
 
-    const coords = this.getCurrentCoords(drawing);
+    const coords = this.getCorrectCoords(drawing);
 
     if (drawing.type === "stroke" || drawing.type === "text") {
       //Selection has 4 corners
@@ -1388,8 +1385,8 @@ class DrawingCanvas implements OptionElementsI {
     }
   }
 
-  //Returns resized or original coords
-  private getCurrentCoords(drawing: DrawingElements) {
+  //Function that returns the correct coords of given drawing based on if we are resizing or not
+  private getCorrectCoords(drawing: DrawingElements) {
     let coords: SelectionCoords & LineSelectionCoords;
 
     if (drawing.type === "line") {
@@ -1420,7 +1417,7 @@ class DrawingCanvas implements OptionElementsI {
     return false;
   }
 
-  //Sets context styles based on drawing styles
+  //Function for setting styles based on drawing
   private setCtxStyles(drawing: DrawingElements) {
     this.context.globalCompositeOperation = drawing.operation;
     this.context.lineCap = "round";
@@ -1437,7 +1434,7 @@ class DrawingCanvas implements OptionElementsI {
     }
   }
 
-  //Loop and redraw each drawing as drawn
+  //Function for redrawing canvas when interactive
   private redraw(drawingData: DrawingElements[]) {
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
@@ -1512,6 +1509,7 @@ class DrawingCanvas implements OptionElementsI {
     });
   }
 
+  //Function for assigning value to readonly props
   private assignToProp(
     propName: keyof OptionElementsI,
     element: HTMLElement & HTMLButtonElement & HTMLInputElement
@@ -1519,6 +1517,7 @@ class DrawingCanvas implements OptionElementsI {
     (this as WritableDrawingCanvas)[propName] = element;
   }
 
+  //Function that checks if given element is target
   private targetIs(
     element: HTMLButtonElement | HTMLInputElement | HTMLElement,
     target: HTMLButtonElement | HTMLInputElement | HTMLElement
@@ -1533,6 +1532,7 @@ class DrawingCanvas implements OptionElementsI {
     }
   }
 
+  //Function for creating a html element
   private createPersonalElement = (
     tagName: string,
     type?: string,
@@ -1564,6 +1564,7 @@ class DrawingCanvas implements OptionElementsI {
     return element;
   };
 
+  //Function for incrementing and decrementing
   private incOrDec(index: number, type: "increment" | "decrement", steps: number) {
     if (type === "increment") {
       return (index += steps);
@@ -1572,9 +1573,10 @@ class DrawingCanvas implements OptionElementsI {
     }
   }
 
+  //Handles toggling between buttons
   private handleToggle = (
-    activeElements: { element: HTMLElement; stateName: string }[],
-    inactiveElements: { element: HTMLElement; stateName: string }[]
+    activeElements: { element: HTMLButtonElement; stateName: string }[],
+    inactiveElements: { element: HTMLButtonElement; stateName: string }[]
   ) => {
     activeElements.forEach((element) => {
       element.element?.classList.add("active");
@@ -1588,6 +1590,12 @@ class DrawingCanvas implements OptionElementsI {
     });
   };
 
+  //Throws error if value is null or undefined
+  private assertDefined<T>(value: T | null | undefined): asserts value is T {
+    if (value == null) {
+      throw new Error(`Error: value ${value} cannot be null/undefined`);
+    }
+  }
   //Function that throws an error if coords are undefined or not typeof number
   private assertRequired<T extends object>(coords: T): asserts coords is Required<T> {
     //IF there is no props in the provided object
