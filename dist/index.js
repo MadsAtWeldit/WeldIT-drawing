@@ -1,19 +1,26 @@
-import { DrawingElementType } from "./enums/enum.js";
+import { excludeNullishProps } from "./utils/common.js";
 class DrawingCanvas {
     constructor(elementId, options) {
-        var _a;
-        //Elements for controlling canvas props
+        var _a, _b;
         this.controller = document.getElementById("toolbar");
-        this.pencil = document.getElementById("pencil");
-        this.eraser = document.getElementById("eraser");
-        this.colorPicker = document.getElementById("color");
-        this.lineWidthPicker = document.getElementById("lineWidth");
-        this.clearCanvas = document.getElementById("clear");
-        this.moveAndResize = document.getElementById("mv-rz");
-        this.undo = document.getElementById("undo");
-        this.text = document.getElementById("text");
-        this.lineTool = document.getElementById("lineTool");
-        this.rectangle = document.getElementById("rectangle");
+        //Base tools
+        this.tools = {
+            pencil: document.getElementById("pencil"),
+            eraser: document.getElementById("eraser"),
+            moveAndResize: document.getElementById("mv-rz"),
+            text: document.getElementById("text"),
+            line: document.getElementById("line"),
+        };
+        //Tools for changing state of tools
+        this.toolModifiers = {
+            color: document.getElementById("color"),
+            width: document.getElementById("lineWidth"),
+        };
+        //Tools for changing state of Canvas
+        this.canvasModifiers = {
+            clear: document.getElementById("clear"),
+            undo: document.getElementById("undo"),
+        };
         //For state tracking
         this.isDrawing = false;
         this.isErasing = false;
@@ -29,12 +36,13 @@ class DrawingCanvas {
             from: "",
         };
         this.shouldLine = false;
-        //Toggled states
-        this.toggleDraw = false;
-        this.toggleErase = false;
-        this.toggleMvRz = false;
-        this.toggleWrite = false;
-        this.toggleLine = false;
+        this.toggledTools = {
+            pencil: false,
+            eraser: false,
+            moveAndResize: false,
+            text: false,
+            line: false,
+        };
         this.mouseIsDown = false;
         this.isDragging = false;
         this.index = -1;
@@ -81,20 +89,48 @@ class DrawingCanvas {
         this.startY = 0;
         this.mouseX = 0;
         this.mouseY = 0;
+        this.selectedTool = { element: this.tools.pencil, name: "pencil" };
         //Runs for each element passed to options
-        this.storeElements = (currentElement) => {
-            //Loop through class props
-            Object.keys(this).map((currentProp) => {
-                if (currentElement.type === currentProp) {
-                    const classProp = currentProp;
-                    if (currentElement.className) {
-                        const element = document.querySelector("." + currentElement.className); //Needs to be intersection to safely assign to lhs
-                        //Same as saying this.element = element
-                        this.assignToProp(classProp, element);
+        this.storeElements = (optionsElement) => {
+            //Loop through each key in tools
+            Object.keys(this.tools).map((toolKey) => {
+                //IF the type of options element matches a key in the tools
+                if (optionsElement.type === toolKey) {
+                    const key = toolKey;
+                    //THEN check if there was a className or id passed
+                    if (optionsElement.className) {
+                        const element = document.querySelector("." + optionsElement.className); //Needs to be intersection to safely assign to lhs
+                        this.tools[key] = element;
                     }
-                    if (currentElement.id) {
-                        const element = document.getElementById(currentElement.id);
-                        this.assignToProp(classProp, element);
+                    if (optionsElement.id) {
+                        const element = document.getElementById(optionsElement.id);
+                        this.tools[key] = element;
+                    }
+                }
+            });
+            Object.keys(this.toolModifiers).map((toolModifierKey) => {
+                if (optionsElement.type === toolModifierKey) {
+                    const key = toolModifierKey;
+                    if (optionsElement.className) {
+                        const element = document.querySelector("." + optionsElement.className);
+                        this.toolModifiers[key] = element;
+                    }
+                    if (optionsElement.id) {
+                        const element = document.getElementById(optionsElement.id);
+                        this.toolModifiers[key] = element;
+                    }
+                }
+            });
+            Object.keys(this.canvasModifiers).map((canvasModifierKey) => {
+                if (optionsElement.type === canvasModifierKey) {
+                    const key = canvasModifierKey;
+                    if (optionsElement.className) {
+                        const element = document.querySelector("." + optionsElement.className);
+                        this.canvasModifiers[key] = element;
+                    }
+                    if (optionsElement.id) {
+                        const element = document.getElementById(optionsElement.id);
+                        this.canvasModifiers[key] = element;
                     }
                 }
             });
@@ -102,8 +138,8 @@ class DrawingCanvas {
         //Controller Change handler
         this.changeHandler = (e) => {
             const target = e.target;
-            const colorPicker = this.colorPicker;
-            const lineWidthPicker = this.lineWidthPicker;
+            const colorPicker = this.toolModifiers.color;
+            const lineWidthPicker = this.toolModifiers.width;
             if (colorPicker && this.targetIs(colorPicker, target)) {
                 //Change current path object strokeStyle
                 this.pathObject.strokeStyle = target.value;
@@ -114,103 +150,82 @@ class DrawingCanvas {
         };
         //Controller click handler
         this.toolSelectHandler = (e) => {
+            var _a;
             this.selectedDrawingIndex = null;
             const target = e.target;
-            const pen = this.pencil;
-            const eraser = this.eraser;
-            const clearCanvas = this.clearCanvas;
-            const moveAndResize = this.moveAndResize;
-            const undo = this.undo;
-            const text = this.text;
-            const lineTool = this.lineTool;
             const context = this.context;
-            if (clearCanvas && this.targetIs(clearCanvas, target)) {
-                context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-                this.index = -1;
-                this.drawingData = [];
+            //Return only props that are of non nullish value
+            const definedTools = excludeNullishProps(this.tools);
+            const definedCanvasModifiers = excludeNullishProps(this.canvasModifiers);
+            if (Object.keys(definedTools).length > 0) {
+                //Loop each defined element and check which of them are the target
+                Object.entries(definedTools).forEach(([k, v]) => {
+                    //IF tool is target
+                    if (v === target) {
+                        //Store tool as selected
+                        this.selectedTool.element = v;
+                        this.selectedTool.name = k;
+                    }
+                    else {
+                        this.toggledTools[k] = false;
+                        v === null || v === void 0 ? void 0 : v.classList.remove("active");
+                    }
+                });
+                this.selectedTool.name === "pencil" ||
+                    this.selectedTool.name === "eraser" ||
+                    this.selectedTool.name === "line"
+                    ? (this.canvas.style.cursor = "crosshair")
+                    : this.selectedTool.name === "text"
+                        ? (this.canvas.style.cursor = "text")
+                        : (this.canvas.style.cursor = "default");
+                (_a = this.selectedTool.element) === null || _a === void 0 ? void 0 : _a.classList.add("active");
+                this.toggledTools[this.selectedTool.name] = true;
             }
-            if (undo && this.targetIs(undo, target)) {
-                if (this.index <= 0) {
+            if (Object.keys(definedCanvasModifiers).length > 0) {
+                if (definedCanvasModifiers.clear === target) {
                     context.clearRect(0, 0, this.canvas.width, this.canvas.height);
                     this.index = -1;
                     this.drawingData = [];
                 }
-                else {
-                    this.index -= 1;
-                    this.drawingData.pop();
-                    this.redraw(this.drawingData);
+                if (definedCanvasModifiers.undo === target) {
+                    if (this.index <= 0) {
+                        context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                        this.index = -1;
+                        this.drawingData = [];
+                    }
+                    else {
+                        this.index -= 1;
+                        this.drawingData.pop();
+                        this.redraw(this.drawingData);
+                    }
                 }
             }
-            if (pen && this.targetIs(pen, target)) {
-                this.canvas.style.cursor = "crosshair";
-                this.handleToggle([{ element: pen, stateName: "toggleDraw" }], [
-                    { element: eraser, stateName: "toggleErase" },
-                    { element: moveAndResize, stateName: "toggleMvRz" },
-                    { element: text, stateName: "toggleWrite" },
-                    { element: lineTool, stateName: "toggleLine" },
-                ]);
-            }
-            if (eraser && this.targetIs(eraser, target)) {
-                this.canvas.style.cursor = "crosshair";
-                this.handleToggle([{ element: eraser, stateName: "toggleErase" }], [
-                    { element: pen, stateName: "toggleDraw" },
-                    { element: moveAndResize, stateName: "toggleMvRz" },
-                    { element: text, stateName: "toggleWrite" },
-                    { element: lineTool, stateName: "toggleLine" },
-                ]);
-            }
-            if (moveAndResize && this.targetIs(moveAndResize, target)) {
-                this.canvas.style.cursor = "default";
-                this.handleToggle([{ element: moveAndResize, stateName: "toggleMvRz" }], [
-                    { element: pen, stateName: "toggleDraw" },
-                    { element: eraser, stateName: "toggleErase" },
-                    { element: text, stateName: "toggleWrite" },
-                    { element: lineTool, stateName: "toggleLine" },
-                ]);
-            }
-            if (text && this.targetIs(text, target)) {
-                this.canvas.style.cursor = "text";
-                this.handleToggle([{ element: text, stateName: "toggleWrite" }], [
-                    { element: pen, stateName: "toggleDraw" },
-                    { element: eraser, stateName: "toggleErase" },
-                    { element: moveAndResize, stateName: "toggleMvRz" },
-                    { element: lineTool, stateName: "toggleLine" },
-                ]);
-            }
-            if (lineTool && this.targetIs(lineTool, target)) {
-                this.canvas.style.cursor = "crosshair";
-                this.handleToggle([{ element: lineTool, stateName: "toggleLine" }], [
-                    { element: pen, stateName: "toggleDraw" },
-                    { element: eraser, stateName: "toggleErase" },
-                    { element: text, stateName: "toggleWrite" },
-                    { element: moveAndResize, stateName: "toggleMvRz" },
-                ]);
-            }
         };
-        //Runs whenever mouse is clicked
+        //Handles pressdown/click
         this.pressDownHandler = (e) => {
             this.mouseIsDown = true;
             if (this.isWriting)
                 return;
             //Check if event is touch or mouse
             const evtType = e.touches ? e.touches[0] : e;
+            const { pencil, eraser, moveAndResize, text, line } = this.toggledTools;
             const mouseY = evtType.clientY - this.canvas.offsetTop;
             const mouseX = evtType.clientX - this.canvas.offsetLeft;
             //Store starting positions
             this.startX = mouseX;
             this.startY = mouseY;
-            //IF element has been selected when we click on canvas
-            if (this.toggleErase) {
+            //IF eraser is toggled
+            if (eraser) {
                 this.pathObject.operation = "destination-out";
                 this.shouldErase = true;
                 this.addCoords(mouseX, mouseY, false);
             }
-            if (this.toggleDraw) {
+            if (pencil) {
                 this.pathObject.operation = "source-over";
                 this.shouldDraw = true;
                 this.addCoords(mouseX, mouseY, false);
             }
-            if (this.toggleMvRz) {
+            if (moveAndResize) {
                 //IF no paths
                 if (this.drawingData.length <= 0)
                     return;
@@ -302,7 +317,7 @@ class DrawingCanvas {
                     }
                 });
             }
-            if (this.toggleWrite) {
+            if (text) {
                 const canvasContainer = document.querySelector(".drawing-board");
                 //Create textinput
                 const textInput = this.createPersonalElement("input", "text", {
@@ -362,7 +377,7 @@ class DrawingCanvas {
                 });
                 canvasContainer === null || canvasContainer === void 0 ? void 0 : canvasContainer.appendChild(textInput);
             }
-            if (this.toggleLine) {
+            if (line) {
                 if (this.isLining)
                     return; //So it jumps to mouseup
                 this.lineObject.operation = "source-over";
@@ -373,7 +388,7 @@ class DrawingCanvas {
                 this.lineObject.coords = { startX: mouseX, startY: mouseY };
             }
         };
-        //Runs whenever mouse is released
+        //Handles mouse release
         this.mouseUpHandler = () => {
             //Reset states
             this.mouseIsDown = false;
@@ -462,6 +477,7 @@ class DrawingCanvas {
             }
             this.redraw(this.drawingData);
         };
+        //Handles moving mouse
         this.mouseMoveHandler = (e) => {
             const evtType = e.touches ? e.touches[0] : e;
             //Current mouse positions
@@ -471,7 +487,7 @@ class DrawingCanvas {
             this.mouseX = mouseX;
             this.mouseY = mouseY;
             this.mouseIsDown ? (this.isDragging = true) : (this.isDragging = false);
-            if (this.toggleMvRz) {
+            if (this.toggledTools.moveAndResize) {
                 this.canvas.style.cursor = "default";
                 this.drawingData.forEach((drawing, i) => {
                     switch (drawing.type) {
@@ -682,6 +698,7 @@ class DrawingCanvas {
             }
             e.preventDefault();
         };
+        //Function for creating a html element
         this.createPersonalElement = (tagName, type, styles) => {
             const element = document.createElement(tagName);
             if (type)
@@ -697,26 +714,10 @@ class DrawingCanvas {
             }
             return element;
         };
-        this.handleToggle = (activeElements, inactiveElements) => {
-            activeElements.forEach((element) => {
-                var _a;
-                (_a = element.element) === null || _a === void 0 ? void 0 : _a.classList.add("active");
-                this[element.stateName] = true;
-            });
-            inactiveElements.forEach((element) => {
-                var _a;
-                (_a = element.element) === null || _a === void 0 ? void 0 : _a.classList.remove("active");
-                this[element.stateName] = false;
-            });
-        };
         //Select canvas element
         const canvas = document.getElementById(elementId);
         const context = canvas.getContext("2d");
-        //Check if any elements are passed
-        if (options === null || options === void 0 ? void 0 : options.elements) {
-            //THEN loop through each element and reassign element props
-            options.elements.forEach((element) => this.storeElements(element));
-        }
+        (_a = options === null || options === void 0 ? void 0 : options.elements) === null || _a === void 0 ? void 0 : _a.forEach((element) => this.storeElements(element));
         //Check if width and height has been set
         (options === null || options === void 0 ? void 0 : options.width)
             ? (canvas.width = options.width)
@@ -729,8 +730,8 @@ class DrawingCanvas {
         this.context = context;
         //Assign default values
         this.canvas.style.cursor = "crosshair";
-        (_a = this.pencil) === null || _a === void 0 ? void 0 : _a.classList.add("active");
-        this.toggleDraw = true;
+        (_b = this.selectedTool.element) === null || _b === void 0 ? void 0 : _b.classList.add("active");
+        this.toggledTools[this.selectedTool.name] = true;
         //Add eventlisteners to canvas
         this.listen();
     }
@@ -747,7 +748,7 @@ class DrawingCanvas {
         controller === null || controller === void 0 ? void 0 : controller.addEventListener("change", this.changeHandler);
         controller === null || controller === void 0 ? void 0 : controller.addEventListener("click", this.toolSelectHandler);
     }
-    //Updates drawing to resized
+    //Function that updates given drawings coords to resized coords
     updateToResized(drawing) {
         if (drawing.type === "stroke") {
             drawing.xCords = drawing.resizedXCords;
@@ -779,7 +780,7 @@ class DrawingCanvas {
         this.pathObject.yCords.push(y);
         this.isDragging = dragging;
     }
-    //Helper function that takes care of returning values for scaling correctly
+    //Function that returns correct coordinates and scalefactor for scaling
     scaleCorrectly(from, element, currentMouseX, currentMouseY) {
         this.assertRequired(element.coords);
         //IF scaling from the left side then start = left : start = right;
@@ -889,7 +890,7 @@ class DrawingCanvas {
         element.resizedYCords = resizedYCords;
         element.resizedPath = resizedPath;
     }
-    //Checks where line is drawn from
+    //Checks where LineElement is drawn from
     drawnFrom(drawing) {
         let X;
         let Y;
@@ -909,7 +910,7 @@ class DrawingCanvas {
         }
         return { drawnFromX: X, drawnFromY: Y };
     }
-    //Check if mouse is in corner of line
+    //Check if mouse is in corner of LineElement
     mouseWithinLineSelection(drawing, mouseX, mouseY) {
         //Throw error if coords is undefined
         this.assertRequired(drawing.coords);
@@ -964,12 +965,6 @@ class DrawingCanvas {
         }
         return mousePosition;
     }
-    //Throws error if value is falsy
-    assertDefined(value) {
-        if (value == null) {
-            throw new Error(`Error: value ${value} cannot be null/undefined`);
-        }
-    }
     //Checks if mouse is within selection rectangle for those that have it
     mouseWithinSelection(x, y, drawing) {
         this.assertRequired(drawing.coords);
@@ -1007,12 +1002,12 @@ class DrawingCanvas {
                             : false;
         return mouseIsIn;
     }
-    //Draw a selection for selected drawing
+    //Function for well.. creating a drawing selection
     createDrawingSelection(drawing) {
         this.context.globalCompositeOperation = "source-over";
         this.context.strokeStyle = "#738FE5";
         this.context.lineWidth = 1;
-        const coords = this.getCurrentCoords(drawing); //Checks if current state of drawing and returns coordinates based on if we are resizing or not and what element we are selecting
+        const coords = this.getCorrectCoords(drawing);
         if (drawing.type === "stroke" || drawing.type === "text") {
             const width = coords.x2 - coords.x1;
             const height = coords.y2 - coords.y1;
@@ -1030,12 +1025,12 @@ class DrawingCanvas {
             this.drawCornerPoints(drawing);
         }
     }
-    //Draw points in corner
+    //Function for drawing corner points :P
     drawCornerPoints(drawing) {
         this.context.lineWidth = 5;
         let x;
         let y;
-        const coords = this.getCurrentCoords(drawing);
+        const coords = this.getCorrectCoords(drawing);
         if (drawing.type === "stroke" || drawing.type === "text") {
             //Selection has 4 corners
             for (let i = 0; i < 4; i++) {
@@ -1063,8 +1058,8 @@ class DrawingCanvas {
             }
         }
     }
-    //Returns resized or original coords
-    getCurrentCoords(drawing) {
+    //Function that returns the correct coords of given drawing based on if we are resizing or not
+    getCorrectCoords(drawing) {
         let coords;
         if (drawing.type === "line") {
             coords = {
@@ -1092,7 +1087,7 @@ class DrawingCanvas {
             return true;
         return false;
     }
-    //Sets context styles based on drawing styles
+    //Function for setting styles based on drawing
     setCtxStyles(drawing) {
         this.context.globalCompositeOperation = drawing.operation;
         this.context.lineCap = "round";
@@ -1109,7 +1104,7 @@ class DrawingCanvas {
             this.context.strokeStyle = drawing.strokeStyle;
         }
     }
-    //Loop and redraw each drawing as drawn
+    //Function for redrawing canvas when interactive
     redraw(drawingData) {
         this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
         if (drawingData.length <= 0)
@@ -1162,9 +1157,15 @@ class DrawingCanvas {
             }
         });
     }
-    assignToProp(propName, element) {
-        this[propName] = element;
-    }
+    //Function for assigning value to readonly props
+    // private assignToKey<T, U, V>(
+    //   key: keyof T,
+    //   element: U extends T[keyof T] ? T[keyof T] : never,
+    //   prop: V extends { [P in keyof DrawingCanvas]: DrawingCanvas[P] } ? DrawingCanvas[P] : never
+    // ) {
+    //   (this[prop] as Writable<T>)[key] = element;
+    // }
+    //Function that checks if given element is target
     targetIs(element, target) {
         if ((target.id && target.id === element.id) ||
             (target.className && target.className === element.className)) {
@@ -1174,12 +1175,19 @@ class DrawingCanvas {
             return false;
         }
     }
+    //Function for incrementing and decrementing
     incOrDec(index, type, steps) {
         if (type === "increment") {
             return (index += steps);
         }
         else {
             return (index -= steps);
+        }
+    }
+    //Throws error if value is null or undefined
+    assertDefined(value) {
+        if (value == null) {
+            throw new Error(`Error: value ${value} cannot be null/undefined`);
         }
     }
     //Function that throws an error if coords are undefined or not typeof number
@@ -1195,15 +1203,6 @@ class DrawingCanvas {
     }
 }
 new DrawingCanvas("drawing-board", {
-    elements: [
-        {
-            type: DrawingElementType.rectangle,
-            className: "rectanglea",
-        },
-        {
-            type: DrawingElementType.pencil,
-            id: "pencilID",
-        },
-    ],
+    elements: [],
 });
 //# sourceMappingURL=index.js.map

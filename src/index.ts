@@ -1,35 +1,40 @@
 import { DrawingElementType } from "./enums/enum.js";
-
-//Props for storing elements passed to options
-interface OptionElementsI {
-  readonly controller: HTMLElement | null;
+import { excludeNullishProps } from "./utils/common.js";
+interface ToggleAbleTools {
   readonly pencil: HTMLButtonElement | null;
   readonly eraser: HTMLButtonElement | null;
-  readonly colorPicker: HTMLInputElement | null;
-  readonly lineWidthPicker: HTMLInputElement | null;
-  readonly clearCanvas: HTMLButtonElement | null;
   readonly moveAndResize: HTMLButtonElement | null;
-  readonly undo: HTMLButtonElement | null;
   readonly text: HTMLButtonElement | null;
-  readonly lineTool: HTMLButtonElement | null;
-  readonly rectangle: HTMLButtonElement | null;
+  readonly line: HTMLButtonElement | null;
 }
 
-//Structure of passing in elements to options
+interface ToolModifiers {
+  readonly color: HTMLInputElement | null;
+  readonly width: HTMLInputElement | null;
+}
+
+interface CanvasModifiers {
+  readonly clear: HTMLButtonElement | null;
+  readonly undo: HTMLButtonElement | null;
+}
+
+//Interface for passing in elements to options of class constructor
 interface CanvasElement {
   type: DrawingElementType;
   className?: string;
   id?: string;
 }
 
+//Interface for holding states of toggled buttons
 interface ToggledStates {
-  toggleDraw: boolean;
-  toggleErase: boolean;
-  toggleMvRz: boolean;
-  toggleWrite: boolean;
-  toggleLine: boolean;
+  pencil: boolean;
+  eraser: boolean;
+  moveAndResize: boolean;
+  text: boolean;
+  line: boolean;
 }
 
+//Interface for left right top and bottom of drawing
 interface SelectionCoords {
   x1?: number;
   y1?: number;
@@ -37,14 +42,14 @@ interface SelectionCoords {
   y2?: number;
 }
 
-type ResizedSelectionCoords = PrefixCoords<SelectionCoords, "resized">;
+//Interface for resized selection coords
+type ResizedSelectionCoords = Prefix<SelectionCoords, "resized">;
 
-type LineSelectionCoords = RenameSelectionCoords<
-  SelectionCoords,
-  "startX" | "startY" | "endX" | "endY"
->;
+//Interface for coords of a line type drawing
+type LineSelectionCoords = Rename<SelectionCoords, "startX" | "startY" | "endX" | "endY">;
 
-type ResizedLineSelectionCoords = PrefixCoords<LineSelectionCoords, "resized">;
+//Interface for resized coords of line drawing
+type ResizedLineSelectionCoords = Prefix<LineSelectionCoords, "resized">;
 
 interface PathElement {
   type: "stroke";
@@ -82,25 +87,42 @@ interface LineElement {
   coords: LineSelectionCoords;
   resizedCoords: ResizedLineSelectionCoords;
 }
-type DrawingElements = PathElement | TextElement | LineElement;
-type WritableDrawingCanvas = Writable<DrawingCanvas>;
 
-class DrawingCanvas implements OptionElementsI {
+interface SelectedTool {
+  element: HTMLButtonElement | null;
+  name: keyof ToggledStates | null;
+}
+
+type DrawingElements = PathElement | TextElement | LineElement;
+
+//Elements that shouldnt have active class toggled
+type NonToggledElements = "controller" | "colorPicker" | "lineWidthPicker" | "clearCanvas" | "undo";
+
+class DrawingCanvas {
   private canvas: HTMLCanvasElement;
   private context: CanvasRenderingContext2D;
+  private controller: HTMLElement | null = document.getElementById("toolbar");
 
-  //Elements for controlling canvas props
-  readonly controller = document.getElementById("toolbar") as HTMLElement;
-  readonly pencil = document.getElementById("pencil") as HTMLButtonElement;
-  readonly eraser = document.getElementById("eraser") as HTMLButtonElement;
-  readonly colorPicker = document.getElementById("color") as HTMLInputElement;
-  readonly lineWidthPicker = document.getElementById("lineWidth") as HTMLInputElement;
-  readonly clearCanvas = document.getElementById("clear") as HTMLButtonElement;
-  readonly moveAndResize = document.getElementById("mv-rz") as HTMLButtonElement;
-  readonly undo = document.getElementById("undo") as HTMLButtonElement;
-  readonly text = document.getElementById("text") as HTMLButtonElement;
-  readonly lineTool = document.getElementById("lineTool") as HTMLButtonElement;
-  readonly rectangle = document.getElementById("rectangle") as HTMLButtonElement;
+  //Base tools
+  private tools: ToggleAbleTools = {
+    pencil: <HTMLButtonElement | null>document.getElementById("pencil"),
+    eraser: <HTMLButtonElement | null>document.getElementById("eraser"),
+    moveAndResize: <HTMLButtonElement | null>document.getElementById("mv-rz"),
+    text: <HTMLButtonElement | null>document.getElementById("text"),
+    line: <HTMLButtonElement | null>document.getElementById("line"),
+  };
+
+  //Tools for changing state of tools
+  private toolModifiers: ToolModifiers = {
+    color: <HTMLInputElement | null>document.getElementById("color"),
+    width: <HTMLInputElement | null>document.getElementById("lineWidth"),
+  };
+
+  //Tools for changing state of Canvas
+  private canvasModifiers: CanvasModifiers = {
+    clear: <HTMLButtonElement | null>document.getElementById("clear"),
+    undo: <HTMLButtonElement | null>document.getElementById("undo"),
+  };
 
   //For state tracking
   private isDrawing = false;
@@ -119,12 +141,13 @@ class DrawingCanvas implements OptionElementsI {
   };
   private shouldLine = false;
 
-  //Toggled states
-  private toggleDraw = false;
-  private toggleErase = false;
-  private toggleMvRz = false;
-  private toggleWrite = false;
-  private toggleLine = false;
+  private toggledTools: ToggledStates = {
+    pencil: false,
+    eraser: false,
+    moveAndResize: false,
+    text: false,
+    line: false,
+  };
 
   private mouseIsDown = false;
   private isDragging = false;
@@ -182,6 +205,8 @@ class DrawingCanvas implements OptionElementsI {
   private mouseX = 0;
   private mouseY = 0;
 
+  private selectedTool: SelectedTool = { element: this.tools.pencil, name: "pencil" };
+
   constructor(
     elementId: string,
 
@@ -195,12 +220,7 @@ class DrawingCanvas implements OptionElementsI {
     const canvas = document.getElementById(elementId) as HTMLCanvasElement;
     const context = canvas.getContext("2d") as CanvasRenderingContext2D;
 
-    //Check if any elements are passed
-    if (options?.elements) {
-      //THEN loop through each element and reassign element props
-      options.elements.forEach((element) => this.storeElements(element));
-    }
-
+    options?.elements?.forEach((element) => this.storeElements(element));
     //Check if width and height has been set
     options?.width
       ? (canvas.width = options.width)
@@ -215,35 +235,68 @@ class DrawingCanvas implements OptionElementsI {
 
     //Assign default values
     this.canvas.style.cursor = "crosshair";
-    this.pencil?.classList.add("active");
-    this.toggleDraw = true;
+
+    this.selectedTool.element?.classList.add("active");
+    this.toggledTools[this.selectedTool.name as keyof ToggleAbleTools] = true;
 
     //Add eventlisteners to canvas
     this.listen();
   }
 
   //Runs for each element passed to options
-  private storeElements = (currentElement: CanvasElement) => {
-    //Loop through class props
-    Object.keys(this).map((currentProp) => {
-      if (currentElement.type === currentProp) {
-        const classProp = currentProp as keyof OptionElementsI;
+  private storeElements = (optionsElement: CanvasElement) => {
+    //Loop through each key in tools
+    Object.keys(this.tools).map((toolKey) => {
+      //IF the type of options element matches a key in the tools
+      if (optionsElement.type === toolKey) {
+        const key = toolKey as keyof ToggleAbleTools;
+        //THEN check if there was a className or id passed
+        if (optionsElement.className) {
+          const element = document.querySelector(
+            "." + optionsElement.className
+          ) as HTMLButtonElement; //Needs to be intersection to safely assign to lhs
 
-        if (currentElement.className) {
-          const element = document.querySelector("." + currentElement.className) as HTMLElement &
-            HTMLButtonElement &
-            HTMLInputElement; //Needs to be intersection to safely assign to lhs
-
-          //Same as saying this.element = element
-          this.assignToProp(classProp, element);
+          (this.tools as Writable<ToggleAbleTools>)[key] = element;
         }
 
-        if (currentElement.id) {
-          const element = document.getElementById(currentElement.id) as HTMLElement &
-            HTMLButtonElement &
-            HTMLInputElement;
+        if (optionsElement.id) {
+          const element = document.getElementById(optionsElement.id) as HTMLButtonElement;
+          (this.tools as Writable<ToggleAbleTools>)[key] = element;
+        }
+      }
+    });
 
-          this.assignToProp(classProp, element);
+    Object.keys(this.toolModifiers).map((toolModifierKey) => {
+      if (optionsElement.type === toolModifierKey) {
+        const key = toolModifierKey as keyof ToolModifiers;
+        if (optionsElement.className) {
+          const element = document.querySelector(
+            "." + optionsElement.className
+          ) as HTMLInputElement;
+
+          (this.toolModifiers as Writable<ToolModifiers>)[key] = element;
+        }
+        if (optionsElement.id) {
+          const element = document.getElementById(optionsElement.id) as HTMLInputElement;
+          (this.toolModifiers as Writable<ToolModifiers>)[key] = element;
+        }
+      }
+    });
+
+    Object.keys(this.canvasModifiers).map((canvasModifierKey) => {
+      if (optionsElement.type === canvasModifierKey) {
+        const key = canvasModifierKey as keyof CanvasModifiers;
+        if (optionsElement.className) {
+          const element = document.querySelector(
+            "." + optionsElement.className
+          ) as HTMLButtonElement;
+
+          (this.canvasModifiers as Writable<CanvasModifiers>)[key] = element;
+        }
+
+        if (optionsElement.id) {
+          const element = document.getElementById(optionsElement.id) as HTMLButtonElement;
+          (this.canvasModifiers as Writable<CanvasModifiers>)[key] = element;
         }
       }
     });
@@ -271,8 +324,8 @@ class DrawingCanvas implements OptionElementsI {
   private changeHandler = (e: Event) => {
     const target = e.target as HTMLInputElement;
 
-    const colorPicker = this.colorPicker;
-    const lineWidthPicker = this.lineWidthPicker;
+    const colorPicker = this.toolModifiers.color;
+    const lineWidthPicker = this.toolModifiers.width;
 
     if (colorPicker && this.targetIs(colorPicker, target)) {
       //Change current path object strokeStyle
@@ -285,114 +338,77 @@ class DrawingCanvas implements OptionElementsI {
   };
 
   //Controller click handler
-  private toolSelectHandler = (e: MouseEvent) => {
+  private toolSelectHandler = (e: Event) => {
     this.selectedDrawingIndex = null;
-    const target = e.target as HTMLButtonElement;
 
-    const pen = this.pencil;
-    const eraser = this.eraser;
-    const clearCanvas = this.clearCanvas;
-    const moveAndResize = this.moveAndResize;
-    const undo = this.undo;
-    const text = this.text;
-    const lineTool = this.lineTool;
+    const target = e.target as HTMLElement | HTMLButtonElement | HTMLInputElement;
     const context = this.context;
 
-    if (clearCanvas && this.targetIs(clearCanvas, target)) {
-      context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    //Return only props that are of non nullish value
+    const definedTools = excludeNullishProps(this.tools);
 
-      this.index = -1;
+    const definedCanvasModifiers = excludeNullishProps(this.canvasModifiers);
 
-      this.drawingData = [];
+    if (Object.keys(definedTools).length > 0) {
+      //Loop each defined element and check which of them are the target
+      Object.entries(definedTools).forEach(([k, v]) => {
+        //IF tool is target
+        if (v === target) {
+          //Store tool as selected
+          this.selectedTool.element = v;
+          this.selectedTool.name = k as keyof ToggledStates;
+        } else {
+          this.toggledTools[k as keyof ToggledStates] = false;
+          v?.classList.remove("active");
+        }
+      });
+
+      this.selectedTool.name === "pencil" ||
+      this.selectedTool.name === "eraser" ||
+      this.selectedTool.name === "line"
+        ? (this.canvas.style.cursor = "crosshair")
+        : this.selectedTool.name === "text"
+        ? (this.canvas.style.cursor = "text")
+        : (this.canvas.style.cursor = "default");
+
+      this.selectedTool.element?.classList.add("active");
+      this.toggledTools[this.selectedTool.name as keyof ToggledStates] = true;
     }
 
-    if (undo && this.targetIs(undo, target)) {
-      if (this.index <= 0) {
+    if (Object.keys(definedCanvasModifiers).length > 0) {
+      if (definedCanvasModifiers.clear === target) {
         context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
         this.index = -1;
+
         this.drawingData = [];
-      } else {
-        this.index -= 1;
-        this.drawingData.pop();
-
-        this.redraw(this.drawingData);
       }
-    }
 
-    if (pen && this.targetIs(pen, target)) {
-      this.canvas.style.cursor = "crosshair";
-      this.handleToggle(
-        [{ element: pen, stateName: "toggleDraw" }],
-        [
-          { element: eraser, stateName: "toggleErase" },
-          { element: moveAndResize, stateName: "toggleMvRz" },
-          { element: text, stateName: "toggleWrite" },
-          { element: lineTool, stateName: "toggleLine" },
-        ]
-      );
-    }
+      if (definedCanvasModifiers.undo === target) {
+        if (this.index <= 0) {
+          context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-    if (eraser && this.targetIs(eraser, target)) {
-      this.canvas.style.cursor = "crosshair";
-      this.handleToggle(
-        [{ element: eraser, stateName: "toggleErase" }],
-        [
-          { element: pen, stateName: "toggleDraw" },
-          { element: moveAndResize, stateName: "toggleMvRz" },
-          { element: text, stateName: "toggleWrite" },
-          { element: lineTool, stateName: "toggleLine" },
-        ]
-      );
-    }
+          this.index = -1;
+          this.drawingData = [];
+        } else {
+          this.index -= 1;
+          this.drawingData.pop();
 
-    if (moveAndResize && this.targetIs(moveAndResize, target)) {
-      this.canvas.style.cursor = "default";
-      this.handleToggle(
-        [{ element: moveAndResize, stateName: "toggleMvRz" }],
-        [
-          { element: pen, stateName: "toggleDraw" },
-          { element: eraser, stateName: "toggleErase" },
-          { element: text, stateName: "toggleWrite" },
-          { element: lineTool, stateName: "toggleLine" },
-        ]
-      );
-    }
-
-    if (text && this.targetIs(text, target)) {
-      this.canvas.style.cursor = "text";
-      this.handleToggle(
-        [{ element: text, stateName: "toggleWrite" }],
-        [
-          { element: pen, stateName: "toggleDraw" },
-          { element: eraser, stateName: "toggleErase" },
-          { element: moveAndResize, stateName: "toggleMvRz" },
-          { element: lineTool, stateName: "toggleLine" },
-        ]
-      );
-    }
-
-    if (lineTool && this.targetIs(lineTool, target)) {
-      this.canvas.style.cursor = "crosshair";
-      this.handleToggle(
-        [{ element: lineTool, stateName: "toggleLine" }],
-        [
-          { element: pen, stateName: "toggleDraw" },
-          { element: eraser, stateName: "toggleErase" },
-          { element: text, stateName: "toggleWrite" },
-          { element: moveAndResize, stateName: "toggleMvRz" },
-        ]
-      );
+          this.redraw(this.drawingData);
+        }
+      }
     }
   };
 
-  //Runs whenever mouse is clicked
+  //Handles pressdown/click
   private pressDownHandler = (e: MouseEvent | TouchEvent) => {
     this.mouseIsDown = true;
 
     if (this.isWriting) return;
     //Check if event is touch or mouse
     const evtType = (e as TouchEvent).touches ? (e as TouchEvent).touches[0] : (e as MouseEvent);
+
+    const { pencil, eraser, moveAndResize, text, line } = this.toggledTools;
 
     const mouseY = evtType.clientY - this.canvas.offsetTop;
     const mouseX = evtType.clientX - this.canvas.offsetLeft;
@@ -401,8 +417,8 @@ class DrawingCanvas implements OptionElementsI {
     this.startX = mouseX;
     this.startY = mouseY;
 
-    //IF element has been selected when we click on canvas
-    if (this.toggleErase) {
+    //IF eraser is toggled
+    if (eraser) {
       this.pathObject.operation = "destination-out";
 
       this.shouldErase = true;
@@ -410,7 +426,7 @@ class DrawingCanvas implements OptionElementsI {
       this.addCoords(mouseX, mouseY, false);
     }
 
-    if (this.toggleDraw) {
+    if (pencil) {
       this.pathObject.operation = "source-over";
 
       this.shouldDraw = true;
@@ -418,7 +434,7 @@ class DrawingCanvas implements OptionElementsI {
       this.addCoords(mouseX, mouseY, false);
     }
 
-    if (this.toggleMvRz) {
+    if (moveAndResize) {
       //IF no paths
       if (this.drawingData.length <= 0) return;
       //Loop through each drawing
@@ -514,7 +530,7 @@ class DrawingCanvas implements OptionElementsI {
       });
     }
 
-    if (this.toggleWrite) {
+    if (text) {
       const canvasContainer = <HTMLElement>document.querySelector(".drawing-board");
 
       //Create textinput
@@ -590,7 +606,7 @@ class DrawingCanvas implements OptionElementsI {
       canvasContainer?.appendChild(textInput);
     }
 
-    if (this.toggleLine) {
+    if (line) {
       if (this.isLining) return; //So it jumps to mouseup
 
       this.lineObject.operation = "source-over";
@@ -604,7 +620,7 @@ class DrawingCanvas implements OptionElementsI {
     }
   };
 
-  //Runs whenever mouse is released
+  //Handles mouse release
   private mouseUpHandler = () => {
     //Reset states
     this.mouseIsDown = false;
@@ -709,6 +725,7 @@ class DrawingCanvas implements OptionElementsI {
     this.redraw(this.drawingData);
   };
 
+  //Handles moving mouse
   private mouseMoveHandler = (e: MouseEvent | TouchEvent) => {
     const evtType = (e as TouchEvent).touches ? (e as TouchEvent).touches[0] : (e as MouseEvent);
 
@@ -721,7 +738,7 @@ class DrawingCanvas implements OptionElementsI {
 
     this.mouseIsDown ? (this.isDragging = true) : (this.isDragging = false);
 
-    if (this.toggleMvRz) {
+    if (this.toggledTools.moveAndResize) {
       this.canvas.style.cursor = "default";
 
       this.drawingData.forEach((drawing, i) => {
@@ -982,10 +999,11 @@ class DrawingCanvas implements OptionElementsI {
 
       this.context.stroke();
     }
+
     e.preventDefault();
   };
 
-  //Updates drawing to resized
+  //Function that updates given drawings coords to resized coords
   private updateToResized(drawing: DrawingElements) {
     if (drawing.type === "stroke") {
       drawing.xCords = drawing.resizedXCords;
@@ -1020,7 +1038,7 @@ class DrawingCanvas implements OptionElementsI {
     this.isDragging = dragging;
   }
 
-  //Helper function that takes care of returning values for scaling correctly
+  //Function that returns correct coordinates and scalefactor for scaling
   private scaleCorrectly(
     from: string,
     element: PathElement | TextElement,
@@ -1183,7 +1201,7 @@ class DrawingCanvas implements OptionElementsI {
     element.resizedPath = resizedPath;
   }
 
-  //Checks where line is drawn from
+  //Checks where LineElement is drawn from
   private drawnFrom(drawing: LineElement) {
     let X;
     let Y;
@@ -1206,7 +1224,7 @@ class DrawingCanvas implements OptionElementsI {
     return { drawnFromX: X, drawnFromY: Y };
   }
 
-  //Check if mouse is in corner of line
+  //Check if mouse is in corner of LineElement
   private mouseWithinLineSelection(drawing: LineElement, mouseX: number, mouseY: number) {
     //Throw error if coords is undefined
     this.assertRequired(drawing.coords);
@@ -1276,12 +1294,6 @@ class DrawingCanvas implements OptionElementsI {
     return mousePosition;
   }
 
-  //Throws error if value is falsy
-  private assertDefined<T>(value: T | null | undefined): asserts value is T {
-    if (value == null) {
-      throw new Error(`Error: value ${value} cannot be null/undefined`);
-    }
-  }
   //Checks if mouse is within selection rectangle for those that have it
   private mouseWithinSelection(
     x: number,
@@ -1322,17 +1334,18 @@ class DrawingCanvas implements OptionElementsI {
       : this.mouseWithin(x1, x2, y1, y2, x, y)
       ? "m"
       : false;
+
     return mouseIsIn;
   }
 
-  //Draw a selection for selected drawing
+  //Function for well.. creating a drawing selection
   private createDrawingSelection(drawing: DrawingElements) {
     this.context.globalCompositeOperation = "source-over";
     this.context.strokeStyle = "#738FE5";
 
     this.context.lineWidth = 1;
 
-    const coords = this.getCurrentCoords(drawing); //Checks if current state of drawing and returns coordinates based on if we are resizing or not and what element we are selecting
+    const coords = this.getCorrectCoords(drawing);
     if (drawing.type === "stroke" || drawing.type === "text") {
       const width = coords.x2 - coords.x1;
       const height = coords.y2 - coords.y1;
@@ -1351,13 +1364,14 @@ class DrawingCanvas implements OptionElementsI {
       this.drawCornerPoints(drawing);
     }
   }
-  //Draw points in corner
+
+  //Function for drawing corner points :P
   private drawCornerPoints(drawing: DrawingElements) {
     this.context.lineWidth = 5;
     let x: number;
     let y: number;
 
-    const coords = this.getCurrentCoords(drawing);
+    const coords = this.getCorrectCoords(drawing);
 
     if (drawing.type === "stroke" || drawing.type === "text") {
       //Selection has 4 corners
@@ -1388,8 +1402,8 @@ class DrawingCanvas implements OptionElementsI {
     }
   }
 
-  //Returns resized or original coords
-  private getCurrentCoords(drawing: DrawingElements) {
+  //Function that returns the correct coords of given drawing based on if we are resizing or not
+  private getCorrectCoords(drawing: DrawingElements) {
     let coords: SelectionCoords & LineSelectionCoords;
 
     if (drawing.type === "line") {
@@ -1420,7 +1434,7 @@ class DrawingCanvas implements OptionElementsI {
     return false;
   }
 
-  //Sets context styles based on drawing styles
+  //Function for setting styles based on drawing
   private setCtxStyles(drawing: DrawingElements) {
     this.context.globalCompositeOperation = drawing.operation;
     this.context.lineCap = "round";
@@ -1437,7 +1451,7 @@ class DrawingCanvas implements OptionElementsI {
     }
   }
 
-  //Loop and redraw each drawing as drawn
+  //Function for redrawing canvas when interactive
   private redraw(drawingData: DrawingElements[]) {
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
@@ -1512,13 +1526,16 @@ class DrawingCanvas implements OptionElementsI {
     });
   }
 
-  private assignToProp(
-    propName: keyof OptionElementsI,
-    element: HTMLElement & HTMLButtonElement & HTMLInputElement
-  ) {
-    (this as WritableDrawingCanvas)[propName] = element;
-  }
+  //Function for assigning value to readonly props
+  // private assignToKey<T, U, V>(
+  //   key: keyof T,
+  //   element: U extends T[keyof T] ? T[keyof T] : never,
+  //   prop: V extends { [P in keyof DrawingCanvas]: DrawingCanvas[P] } ? DrawingCanvas[P] : never
+  // ) {
+  //   (this[prop] as Writable<T>)[key] = element;
+  // }
 
+  //Function that checks if given element is target
   private targetIs(
     element: HTMLButtonElement | HTMLInputElement | HTMLElement,
     target: HTMLButtonElement | HTMLInputElement | HTMLElement
@@ -1533,6 +1550,7 @@ class DrawingCanvas implements OptionElementsI {
     }
   }
 
+  //Function for creating a html element
   private createPersonalElement = (
     tagName: string,
     type?: string,
@@ -1564,6 +1582,7 @@ class DrawingCanvas implements OptionElementsI {
     return element;
   };
 
+  //Function for incrementing and decrementing
   private incOrDec(index: number, type: "increment" | "decrement", steps: number) {
     if (type === "increment") {
       return (index += steps);
@@ -1572,22 +1591,12 @@ class DrawingCanvas implements OptionElementsI {
     }
   }
 
-  private handleToggle = (
-    activeElements: { element: HTMLElement; stateName: string }[],
-    inactiveElements: { element: HTMLElement; stateName: string }[]
-  ) => {
-    activeElements.forEach((element) => {
-      element.element?.classList.add("active");
-
-      this[element.stateName as keyof ToggledStates] = true;
-    });
-    inactiveElements.forEach((element) => {
-      element.element?.classList.remove("active");
-
-      this[element.stateName as keyof ToggledStates] = false;
-    });
-  };
-
+  //Throws error if value is null or undefined
+  private assertDefined<T>(value: T | null | undefined): asserts value is T {
+    if (value == null) {
+      throw new Error(`Error: value ${value} cannot be null/undefined`);
+    }
+  }
   //Function that throws an error if coords are undefined or not typeof number
   private assertRequired<T extends object>(coords: T): asserts coords is Required<T> {
     //IF there is no props in the provided object
@@ -1600,14 +1609,5 @@ class DrawingCanvas implements OptionElementsI {
 }
 
 new DrawingCanvas("drawing-board", {
-  elements: [
-    {
-      type: DrawingElementType.rectangle,
-      className: "rectanglea",
-    },
-    {
-      type: DrawingElementType.pencil,
-      id: "pencilID",
-    },
-  ],
+  elements: [],
 });
