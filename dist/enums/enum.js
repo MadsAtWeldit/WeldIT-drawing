@@ -4,13 +4,13 @@ export var DrawingElementType;
     DrawingElementType["controller"] = "controller";
     DrawingElementType["pencil"] = "pencil";
     DrawingElementType["eraser"] = "eraser";
-    DrawingElementType["colorPicker"] = "colorPicker";
-    DrawingElementType["lineWidth"] = "lineWidth";
+    DrawingElementType["color"] = "color";
+    DrawingElementType["width"] = "width";
     DrawingElementType["clearCanvas"] = "clearCanvas";
     DrawingElementType["moveAndResize"] = "moveAndResize";
     DrawingElementType["undo"] = "undo";
     DrawingElementType["text"] = "text";
-    DrawingElementType["lineTool"] = "lineTool";
+    DrawingElementType["line"] = "line";
     DrawingElementType["rectangle"] = "rectangle";
 })(DrawingElementType || (DrawingElementType = {}));
 //# sourceMappingURL=enum.js.map
