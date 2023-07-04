@@ -698,7 +698,6 @@ class DrawingCanvas {
               this.startY = mouseY;
             } else {
               const { from } = this.shouldResize;
-
               this.isResizing = true;
               this.resizePath(selectedDrawing, from, mouseX, mouseY);
             }
@@ -746,41 +745,8 @@ class DrawingCanvas {
               this.startY = mouseY;
             } else {
               const { from } = this.shouldResize;
-              const { drawnFromX, drawnFromY } = this.drawnFrom(selectedDrawing);
-              const { scaleOriginXPos, scaleOriginYPos, startCornerXPos, startCornerYPos } =
-                this.scaleCorrectly(from, selectedDrawing, mouseX, mouseY);
-
               this.isResizing = true;
-
-              const resizedPath = new Path2D();
-
-              //Init resized start and end
-              selectedDrawing.resizedCoords = {
-                resizedStartX: selectedDrawing.coords.startX,
-                resizedStartY: selectedDrawing.coords.startY,
-                resizedEndX: selectedDrawing.coords.endX,
-                resizedEndY: selectedDrawing.coords.endY,
-              };
-
-              const startCornerX = startCornerXPos;
-              const startCornerY = startCornerYPos;
-
-              const scaleOriginX = scaleOriginXPos;
-              const scaleOriginY = scaleOriginYPos;
-
-              //IF we start to scale from start THEN resize startX
-              startCornerX === selectedDrawing.coords.startX
-                ? (selectedDrawing.resizedCoords.resizedStartX = mouseX)
-                : (selectedDrawing.resizedCoords.resizedEndX = mouseX);
-              startCornerY === selectedDrawing.coords.startY
-                ? (selectedDrawing.resizedCoords.resizedStartY = mouseY)
-                : (selectedDrawing.resizedCoords.resizedEndY = mouseY);
-
-              this.context.beginPath();
-              resizedPath.moveTo(mouseX, mouseY);
-              resizedPath.lineTo(scaleOriginX, scaleOriginY);
-
-              selectedDrawing.resizedPath = resizedPath;
+              this.resizeLine(selectedDrawing, from, mouseX, mouseY);
             }
           }
 
@@ -1011,6 +977,47 @@ class DrawingCanvas {
     element.resizedFont = newFont;
   }
 
+  //Resize line
+  private resizeLine(
+    element: LineElement,
+    from: string,
+    currentMouseX: number,
+    currentMouseY: number
+  ) {
+    const { scaleOriginXPos, scaleOriginYPos, startCornerXPos, startCornerYPos } =
+      this.scaleCorrectly(from, element, currentMouseX, currentMouseY);
+
+    const resizedPath = new Path2D();
+
+    const startCornerX = startCornerXPos;
+    const startCornerY = startCornerYPos;
+
+    const scaleOriginX = scaleOriginXPos;
+    const scaleOriginY = scaleOriginYPos;
+
+    //Assign start and end x
+    if (startCornerX === element.coords.startX) {
+      element.resizedCoords.resizedStartX = currentMouseX;
+      element.resizedCoords.resizedEndX = scaleOriginX;
+    } else {
+      element.resizedCoords.resizedStartX = scaleOriginX;
+      element.resizedCoords.resizedEndX = currentMouseX;
+    }
+    //Assign start and end y
+    if (startCornerY === element.coords.startY) {
+      element.resizedCoords.resizedStartY = currentMouseY;
+      element.resizedCoords.resizedEndY = scaleOriginY;
+    } else {
+      element.resizedCoords.resizedStartY = scaleOriginY;
+      element.resizedCoords.resizedEndY = currentMouseY;
+    }
+
+    this.context.beginPath();
+    resizedPath.moveTo(currentMouseX, currentMouseY);
+    resizedPath.lineTo(scaleOriginX, scaleOriginY);
+
+    element.resizedPath = resizedPath;
+  }
   //Resize drawing with provided scale factor and scale origin
   private resizePath(
     element: PathElement,
