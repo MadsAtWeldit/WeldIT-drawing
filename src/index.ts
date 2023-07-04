@@ -1,102 +1,12 @@
 import { DrawingElementType } from "./enums/enum.js";
 import { excludeNullishProps } from "./utils/common.js";
-interface ToggleAbleTools {
-  readonly pencil: HTMLButtonElement | null;
-  readonly eraser: HTMLButtonElement | null;
-  readonly moveAndResize: HTMLButtonElement | null;
-  readonly text: HTMLButtonElement | null;
-  readonly line: HTMLButtonElement | null;
-}
 
-interface ToolModifiers {
-  readonly color: HTMLInputElement | null;
-  readonly width: HTMLInputElement | null;
-}
-
-interface CanvasModifiers {
-  readonly clear: HTMLButtonElement | null;
-  readonly undo: HTMLButtonElement | null;
-}
-
-//Interface for passing in elements to options of class constructor
-interface CanvasElement {
+//Expected structure of element passed to options
+interface OptionElement {
   type: DrawingElementType;
   className?: string;
   id?: string;
 }
-
-//Interface for holding states of toggled buttons
-interface ToggledStates {
-  pencil: boolean;
-  eraser: boolean;
-  moveAndResize: boolean;
-  text: boolean;
-  line: boolean;
-}
-
-//Interface for left right top and bottom of drawing
-interface SelectionCoords {
-  x1?: number;
-  y1?: number;
-  x2?: number;
-  y2?: number;
-}
-
-//Interface for resized selection coords
-type ResizedSelectionCoords = Prefix<SelectionCoords, "resized">;
-
-//Interface for coords of a line type drawing
-type LineSelectionCoords = Rename<SelectionCoords, "startX" | "startY" | "endX" | "endY">;
-
-//Interface for resized coords of line drawing
-type ResizedLineSelectionCoords = Prefix<LineSelectionCoords, "resized">;
-
-interface PathElement {
-  type: "stroke";
-  path: Path2D;
-  resizedPath: Path2D | null;
-  lineWidth: number;
-  strokeStyle: string;
-  operation: "source-over" | "destination-out";
-  coords: SelectionCoords;
-  resizedCoords: ResizedSelectionCoords;
-  xCords: number[];
-  yCords: number[];
-  resizedXCords: number[];
-  resizedYCords: number[];
-}
-
-interface TextElement {
-  type: "text";
-  text: string;
-  font: string;
-  resizedFont: string;
-  baseline: string;
-  coords: SelectionCoords;
-  resizedCoords: ResizedSelectionCoords;
-  operation: "source-over" | "destination-out";
-}
-
-interface LineElement {
-  type: "line";
-  path: Path2D;
-  resizedPath: Path2D | null;
-  lineWidth: number;
-  strokeStyle: string;
-  operation: "source-over" | "destination-out";
-  coords: LineSelectionCoords;
-  resizedCoords: ResizedLineSelectionCoords;
-}
-
-interface SelectedTool {
-  element: HTMLButtonElement | null;
-  name: keyof ToggledStates | null;
-}
-
-type DrawingElements = PathElement | TextElement | LineElement;
-
-//Elements that shouldnt have active class toggled
-type NonToggledElements = "controller" | "colorPicker" | "lineWidthPicker" | "clearCanvas" | "undo";
 
 class DrawingCanvas {
   private canvas: HTMLCanvasElement;
@@ -104,7 +14,7 @@ class DrawingCanvas {
   private controller: HTMLElement | null = document.getElementById("toolbar");
 
   //Base tools
-  private tools: ToggleAbleTools = {
+  private tools: Tools = {
     pencil: <HTMLButtonElement | null>document.getElementById("pencil"),
     eraser: <HTMLButtonElement | null>document.getElementById("eraser"),
     moveAndResize: <HTMLButtonElement | null>document.getElementById("mv-rz"),
@@ -141,7 +51,7 @@ class DrawingCanvas {
   };
   private shouldLine = false;
 
-  private toggledTools: ToggledStates = {
+  private toolStates: ToolStates = {
     pencil: false,
     eraser: false,
     moveAndResize: false,
@@ -197,9 +107,6 @@ class DrawingCanvas {
 
   private drawingData: DrawingElements[] = [];
 
-  private lineWidth: number;
-  private strokeStyle: string;
-
   private startX = 0;
   private startY = 0;
   private mouseX = 0;
@@ -213,7 +120,7 @@ class DrawingCanvas {
     options?: {
       width?: number;
       height?: number;
-      elements?: CanvasElement[];
+      elements?: OptionElement[];
     }
   ) {
     //Select canvas element
@@ -237,65 +144,63 @@ class DrawingCanvas {
     this.canvas.style.cursor = "crosshair";
 
     this.selectedTool.element?.classList.add("active");
-    this.toggledTools[this.selectedTool.name as keyof ToggleAbleTools] = true;
+    this.toolStates[this.selectedTool.name as keyof ToolStates] = true;
 
     //Add eventlisteners to canvas
     this.listen();
   }
 
   //Runs for each element passed to options
-  private storeElements = (optionsElement: CanvasElement) => {
+  private storeElements = (optionElement: OptionElement) => {
     //Loop through each key in tools
     Object.keys(this.tools).map((toolKey) => {
       //IF the type of options element matches a key in the tools
-      if (optionsElement.type === toolKey) {
-        const key = toolKey as keyof ToggleAbleTools;
+      if (optionElement.type === toolKey) {
+        const key = toolKey as keyof Tools;
         //THEN check if there was a className or id passed
-        if (optionsElement.className) {
+        if (optionElement.className) {
           const element = document.querySelector(
-            "." + optionsElement.className
+            "." + optionElement.className
           ) as HTMLButtonElement; //Needs to be intersection to safely assign to lhs
 
-          (this.tools as Writable<ToggleAbleTools>)[key] = element;
+          (this.tools as Writable<Tools>)[key] = element;
         }
 
-        if (optionsElement.id) {
-          const element = document.getElementById(optionsElement.id) as HTMLButtonElement;
-          (this.tools as Writable<ToggleAbleTools>)[key] = element;
+        if (optionElement.id) {
+          const element = document.getElementById(optionElement.id) as HTMLButtonElement;
+          (this.tools as Writable<Tools>)[key] = element;
         }
       }
     });
 
     Object.keys(this.toolModifiers).map((toolModifierKey) => {
-      if (optionsElement.type === toolModifierKey) {
+      if (optionElement.type === toolModifierKey) {
         const key = toolModifierKey as keyof ToolModifiers;
-        if (optionsElement.className) {
-          const element = document.querySelector(
-            "." + optionsElement.className
-          ) as HTMLInputElement;
+        if (optionElement.className) {
+          const element = document.querySelector("." + optionElement.className) as HTMLInputElement;
 
           (this.toolModifiers as Writable<ToolModifiers>)[key] = element;
         }
-        if (optionsElement.id) {
-          const element = document.getElementById(optionsElement.id) as HTMLInputElement;
+        if (optionElement.id) {
+          const element = document.getElementById(optionElement.id) as HTMLInputElement;
           (this.toolModifiers as Writable<ToolModifiers>)[key] = element;
         }
       }
     });
 
     Object.keys(this.canvasModifiers).map((canvasModifierKey) => {
-      if (optionsElement.type === canvasModifierKey) {
+      if (optionElement.type === canvasModifierKey) {
         const key = canvasModifierKey as keyof CanvasModifiers;
-        if (optionsElement.className) {
+        if (optionElement.className) {
           const element = document.querySelector(
-            "." + optionsElement.className
+            "." + optionElement.className
           ) as HTMLButtonElement;
 
           (this.canvasModifiers as Writable<CanvasModifiers>)[key] = element;
         }
 
-        if (optionsElement.id) {
-          const element = document.getElementById(optionsElement.id) as HTMLButtonElement;
+        if (optionElement.id) {
+          const element = document.getElementById(optionElement.id) as HTMLButtonElement;
           (this.canvasModifiers as Writable<CanvasModifiers>)[key] = element;
         }
       }
@@ -356,9 +261,9 @@ class DrawingCanvas {
         if (v === target) {
           //Store tool as selected
           this.selectedTool.element = v;
-          this.selectedTool.name = k as keyof ToggledStates;
+          this.selectedTool.name = k as keyof ToolStates;
         } else {
-          this.toggledTools[k as keyof ToggledStates] = false;
+          this.toolStates[k as keyof ToolStates] = false;
           v?.classList.remove("active");
         }
       });
@@ -372,7 +277,7 @@ class DrawingCanvas {
         : (this.canvas.style.cursor = "default");
 
       this.selectedTool.element?.classList.add("active");
-      this.toggledTools[this.selectedTool.name as keyof ToggledStates] = true;
+      this.toolStates[this.selectedTool.name as keyof ToolStates] = true;
     }
 
     if (Object.keys(definedCanvasModifiers).length > 0) {
@@ -408,7 +313,7 @@ class DrawingCanvas {
     //Check if event is touch or mouse
     const evtType = (e as TouchEvent).touches ? (e as TouchEvent).touches[0] : (e as MouseEvent);
 
-    const { pencil, eraser, moveAndResize, text, line } = this.toggledTools;
+    const { pencil, eraser, moveAndResize, text, line } = this.toolStates;
 
     const mouseY = evtType.clientY - this.canvas.offsetTop;
     const mouseX = evtType.clientX - this.canvas.offsetLeft;
@@ -738,7 +643,7 @@ class DrawingCanvas {
 
     this.mouseIsDown ? (this.isDragging = true) : (this.isDragging = false);
 
-    if (this.toggledTools.moveAndResize) {
+    if (this.toolStates.moveAndResize) {
       this.canvas.style.cursor = "default";
 
       this.drawingData.forEach((drawing, i) => {
