@@ -1,4 +1,4 @@
-import { excludeNullishProps, assignCorrectly } from "./utils/common.js";
+import { excludeNullishProps, assignCorrectly, assertRequired } from "./utils/common.js";
 //Import element types
 import {
   OptionElement,
@@ -667,7 +667,7 @@ class DrawingCanvas {
       //Selected drawing
       const selectedDrawing = this.drawingData[this.selectedDrawingIndex];
       //Coords are required IF not present then throw an error
-      this.assertRequired(selectedDrawing.coords);
+      assertRequired(selectedDrawing.coords);
 
       switch (selectedDrawing.type) {
         case "stroke":
@@ -906,7 +906,7 @@ class DrawingCanvas {
     currentMouseX: number,
     currentMouseY: number
   ) {
-    this.assertRequired(element.coords);
+    assertRequired(element.coords);
     //IF scaling from the left side then start = left : start = right;
     const startCornerX = from === "tl" || from === "bl" ? element.coords.x1 : element.coords.x2;
     const startCornerY = from === "tl" || from === "tr" ? element.coords.y1 : element.coords.y2;
@@ -1067,7 +1067,7 @@ class DrawingCanvas {
     let X;
     let Y;
 
-    this.assertRequired(drawing.coords);
+    assertRequired(drawing.coords);
 
     const { startX, endX, startY, endY } = drawing.coords;
     if (startX < endX) {
@@ -1088,7 +1088,7 @@ class DrawingCanvas {
   //Check if mouse is in corner of LineElement
   private mouseWithinLineSelection(drawing: LineElement, mouseX: number, mouseY: number) {
     //Throw error if coords is undefined
-    this.assertRequired(drawing.coords);
+    assertRequired(drawing.coords);
     //Current line element
     const { startX, startY, endX, endY } = drawing.coords;
     let leftToRight = false;
@@ -1161,7 +1161,7 @@ class DrawingCanvas {
     y: number,
     drawing: PathElement | TextElement
   ): boolean | string {
-    this.assertRequired(drawing.coords);
+    assertRequired(drawing.coords);
     const { x1, y1, x2, y2 } = drawing.coords;
     //Top left rectangle
     const topLeftX1 = x1;
@@ -1283,7 +1283,7 @@ class DrawingCanvas {
       };
     }
     //Make sure that coords are not undefined before returning them
-    this.assertRequired(coords);
+    assertRequired(coords);
 
     return coords;
   }
@@ -1341,7 +1341,7 @@ class DrawingCanvas {
         case "text":
           if (this.selectedDrawingIndex === i) {
             if (this.isResizing) {
-              this.assertRequired(drawing.resizedCoords);
+              assertRequired(drawing.resizedCoords);
               this.setCtxStyles(drawing);
 
               this.context.font = drawing.resizedFont;
@@ -1386,15 +1386,6 @@ class DrawingCanvas {
       }
     });
   }
-
-  //Function for assigning value to readonly props
-  // private assignToKey<T, U, V>(
-  //   key: keyof T,
-  //   element: U extends T[keyof T] ? T[keyof T] : never,
-  //   prop: V extends { [P in keyof DrawingCanvas]: DrawingCanvas[P] } ? DrawingCanvas[P] : never
-  // ) {
-  //   (this[prop] as Writable<T>)[key] = element;
-  // }
 
   //Function that checks if given element is target
   private targetIs(
@@ -1450,22 +1441,6 @@ class DrawingCanvas {
     } else {
       return (index -= steps);
     }
-  }
-
-  //Throws error if value is null or undefined
-  private assertDefined<T>(value: T | null | undefined): asserts value is T {
-    if (value == null) {
-      throw new Error(`Error: value ${value} cannot be null/undefined`);
-    }
-  }
-  //Function that throws an error if coords are undefined or not typeof number
-  private assertRequired<T extends object>(coords: T): asserts coords is Required<T> {
-    //IF there is no props in the provided object
-    if (Object.keys(coords).length <= 0) throw new Error(`Error: no coords exist on this object`);
-    //IF the provided value of said object is not type of a number
-    Object.entries(coords).forEach(([k, v]) => {
-      if (typeof v !== "number") throw new Error(`Error type ${k}:${v} must be of type number`);
-    });
   }
 }
 

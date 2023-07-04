@@ -37,3 +37,20 @@ export const assignCorrectly = <T extends object, U>(
     }
   });
 };
+
+//Throws error if value is null or undefined
+// export const assertDefined = <T>(value: T | null | undefined): asserts value is T => {
+//   if (value == null) {
+//     throw new Error(`Error: value ${value} cannot be null/undefined`);
+//   }
+// };
+
+//Function that throws an error if coords are undefined or not typeof number
+export function assertRequired<T extends object>(coords: T): asserts coords is Required<T> {
+  //IF there is no props in the provided object
+  if (Object.keys(coords).length <= 0) throw new Error(`Error: no coords exist on this object`);
+  //IF the provided value of said object is not type of a number
+  Object.entries(coords).forEach(([k, v]) => {
+    if (typeof v !== "number") throw new Error(`Error type ${k}:${v} must be of type number`);
+  });
+}
