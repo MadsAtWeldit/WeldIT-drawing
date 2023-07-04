@@ -13,3 +13,7 @@ type Prefix<T, P extends string> = {
 
 //Removes props that are of nullish value
 type Valuble<T> = { [K in keyof T as T[K] extends null | undefined ? never : K]: T[K] };
+
+type ToBool<T> = {
+  [K in keyof T]: boolean;
+};

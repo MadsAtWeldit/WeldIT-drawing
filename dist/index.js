@@ -36,7 +36,7 @@ class DrawingCanvas {
             from: "",
         };
         this.shouldLine = false;
-        this.toggledTools = {
+        this.toolStates = {
             pencil: false,
             eraser: false,
             moveAndResize: false,
@@ -91,45 +91,45 @@ class DrawingCanvas {
         this.mouseY = 0;
         this.selectedTool = { element: this.tools.pencil, name: "pencil" };
         //Runs for each element passed to options
-        this.storeElements = (optionsElement) => {
+        this.storeElements = (optionElement) => {
             //Loop through each key in tools
             Object.keys(this.tools).map((toolKey) => {
                 //IF the type of options element matches a key in the tools
-                if (optionsElement.type === toolKey) {
+                if (optionElement.type === toolKey) {
                     const key = toolKey;
                     //THEN check if there was a className or id passed
-                    if (optionsElement.className) {
-                        const element = document.querySelector("." + optionsElement.className); //Needs to be intersection to safely assign to lhs
+                    if (optionElement.className) {
+                        const element = document.querySelector("." + optionElement.className); //Needs to be intersection to safely assign to lhs
                         this.tools[key] = element;
                     }
-                    if (optionsElement.id) {
-                        const element = document.getElementById(optionsElement.id);
+                    if (optionElement.id) {
+                        const element = document.getElementById(optionElement.id);
                         this.tools[key] = element;
                     }
                 }
             });
             Object.keys(this.toolModifiers).map((toolModifierKey) => {
-                if (optionsElement.type === toolModifierKey) {
+                if (optionElement.type === toolModifierKey) {
                     const key = toolModifierKey;
-                    if (optionsElement.className) {
-                        const element = document.querySelector("." + optionsElement.className);
+                    if (optionElement.className) {
+                        const element = document.querySelector("." + optionElement.className);
                         this.toolModifiers[key] = element;
                     }
-                    if (optionsElement.id) {
-                        const element = document.getElementById(optionsElement.id);
+                    if (optionElement.id) {
+                        const element = document.getElementById(optionElement.id);
                         this.toolModifiers[key] = element;
                     }
                 }
             });
             Object.keys(this.canvasModifiers).map((canvasModifierKey) => {
-                if (optionsElement.type === canvasModifierKey) {
+                if (optionElement.type === canvasModifierKey) {
                     const key = canvasModifierKey;
-                    if (optionsElement.className) {
-                        const element = document.querySelector("." + optionsElement.className);
+                    if (optionElement.className) {
+                        const element = document.querySelector("." + optionElement.className);
                         this.canvasModifiers[key] = element;
                     }
-                    if (optionsElement.id) {
-                        const element = document.getElementById(optionsElement.id);
+                    if (optionElement.id) {
+                        const element = document.getElementById(optionElement.id);
                         this.canvasModifiers[key] = element;
                     }
                 }
@@ -167,7 +167,7 @@ class DrawingCanvas {
                         this.selectedTool.name = k;
                     }
                     else {
-                        this.toggledTools[k] = false;
+                        this.toolStates[k] = false;
                         v === null || v === void 0 ? void 0 : v.classList.remove("active");
                     }
                 });
@@ -179,7 +179,7 @@ class DrawingCanvas {
                         ? (this.canvas.style.cursor = "text")
                         : (this.canvas.style.cursor = "default");
                 (_a = this.selectedTool.element) === null || _a === void 0 ? void 0 : _a.classList.add("active");
-                this.toggledTools[this.selectedTool.name] = true;
+                this.toolStates[this.selectedTool.name] = true;
             }
             if (Object.keys(definedCanvasModifiers).length > 0) {
                 if (definedCanvasModifiers.clear === target) {
@@ -208,7 +208,7 @@ class DrawingCanvas {
                 return;
             //Check if event is touch or mouse
             const evtType = e.touches ? e.touches[0] : e;
-            const { pencil, eraser, moveAndResize, text, line } = this.toggledTools;
+            const { pencil, eraser, moveAndResize, text, line } = this.toolStates;
             const mouseY = evtType.clientY - this.canvas.offsetTop;
             const mouseX = evtType.clientX - this.canvas.offsetLeft;
             //Store starting positions
@@ -487,7 +487,7 @@ class DrawingCanvas {
             this.mouseX = mouseX;
             this.mouseY = mouseY;
             this.mouseIsDown ? (this.isDragging = true) : (this.isDragging = false);
-            if (this.toggledTools.moveAndResize) {
+            if (this.toolStates.moveAndResize) {
                 this.canvas.style.cursor = "default";
                 this.drawingData.forEach((drawing, i) => {
                     switch (drawing.type) {
@@ -731,7 +731,7 @@ class DrawingCanvas {
         //Assign default values
         this.canvas.style.cursor = "crosshair";
         (_b = this.selectedTool.element) === null || _b === void 0 ? void 0 : _b.classList.add("active");
-        this.toggledTools[this.selectedTool.name] = true;
+        this.toolStates[this.selectedTool.name] = true;
         //Add eventlisteners to canvas
         this.listen();
     }
