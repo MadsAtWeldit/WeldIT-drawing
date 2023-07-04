@@ -215,7 +215,7 @@ class DrawingCanvas {
       Object.entries(definedTools).forEach(([k, v]) => {
         //IF tool is target
         if (v === target) {
-          //Store tool as selected
+          //Store tool name and element as selected
           this.selectedTool.element = v;
           this.selectedTool.name = k as keyof ToolStates;
         } else {
@@ -666,6 +666,7 @@ class DrawingCanvas {
 
       //Selected drawing
       const selectedDrawing = this.drawingData[this.selectedDrawingIndex];
+
       //Coords are required IF not present then throw an error
       assertRequired(selectedDrawing.coords);
 
@@ -746,10 +747,8 @@ class DrawingCanvas {
             } else {
               const { from } = this.shouldResize;
               const { drawnFromX, drawnFromY } = this.drawnFrom(selectedDrawing);
-
-              //For tracking if we should resize the start or end of the line
-              let resizeStartCoords = false;
-              let resizeEndCoords = false;
+              const { scaleOriginXPos, scaleOriginYPos, startCornerXPos, startCornerYPos } =
+                this.scaleCorrectly(from, selectedDrawing, mouseX, mouseY);
 
               this.isResizing = true;
 
@@ -763,56 +762,23 @@ class DrawingCanvas {
                 resizedEndY: selectedDrawing.coords.endY,
               };
 
-              switch (from) {
-                //IF we should resize from left and its drawn from left that means that start coords is on the left side
-                //So resizeStartCoords
-                case "l":
-                  drawnFromX === "leftToRight"
-                    ? (resizeStartCoords = true)
-                    : (resizeEndCoords = true);
+              const startCornerX = startCornerXPos;
+              const startCornerY = startCornerYPos;
 
-                  break;
-                case "r":
-                  drawnFromX === "leftToRight"
-                    ? (resizeEndCoords = true)
-                    : (resizeStartCoords = true);
+              const scaleOriginX = scaleOriginXPos;
+              const scaleOriginY = scaleOriginYPos;
 
-                  break;
-                case "t":
-                  drawnFromY === "topToBottom"
-                    ? (resizeStartCoords = true)
-                    : (resizeEndCoords = true);
+              //IF we start to scale from start THEN resize startX
+              startCornerX === selectedDrawing.coords.startX
+                ? (selectedDrawing.resizedCoords.resizedStartX = mouseX)
+                : (selectedDrawing.resizedCoords.resizedEndX = mouseX);
+              startCornerY === selectedDrawing.coords.startY
+                ? (selectedDrawing.resizedCoords.resizedStartY = mouseY)
+                : (selectedDrawing.resizedCoords.resizedEndY = mouseY);
 
-                  break;
-                case "b":
-                  drawnFromY === "topToBottom"
-                    ? (resizeEndCoords = true)
-                    : (resizeStartCoords = true);
-
-                  break;
-              }
-
-              if (resizeStartCoords) {
-                selectedDrawing.resizedCoords.resizedStartX = mouseX;
-                selectedDrawing.resizedCoords.resizedStartY = mouseY;
-
-                this.context.beginPath();
-                resizedPath.moveTo(
-                  selectedDrawing.resizedCoords.resizedStartX,
-                  selectedDrawing.resizedCoords.resizedStartY
-                );
-                resizedPath.lineTo(selectedDrawing.coords.endX, selectedDrawing.coords.endY);
-              } else {
-                selectedDrawing.resizedCoords.resizedEndX = mouseX;
-                selectedDrawing.resizedCoords.resizedEndY = mouseY;
-
-                this.context.beginPath();
-                resizedPath.moveTo(
-                  selectedDrawing.resizedCoords.resizedEndX,
-                  selectedDrawing.resizedCoords.resizedEndY
-                );
-                resizedPath.lineTo(selectedDrawing.coords.startX, selectedDrawing.coords.startY);
-              }
+              this.context.beginPath();
+              resizedPath.moveTo(mouseX, mouseY);
+              resizedPath.lineTo(scaleOriginX, scaleOriginY);
 
               selectedDrawing.resizedPath = resizedPath;
             }
@@ -902,48 +868,86 @@ class DrawingCanvas {
   //Function that returns correct coordinates and scalefactor for scaling
   private scaleCorrectly(
     from: string,
-    element: PathElement | TextElement,
+    element: DrawingElements,
     currentMouseX: number,
     currentMouseY: number
   ) {
     assertRequired(element.coords);
-    //IF scaling from the left side then start = left : start = right;
-    const startCornerX = from === "tl" || from === "bl" ? element.coords.x1 : element.coords.x2;
-    const startCornerY = from === "tl" || from === "tr" ? element.coords.y1 : element.coords.y2;
 
-    //IF scaling from left side then origin is opposite side so that we scale inwards or outwards based on corner
-    const scaleOriginX = from === "tl" || from === "bl" ? element.coords.x2 : element.coords.x1;
-    const scaleOriginY = from === "tl" || from === "tr" ? element.coords.y2 : element.coords.y1;
+    if (element.type === "line") {
+      const { drawnFromX, drawnFromY } = this.drawnFrom(element);
+      let resizeStartCoords = false;
+      let resizeEndCoords = false;
+      switch (from) {
+        case "l":
+          drawnFromX === "leftToRight" ? (resizeStartCoords = true) : (resizeEndCoords = true);
 
-    //For the scaling to work properly i also need where we scale from
-    //Since scaling from left side to right side would not work with e.g (x1 - x2 so instead x2 - x1 for distance)
-    const originalDistance =
-      from === "tl" || from === "bl"
-        ? scaleOriginX - startCornerX
-        : startCornerX -
-          scaleOriginX +
-          (from === "tl" || from === "tr"
-            ? scaleOriginY - startCornerY
-            : startCornerY - scaleOriginY);
+          break;
+        case "r":
+          drawnFromX === "leftToRight" ? (resizeEndCoords = true) : (resizeStartCoords = true);
 
-    const currentDistance =
-      from === "tl" || from === "bl"
-        ? scaleOriginX - currentMouseX
-        : currentMouseX -
-          scaleOriginX +
-          (from === "tl" || from === "tr"
-            ? scaleOriginY - currentMouseY
-            : currentMouseY - scaleOriginY);
+          break;
+        case "t":
+          drawnFromY === "topToBottom" ? (resizeStartCoords = true) : (resizeEndCoords = true);
 
-    const scaleFactor = currentDistance / originalDistance;
+          break;
+        case "b":
+          drawnFromY === "topToBottom" ? (resizeEndCoords = true) : (resizeStartCoords = true);
 
-    return {
-      scaleOriginXPos: scaleOriginX,
-      scaleOriginYPos: scaleOriginY,
-      startCornerXPos: startCornerX,
-      startCornerYPos: startCornerY,
-      scale: scaleFactor,
-    };
+          break;
+      }
+
+      const startCornerX = resizeStartCoords ? element.coords.startX : element.coords.endX;
+      const startCornerY = resizeStartCoords ? element.coords.startY : element.coords.endY;
+
+      const scaleOriginX = resizeStartCoords ? element.coords.endX : element.coords.startX;
+      const scaleOriginY = resizeStartCoords ? element.coords.endY : element.coords.startY;
+      return {
+        scaleOriginXPos: scaleOriginX,
+        scaleOriginYPos: scaleOriginY,
+        startCornerXPos: startCornerX,
+        startCornerYPos: startCornerY,
+        scale: 0,
+      };
+    } else {
+      //IF scaling from the left side then start = left : start = right;
+      const startCornerX = from === "tl" || from === "bl" ? element.coords.x1 : element.coords.x2;
+      const startCornerY = from === "tl" || from === "tr" ? element.coords.y1 : element.coords.y2;
+
+      //IF scaling from left side then origin is opposite side so that we scale inwards or outwards based on corner
+      const scaleOriginX = from === "tl" || from === "bl" ? element.coords.x2 : element.coords.x1;
+      const scaleOriginY = from === "tl" || from === "tr" ? element.coords.y2 : element.coords.y1;
+
+      //For the scaling to work properly i also need where we scale from
+      //Since scaling from left side to right side would not work with e.g (x1 - x2 so instead x2 - x1 for distance)
+      const originalDistance =
+        from === "tl" || from === "bl"
+          ? scaleOriginX - startCornerX
+          : startCornerX -
+            scaleOriginX +
+            (from === "tl" || from === "tr"
+              ? scaleOriginY - startCornerY
+              : startCornerY - scaleOriginY);
+
+      const currentDistance =
+        from === "tl" || from === "bl"
+          ? scaleOriginX - currentMouseX
+          : currentMouseX -
+            scaleOriginX +
+            (from === "tl" || from === "tr"
+              ? scaleOriginY - currentMouseY
+              : currentMouseY - scaleOriginY);
+
+      const scaleFactor = currentDistance / originalDistance;
+
+      return {
+        scaleOriginXPos: scaleOriginX,
+        scaleOriginYPos: scaleOriginY,
+        startCornerXPos: startCornerX,
+        startCornerYPos: startCornerY,
+        scale: scaleFactor,
+      };
+    }
   }
 
   //Resize text based on origin of mouse
@@ -985,17 +989,23 @@ class DrawingCanvas {
     //Replace original font size with resized
     const newFont = fontStringCopy.replace(fontSize.toString(), resizedFontSize.toString());
 
-    //Store new left, right, top and bottom based on which side we scaled from
-    from === "tl" || from === "bl"
-      ? ((element.resizedCoords.resizedX1 = scaleOriginX - newDistanceX),
-        (element.resizedCoords.resizedX2 = scaleOriginX))
-      : ((element.resizedCoords.resizedX2 = scaleOriginX - newDistanceX),
-        (element.resizedCoords.resizedX1 = scaleOriginX));
-    from === "tl" || from === "tr"
-      ? ((element.resizedCoords.resizedY1 = scaleOriginY - newDistanceY),
-        (element.resizedCoords.resizedY2 = scaleOriginY))
-      : ((element.resizedCoords.resizedY2 = scaleOriginY - newDistanceY),
-        (element.resizedCoords.resizedY1 = scaleOriginY));
+    //Store new left and right
+    if (from === "tl" || from === "bl") {
+      element.resizedCoords.resizedX1 = scaleOriginX - newDistanceX;
+      element.resizedCoords.resizedX2 = scaleOriginX;
+    } else {
+      element.resizedCoords.resizedX1 = scaleOriginX;
+      element.resizedCoords.resizedX2 = scaleOriginX - newDistanceX;
+    }
+
+    //Store new top and bottom
+    if (from === "tl" || from === "tr") {
+      element.resizedCoords.resizedY1 = scaleOriginY - newDistanceY;
+      element.resizedCoords.resizedY2 = scaleOriginY;
+    } else {
+      element.resizedCoords.resizedY1 = scaleOriginY;
+      element.resizedCoords.resizedY2 = scaleOriginY - newDistanceY;
+    }
 
     //Store the new font size
     element.resizedFont = newFont;

@@ -1,7 +1,8 @@
+//Removes nullish values from provided object
 export const excludeNullishProps = (obj) => {
     return Object.fromEntries(Object.entries(obj).filter(([, v]) => typeof v !== "undefined" && v !== null));
 };
-//Assigns element to correct property
+//Assigns element passed to options to correct property
 export const assignCorrectly = (element, prop) => {
     Object.keys(prop).map((key) => {
         if (element.type === key) {
@@ -30,11 +31,11 @@ export const assignCorrectly = (element, prop) => {
     });
 };
 //Throws error if value is null or undefined
-// export const assertDefined = <T>(value: T | null | undefined): asserts value is T => {
-//   if (value == null) {
-//     throw new Error(`Error: value ${value} cannot be null/undefined`);
-//   }
-// };
+export function assertDefined(value) {
+    if (value == null) {
+        throw new Error(`Error: value ${value} cannot be null/undefined`);
+    }
+}
 //Function that throws an error if coords are undefined or not typeof number
 export function assertRequired(coords) {
     //IF there is no props in the provided object
