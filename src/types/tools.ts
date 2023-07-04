@@ -20,6 +20,6 @@ interface CanvasModifiers {
 }
 
 interface SelectedTool {
-  element: HTMLButtonElement | null;
-  name: keyof ToolStates | null;
+  element?: HTMLButtonElement;
+  name?: keyof ToolStates;
 }

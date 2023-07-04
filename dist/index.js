@@ -1,4 +1,5 @@
-import { excludeNullishProps } from "./utils/common.js";
+import { excludeNullishProps, assignCorrectly } from "./utils/common.js";
+import { DrawingElementType } from "./enums/enum.js";
 class DrawingCanvas {
     constructor(elementId, options) {
         var _a, _b;
@@ -89,51 +90,13 @@ class DrawingCanvas {
         this.startY = 0;
         this.mouseX = 0;
         this.mouseY = 0;
-        this.selectedTool = { element: this.tools.pencil, name: "pencil" };
+        this.selectedTool = {};
         //Runs for each element passed to options
         this.storeElements = (optionElement) => {
-            //Loop through each key in tools
-            Object.keys(this.tools).map((toolKey) => {
-                //IF the type of options element matches a key in the tools
-                if (optionElement.type === toolKey) {
-                    const key = toolKey;
-                    //THEN check if there was a className or id passed
-                    if (optionElement.className) {
-                        const element = document.querySelector("." + optionElement.className); //Needs to be intersection to safely assign to lhs
-                        this.tools[key] = element;
-                    }
-                    if (optionElement.id) {
-                        const element = document.getElementById(optionElement.id);
-                        this.tools[key] = element;
-                    }
-                }
-            });
-            Object.keys(this.toolModifiers).map((toolModifierKey) => {
-                if (optionElement.type === toolModifierKey) {
-                    const key = toolModifierKey;
-                    if (optionElement.className) {
-                        const element = document.querySelector("." + optionElement.className);
-                        this.toolModifiers[key] = element;
-                    }
-                    if (optionElement.id) {
-                        const element = document.getElementById(optionElement.id);
-                        this.toolModifiers[key] = element;
-                    }
-                }
-            });
-            Object.keys(this.canvasModifiers).map((canvasModifierKey) => {
-                if (optionElement.type === canvasModifierKey) {
-                    const key = canvasModifierKey;
-                    if (optionElement.className) {
-                        const element = document.querySelector("." + optionElement.className);
-                        this.canvasModifiers[key] = element;
-                    }
-                    if (optionElement.id) {
-                        const element = document.getElementById(optionElement.id);
-                        this.canvasModifiers[key] = element;
-                    }
-                }
-            });
+            //Assign each element passed to options to its correct place
+            assignCorrectly(optionElement, this.tools);
+            assignCorrectly(optionElement, this.toolModifiers);
+            assignCorrectly(optionElement, this.canvasModifiers);
         };
         //Controller Change handler
         this.changeHandler = (e) => {
@@ -725,11 +688,14 @@ class DrawingCanvas {
         (options === null || options === void 0 ? void 0 : options.height)
             ? (canvas.height = options.height)
             : (canvas.height = window.innerHeight - canvas.offsetTop);
-        //Save canvas and context
+        //Save canvas and context in class
         this.canvas = canvas;
         this.context = context;
         //Assign default values
         this.canvas.style.cursor = "crosshair";
+        //Set selected tool as pencil if exists
+        this.tools.pencil &&
+            ((this.selectedTool.element = this.tools.pencil), (this.selectedTool.name = "pencil"));
         (_b = this.selectedTool.element) === null || _b === void 0 ? void 0 : _b.classList.add("active");
         this.toolStates[this.selectedTool.name] = true;
         //Add eventlisteners to canvas
@@ -1203,6 +1169,6 @@ class DrawingCanvas {
     }
 }
 new DrawingCanvas("drawing-board", {
-    elements: [],
+    elements: [{ type: DrawingElementType.pencil, className: "lol" }],
 });
 //# sourceMappingURL=index.js.map

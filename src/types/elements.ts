@@ -1,4 +1,5 @@
-interface PathElement {
+import { DrawingElementType } from "../enums/enum";
+export interface PathElement {
   type: "stroke";
   path: Path2D;
   resizedPath: Path2D | null;
@@ -13,7 +14,7 @@ interface PathElement {
   resizedYCords: number[];
 }
 
-interface TextElement {
+export interface TextElement {
   type: "text";
   text: string;
   font: string;
@@ -24,7 +25,7 @@ interface TextElement {
   operation: "source-over" | "destination-out";
 }
 
-interface LineElement {
+export interface LineElement {
   type: "line";
   path: Path2D;
   resizedPath: Path2D | null;
@@ -34,4 +35,11 @@ interface LineElement {
   coords: LineSelectionCoords;
   resizedCoords: ResizedLineSelectionCoords;
 }
-type DrawingElements = PathElement | TextElement | LineElement;
+export type DrawingElements = PathElement | TextElement | LineElement;
+
+//Expected structure of element passed to options
+export interface OptionElement {
+  type: DrawingElementType;
+  className?: string;
+  id?: string;
+}

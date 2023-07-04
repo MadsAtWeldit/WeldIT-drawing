@@ -1,12 +1,13 @@
+import { excludeNullishProps, assignCorrectly } from "./utils/common.js";
+//Import element types
+import {
+  OptionElement,
+  DrawingElements,
+  LineElement,
+  PathElement,
+  TextElement,
+} from "./types/elements.js";
 import { DrawingElementType } from "./enums/enum.js";
-import { excludeNullishProps } from "./utils/common.js";
-
-//Expected structure of element passed to options
-interface OptionElement {
-  type: DrawingElementType;
-  className?: string;
-  id?: string;
-}
 
 class DrawingCanvas {
   private canvas: HTMLCanvasElement;
@@ -112,7 +113,7 @@ class DrawingCanvas {
   private mouseX = 0;
   private mouseY = 0;
 
-  private selectedTool: SelectedTool = { element: this.tools.pencil, name: "pencil" };
+  private selectedTool: SelectedTool = {};
 
   constructor(
     elementId: string,
@@ -128,6 +129,7 @@ class DrawingCanvas {
     const context = canvas.getContext("2d") as CanvasRenderingContext2D;
 
     options?.elements?.forEach((element) => this.storeElements(element));
+
     //Check if width and height has been set
     options?.width
       ? (canvas.width = options.width)
@@ -136,13 +138,16 @@ class DrawingCanvas {
       ? (canvas.height = options.height)
       : (canvas.height = window.innerHeight - canvas.offsetTop);
 
-    //Save canvas and context
+    //Save canvas and context in class
     this.canvas = canvas;
     this.context = context;
 
     //Assign default values
     this.canvas.style.cursor = "crosshair";
 
+    //Set selected tool as pencil if exists
+    this.tools.pencil &&
+      ((this.selectedTool.element = this.tools.pencil), (this.selectedTool.name = "pencil"));
     this.selectedTool.element?.classList.add("active");
     this.toolStates[this.selectedTool.name as keyof ToolStates] = true;
 
@@ -152,59 +157,10 @@ class DrawingCanvas {
 
   //Runs for each element passed to options
   private storeElements = (optionElement: OptionElement) => {
-    //Loop through each key in tools
-    Object.keys(this.tools).map((toolKey) => {
-      //IF the type of options element matches a key in the tools
-      if (optionElement.type === toolKey) {
-        const key = toolKey as keyof Tools;
-        //THEN check if there was a className or id passed
-        if (optionElement.className) {
-          const element = document.querySelector(
-            "." + optionElement.className
-          ) as HTMLButtonElement; //Needs to be intersection to safely assign to lhs
-
-          (this.tools as Writable<Tools>)[key] = element;
-        }
-
-        if (optionElement.id) {
-          const element = document.getElementById(optionElement.id) as HTMLButtonElement;
-          (this.tools as Writable<Tools>)[key] = element;
-        }
-      }
-    });
-
-    Object.keys(this.toolModifiers).map((toolModifierKey) => {
-      if (optionElement.type === toolModifierKey) {
-        const key = toolModifierKey as keyof ToolModifiers;
-        if (optionElement.className) {
-          const element = document.querySelector("." + optionElement.className) as HTMLInputElement;
-
-          (this.toolModifiers as Writable<ToolModifiers>)[key] = element;
-        }
-        if (optionElement.id) {
-          const element = document.getElementById(optionElement.id) as HTMLInputElement;
-          (this.toolModifiers as Writable<ToolModifiers>)[key] = element;
-        }
-      }
-    });
-
-    Object.keys(this.canvasModifiers).map((canvasModifierKey) => {
-      if (optionElement.type === canvasModifierKey) {
-        const key = canvasModifierKey as keyof CanvasModifiers;
-        if (optionElement.className) {
-          const element = document.querySelector(
-            "." + optionElement.className
-          ) as HTMLButtonElement;
-
-          (this.canvasModifiers as Writable<CanvasModifiers>)[key] = element;
-        }
-
-        if (optionElement.id) {
-          const element = document.getElementById(optionElement.id) as HTMLButtonElement;
-          (this.canvasModifiers as Writable<CanvasModifiers>)[key] = element;
-        }
-      }
-    });
+    //Assign each element passed to options to its correct place
+    assignCorrectly(optionElement, this.tools);
+    assignCorrectly(optionElement, this.toolModifiers);
+    assignCorrectly(optionElement, this.canvasModifiers);
   };
 
   //Listen for events on given canvas
@@ -1514,5 +1470,5 @@ class DrawingCanvas {
 }
 
 new DrawingCanvas("drawing-board", {
-  elements: [],
+  elements: [{ type: DrawingElementType.pencil, className: "lol" }],
 });
