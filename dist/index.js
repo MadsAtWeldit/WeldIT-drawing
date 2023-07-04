@@ -1,5 +1,4 @@
 import { excludeNullishProps, assignCorrectly } from "./utils/common.js";
-import { DrawingElementType } from "./enums/enum.js";
 class DrawingCanvas {
     constructor(elementId, options) {
         var _a, _b;
@@ -1169,6 +1168,6 @@ class DrawingCanvas {
     }
 }
 new DrawingCanvas("drawing-board", {
-    elements: [{ type: DrawingElementType.pencil, className: "lol" }],
+    elements: [],
 });
 //# sourceMappingURL=index.js.map

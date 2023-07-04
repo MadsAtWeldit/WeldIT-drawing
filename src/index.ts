@@ -1470,5 +1470,5 @@ class DrawingCanvas {
 }
 
 new DrawingCanvas("drawing-board", {
-  elements: [{ type: DrawingElementType.pencil, className: "lol" }],
+  elements: [],
 });
