@@ -191,91 +191,50 @@ class DrawingCanvas {
                 //IF no paths
                 if (this.drawingData.length <= 0)
                     return;
-                //Loop through each drawing
-                this.drawingData.forEach((drawing, i) => {
-                    if (this.selectedDrawingIndex !== null) {
-                        const selected = this.drawingData[this.selectedDrawingIndex];
-                        //Check selected drawing type
-                        switch (selected.type) {
-                            //IF its text or stroke
-                            case "text":
-                            case "stroke":
-                                {
-                                    //Get position of mouse within selected element
-                                    const selectionPosition = this.mouseWithinSelection(mouseX, mouseY, selected);
-                                    //IF not within selection anymore
-                                    if (!selectionPosition) {
-                                        //Check if its in another drawing
-                                        if (drawing.type === "stroke" || drawing.type === "line") {
-                                            this.context.isPointInStroke(drawing.path, mouseX, mouseY)
-                                                ? (this.selectedDrawingIndex = i)
-                                                : (this.selectedDrawingIndex = null);
-                                        }
-                                        else if (drawing.type === "text") {
-                                            this.mouseWithinSelection(mouseX, mouseY, drawing)
-                                                ? (this.selectedDrawingIndex = i)
-                                                : (this.selectedDrawingIndex = null);
-                                        }
-                                        return; //Return because we dont want to move or resize
-                                    }
-                                    //Check if posistion is in middle else corners
-                                    if (selectionPosition === "middle") {
-                                        this.shouldMove = true;
-                                    }
-                                    else {
-                                        this.shouldResize.toggled = true;
-                                        this.shouldResize.from = selectionPosition;
-                                    }
-                                }
-                                break;
-                            case "line":
-                                {
-                                    //Get mouse position within selected element
-                                    const selectionPosition = this.mouseWithinSelection(mouseX, mouseY, selected);
-                                    //IF mouse is not within selected anymore
-                                    if (!selectionPosition) {
-                                        //Check if its in another drawing
-                                        if (drawing.type === "stroke" || drawing.type === "line") {
-                                            this.context.isPointInStroke(drawing.path, mouseX, mouseY)
-                                                ? (this.selectedDrawingIndex = i)
-                                                : (this.selectedDrawingIndex = null);
-                                        }
-                                        else if (drawing.type === "text") {
-                                            this.mouseWithinSelection(mouseX, mouseY, drawing)
-                                                ? (this.selectedDrawingIndex = i)
-                                                : (this.selectedDrawingIndex = null);
-                                        }
-                                        return;
-                                    }
-                                    //IF in corner then we want to resize
-                                    if (selectionPosition === "middle") {
-                                        this.shouldMove = true;
-                                    }
-                                    else {
-                                        this.shouldResize.toggled = true;
-                                        this.shouldResize.from = selectionPosition;
-                                    }
-                                }
-                                break;
-                        }
-                        return;
+                //IF there already is a selected drawing
+                if (this.selectedDrawingIndex !== null) {
+                    const selected = this.drawingData[this.selectedDrawingIndex];
+                    //Get position of mouse within drawing
+                    const selectionPosition = this.mouseWithinSelection(mouseX, mouseY, selected);
+                    //IF mouse is not in drawing anymore
+                    if (!selectionPosition) {
+                        //Disselect the selected
+                        this.selectedDrawingIndex = null;
                     }
-                    switch (drawing.type) {
-                        case "stroke":
-                        case "line":
-                            //For line and handdrawn we check if cursor is within stroke
-                            if (this.context.isPointInStroke(drawing.path, mouseX, mouseY)) {
-                                this.selectedDrawingIndex = i;
-                                this.shouldMove = true;
-                            }
-                            break;
-                        case "text":
-                            //Since text is not handdrawn we check IF within selection block
-                            if (this.mouseWithinSelection(mouseX, mouseY, drawing)) {
-                                this.selectedDrawingIndex = i;
-                                this.shouldMove = true;
-                            }
-                            break;
+                    else {
+                        //IF mouse is inside the selection THEN check if move or resize
+                        selectionPosition === "middle"
+                            ? (this.shouldMove = true)
+                            : ((this.shouldResize.toggled = true),
+                                (this.shouldResize.from = selectionPosition));
+                    }
+                }
+                //Loop through each drawing and check if one has been clicked on and set that as the selected drawing
+                this.drawingData.forEach((drawing, i) => {
+                    if (drawing.type === "stroke" || drawing.type === "line") {
+                        //Mouse is inside stroke
+                        if (this.context.isPointInStroke(drawing.path, mouseX, mouseY)) {
+                            //Set selected drawing
+                            this.selectedDrawingIndex = i;
+                            const selected = this.drawingData[this.selectedDrawingIndex];
+                            //Then check mouse position if we should resize or move
+                            const selectionPosition = this.mouseWithinSelection(mouseX, mouseY, selected);
+                            selectionPosition === "middle"
+                                ? (this.shouldMove = true)
+                                : ((this.shouldResize.toggled = true),
+                                    (this.shouldResize.from = selectionPosition));
+                        }
+                    }
+                    else {
+                        if (this.mouseWithinSelection(mouseX, mouseY, drawing)) {
+                            this.selectedDrawingIndex = i;
+                            const selected = this.drawingData[this.selectedDrawingIndex];
+                            const selectionPosition = this.mouseWithinSelection(mouseX, mouseY, selected);
+                            selectionPosition === "middle"
+                                ? (this.shouldMove = true)
+                                : ((this.shouldResize.toggled = true),
+                                    (this.shouldResize.from = selectionPosition));
+                        }
                     }
                 });
             }
@@ -649,7 +608,7 @@ class DrawingCanvas {
                                 this.startX = mouseX;
                                 this.startY = mouseY;
                             }
-                            else {
+                            if (this.shouldResize.toggled) {
                                 const from = this.shouldResize.from;
                                 this.isResizing = true;
                                 const { scaleOriginXPos, scaleOriginYPos, startCornerXPos, startCornerYPos } = this.scaleCorrectly(from, selectedDrawing, mouseX, mouseY);
