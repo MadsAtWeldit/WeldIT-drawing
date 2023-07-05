@@ -807,16 +807,16 @@ class DrawingCanvas {
             let resizeEndCoords = false;
             switch (from) {
                 case "l":
-                    drawnFromX === "leftToRight" ? (resizeStartCoords = true) : (resizeEndCoords = true);
+                    drawnFromX === "left" ? (resizeStartCoords = true) : (resizeEndCoords = true);
                     break;
                 case "r":
-                    drawnFromX === "leftToRight" ? (resizeEndCoords = true) : (resizeStartCoords = true);
+                    drawnFromX === "left" ? (resizeEndCoords = true) : (resizeStartCoords = true);
                     break;
                 case "t":
-                    drawnFromY === "topToBottom" ? (resizeStartCoords = true) : (resizeEndCoords = true);
+                    drawnFromY === "top" ? (resizeStartCoords = true) : (resizeEndCoords = true);
                     break;
                 case "b":
-                    drawnFromY === "topToBottom" ? (resizeEndCoords = true) : (resizeStartCoords = true);
+                    drawnFromY === "top" ? (resizeEndCoords = true) : (resizeStartCoords = true);
                     break;
             }
             const startCornerX = resizeStartCoords ? element.coords.startX : element.coords.endX;
@@ -871,16 +871,16 @@ class DrawingCanvas {
         assertRequired(drawing.coords);
         const { startX, endX, startY, endY } = drawing.coords;
         if (startX < endX) {
-            X = "leftToRight";
+            X = "left";
         }
         else {
-            X = "rightToLeft";
+            X = "right";
         }
         if (startY < endY) {
-            Y = "topToBottom";
+            Y = "top";
         }
         else {
-            Y = "bottomToTop";
+            Y = "bottom";
         }
         return { drawnFromX: X, drawnFromY: Y };
     }
@@ -890,30 +890,32 @@ class DrawingCanvas {
         assertRequired(drawing.coords);
         //Current line element
         const { startX, startY, endX, endY } = drawing.coords;
-        let leftToRight = false;
-        let rightToLeft = false;
-        let topToBottom = false;
-        let bottomToTop = false;
+        let left = false;
+        let right = false;
+        let top = false;
+        let bottom = false;
         let mousePosition;
         const offset = 10;
         //Get info on where line was drawn from
         const { drawnFromX, drawnFromY } = this.drawnFrom(drawing);
-        const distanceX = drawnFromX === "leftToRight" ? endX - startX : startX - endX;
-        const distanceY = drawnFromY === "topToBottom" ? endY - startY : startY - endY;
+        //Calculate distance between coords
+        const distanceX = drawnFromX === "left" ? endX - startX : startX - endX;
+        const distanceY = drawnFromY === "top" ? endY - startY : startY - endY;
+        //Check if its considered left or right
         if (distanceX > distanceY) {
             //IF drawn across the x axis we wanna say that its either from left to right OR right to left
-            drawnFromX === "leftToRight" ? (leftToRight = true) : (rightToLeft = true);
+            drawnFromX === "left" ? (left = true) : (right = true);
         }
         else {
             //IF drawn across y axis we wanna say that its either from top to bottom OR bottom to top
-            drawnFromY === "topToBottom" ? (topToBottom = true) : (bottomToTop = true);
+            drawnFromY === "top" ? (top = true) : (bottom = true);
         }
         //IF left to right THEN leftX is startX : leftX is endX
         //IF top to bottom THEN topX is startX : topX is endX
-        const leftAndTopX = leftToRight || topToBottom ? startX : endX;
-        const rightAndBottomX = leftToRight || topToBottom ? endX : startX;
-        const leftAndTopY = leftToRight || topToBottom ? startY : endY;
-        const rightAndBottomY = leftToRight || topToBottom ? endY : startY;
+        const leftAndTopX = left || top ? startX : endX;
+        const rightAndBottomX = left || top ? endX : startX;
+        const leftAndTopY = left || top ? startY : endY;
+        const rightAndBottomY = left || top ? endY : startY;
         const leftAndTopX1 = leftAndTopX - offset;
         const leftAndTopX2 = leftAndTopX + offset;
         const leftAndTopY1 = leftAndTopY - offset;
@@ -924,10 +926,10 @@ class DrawingCanvas {
         const rightAndBottomY2 = rightAndBottomY + offset;
         if (this.mouseWithin(leftAndTopX1, leftAndTopX2, leftAndTopY1, leftAndTopY2, mouseX, mouseY)) {
             //Conditional because we dont want to say that its on the left side when its on the top side and so on
-            mousePosition = leftToRight || rightToLeft ? "l" : "t";
+            mousePosition = left || right ? "l" : "t";
         }
         else if (this.mouseWithin(rightAndBottomX1, rightAndBottomX2, rightAndBottomY1, rightAndBottomY2, mouseX, mouseY)) {
-            mousePosition = leftToRight || rightToLeft ? "r" : "b";
+            mousePosition = left || right ? "r" : "b";
         }
         else if (this.context.isPointInStroke(drawing.path, mouseX, mouseY)) {
             //IF its not in corner but inside stroke
@@ -943,6 +945,7 @@ class DrawingCanvas {
     mouseWithinSelection(x, y, drawing) {
         assertRequired(drawing.coords);
         const { x1, y1, x2, y2 } = drawing.coords;
+        //Fine if its close enough
         const offset = 10;
         //Top left rectangle
         const topLeftX1 = x1 - offset;
@@ -1143,8 +1146,8 @@ class DrawingCanvas {
         }
     }
     //Function for incrementing and decrementing
-    incOrDec(index, type, steps) {
-        if (type === "increment") {
+    incOrDec(index, action, steps) {
+        if (action === "increment") {
             return (index += steps);
         }
         else {
