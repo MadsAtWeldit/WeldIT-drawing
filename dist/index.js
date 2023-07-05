@@ -533,7 +533,43 @@ class DrawingCanvas {
                             else {
                                 const { from } = this.shouldResize;
                                 this.isResizing = true;
-                                this.resizePath(selectedDrawing, from, mouseX, mouseY);
+                                // this.resizePath(selectedDrawing, from, mouseX, mouseY);
+                                const { scaleOriginXPos, scaleOriginYPos, scale } = this.scaleCorrectly(from, selectedDrawing, mouseX, mouseY);
+                                const scaleOriginX = scaleOriginXPos;
+                                const scaleOriginY = scaleOriginYPos;
+                                const scaleFactor = scale;
+                                const resizedPath = new Path2D();
+                                //Create copy
+                                const resizedXCords = [...selectedDrawing.xCords];
+                                const resizedYCords = [...selectedDrawing.yCords];
+                                const originalDistanceX = [];
+                                const originalDistanceY = [];
+                                //Calculate original distance between origin and x,y coordinates
+                                for (let i = 0; i < selectedDrawing.xCords.length; i++) {
+                                    originalDistanceX[i] = scaleOriginX - selectedDrawing.xCords[i];
+                                    originalDistanceY[i] = scaleOriginY - selectedDrawing.yCords[i];
+                                }
+                                //Update to resized coords
+                                for (let i = 0; i < resizedXCords.length; i++) {
+                                    //Calculate new distance based on scale factor
+                                    const newDistanceX = originalDistanceX[i] * scaleFactor;
+                                    const newDistanceY = originalDistanceY[i] * scaleFactor;
+                                    //Place resized coords in the correct place
+                                    resizedXCords[i] = scaleOriginX - newDistanceX;
+                                    resizedYCords[i] = scaleOriginY - newDistanceY;
+                                    //Move path to new coords
+                                    resizedPath.moveTo(resizedXCords[i - 1], resizedYCords[i - 1]);
+                                    //Create line to new coords
+                                    resizedPath.lineTo(resizedXCords[i], resizedYCords[i]);
+                                }
+                                //Set resized left, right, top and bottom
+                                selectedDrawing.resizedCoords.resizedX1 = Math.min(...resizedXCords);
+                                selectedDrawing.resizedCoords.resizedY1 = Math.min(...resizedYCords);
+                                selectedDrawing.resizedCoords.resizedX2 = Math.max(...resizedXCords);
+                                selectedDrawing.resizedCoords.resizedY2 = Math.max(...resizedYCords);
+                                selectedDrawing.resizedXCords = resizedXCords;
+                                selectedDrawing.resizedYCords = resizedYCords;
+                                selectedDrawing.resizedPath = resizedPath;
                             }
                         }
                         break;
@@ -550,9 +586,49 @@ class DrawingCanvas {
                                 this.startY = mouseY;
                             }
                             else {
-                                const { from } = this.shouldResize;
+                                const from = this.shouldResize.from;
                                 this.isResizing = true;
-                                this.resizeText(selectedDrawing, from, mouseX, mouseY);
+                                const { scaleOriginXPos, scaleOriginYPos, startCornerXPos, startCornerYPos, scale } = this.scaleCorrectly(from, selectedDrawing, mouseX, mouseY);
+                                const startCornerX = startCornerXPos;
+                                const startCornerY = startCornerYPos;
+                                const scaleOriginX = scaleOriginXPos;
+                                const scaleOriginY = scaleOriginYPos;
+                                //Scale factor based on mouse
+                                const scaleFactor = scale;
+                                //Create copy of original font string
+                                const fontStringCopy = selectedDrawing.font.slice();
+                                //Convert font size to number/float
+                                const fontSize = parseFloat(fontStringCopy);
+                                //Get original distance from scale origin to start corner/current mouse
+                                const originalDistanceX = scaleOriginX - startCornerX;
+                                const originalDistanceY = scaleOriginY - startCornerY;
+                                //Resize font size
+                                const resizedFontSize = fontSize * scaleFactor;
+                                //Get new distance based on scale factor
+                                const newDistanceX = originalDistanceX * scaleFactor;
+                                const newDistanceY = originalDistanceY * scaleFactor;
+                                //Replace original font size with resized
+                                const newFont = fontStringCopy.replace(fontSize.toString(), resizedFontSize.toString());
+                                //Store new left and right
+                                if (from === "tl" || from === "bl") {
+                                    selectedDrawing.resizedCoords.resizedX1 = scaleOriginX - newDistanceX;
+                                    selectedDrawing.resizedCoords.resizedX2 = scaleOriginX;
+                                }
+                                else {
+                                    selectedDrawing.resizedCoords.resizedX1 = scaleOriginX;
+                                    selectedDrawing.resizedCoords.resizedX2 = scaleOriginX - newDistanceX;
+                                }
+                                //Store new top and bottom
+                                if (from === "tl" || from === "tr") {
+                                    selectedDrawing.resizedCoords.resizedY1 = scaleOriginY - newDistanceY;
+                                    selectedDrawing.resizedCoords.resizedY2 = scaleOriginY;
+                                }
+                                else {
+                                    selectedDrawing.resizedCoords.resizedY1 = scaleOriginY;
+                                    selectedDrawing.resizedCoords.resizedY2 = scaleOriginY - newDistanceY;
+                                }
+                                //Store the new font size
+                                selectedDrawing.resizedFont = newFont;
                             }
                         }
                         break;
@@ -574,9 +650,36 @@ class DrawingCanvas {
                                 this.startY = mouseY;
                             }
                             else {
-                                const { from } = this.shouldResize;
+                                const from = this.shouldResize.from;
                                 this.isResizing = true;
-                                this.resizeLine(selectedDrawing, from, mouseX, mouseY);
+                                const { scaleOriginXPos, scaleOriginYPos, startCornerXPos, startCornerYPos } = this.scaleCorrectly(from, selectedDrawing, mouseX, mouseY);
+                                const resizedPath = new Path2D();
+                                const startCornerX = startCornerXPos;
+                                const startCornerY = startCornerYPos;
+                                const scaleOriginX = scaleOriginXPos;
+                                const scaleOriginY = scaleOriginYPos;
+                                //Assign start and end x
+                                if (startCornerX === selectedDrawing.coords.startX) {
+                                    selectedDrawing.resizedCoords.resizedStartX = mouseX;
+                                    selectedDrawing.resizedCoords.resizedEndX = scaleOriginX;
+                                }
+                                else {
+                                    selectedDrawing.resizedCoords.resizedStartX = scaleOriginX;
+                                    selectedDrawing.resizedCoords.resizedEndX = mouseX;
+                                }
+                                //Assign start and end y
+                                if (startCornerY === selectedDrawing.coords.startY) {
+                                    selectedDrawing.resizedCoords.resizedStartY = mouseY;
+                                    selectedDrawing.resizedCoords.resizedEndY = scaleOriginY;
+                                }
+                                else {
+                                    selectedDrawing.resizedCoords.resizedStartY = scaleOriginY;
+                                    selectedDrawing.resizedCoords.resizedEndY = mouseY;
+                                }
+                                this.context.beginPath();
+                                resizedPath.moveTo(mouseX, mouseY);
+                                resizedPath.lineTo(scaleOriginX, scaleOriginY);
+                                selectedDrawing.resizedPath = resizedPath;
                             }
                         }
                         break;
@@ -761,120 +864,6 @@ class DrawingCanvas {
             };
         }
     }
-    //Resize text based on origin of mouse
-    resizeText(element, from, currentMouseX, currentMouseY) {
-        const { scaleOriginXPos, scaleOriginYPos, startCornerXPos, startCornerYPos, scale } = this.scaleCorrectly(from, element, currentMouseX, currentMouseY);
-        const startCornerX = startCornerXPos;
-        const startCornerY = startCornerYPos;
-        const scaleOriginX = scaleOriginXPos;
-        const scaleOriginY = scaleOriginYPos;
-        //Scale factor based on mouse
-        const scaleFactor = scale;
-        //Create copy of original font string
-        const fontStringCopy = element.font.slice();
-        //Convert font size to number/float
-        const fontSize = parseFloat(fontStringCopy);
-        //Get original distance from scale origin to start corner/current mouse
-        const originalDistanceX = scaleOriginX - startCornerX;
-        const originalDistanceY = scaleOriginY - startCornerY;
-        //Resize font size
-        const resizedFontSize = fontSize * scaleFactor;
-        //Get new distance based on scale factor
-        const newDistanceX = originalDistanceX * scaleFactor;
-        const newDistanceY = originalDistanceY * scaleFactor;
-        //Replace original font size with resized
-        const newFont = fontStringCopy.replace(fontSize.toString(), resizedFontSize.toString());
-        //Store new left and right
-        if (from === "tl" || from === "bl") {
-            element.resizedCoords.resizedX1 = scaleOriginX - newDistanceX;
-            element.resizedCoords.resizedX2 = scaleOriginX;
-        }
-        else {
-            element.resizedCoords.resizedX1 = scaleOriginX;
-            element.resizedCoords.resizedX2 = scaleOriginX - newDistanceX;
-        }
-        //Store new top and bottom
-        if (from === "tl" || from === "tr") {
-            element.resizedCoords.resizedY1 = scaleOriginY - newDistanceY;
-            element.resizedCoords.resizedY2 = scaleOriginY;
-        }
-        else {
-            element.resizedCoords.resizedY1 = scaleOriginY;
-            element.resizedCoords.resizedY2 = scaleOriginY - newDistanceY;
-        }
-        //Store the new font size
-        element.resizedFont = newFont;
-    }
-    //Resize line
-    resizeLine(element, from, currentMouseX, currentMouseY) {
-        const { scaleOriginXPos, scaleOriginYPos, startCornerXPos, startCornerYPos } = this.scaleCorrectly(from, element, currentMouseX, currentMouseY);
-        const resizedPath = new Path2D();
-        const startCornerX = startCornerXPos;
-        const startCornerY = startCornerYPos;
-        const scaleOriginX = scaleOriginXPos;
-        const scaleOriginY = scaleOriginYPos;
-        //Assign start and end x
-        if (startCornerX === element.coords.startX) {
-            element.resizedCoords.resizedStartX = currentMouseX;
-            element.resizedCoords.resizedEndX = scaleOriginX;
-        }
-        else {
-            element.resizedCoords.resizedStartX = scaleOriginX;
-            element.resizedCoords.resizedEndX = currentMouseX;
-        }
-        //Assign start and end y
-        if (startCornerY === element.coords.startY) {
-            element.resizedCoords.resizedStartY = currentMouseY;
-            element.resizedCoords.resizedEndY = scaleOriginY;
-        }
-        else {
-            element.resizedCoords.resizedStartY = scaleOriginY;
-            element.resizedCoords.resizedEndY = currentMouseY;
-        }
-        this.context.beginPath();
-        resizedPath.moveTo(currentMouseX, currentMouseY);
-        resizedPath.lineTo(scaleOriginX, scaleOriginY);
-        element.resizedPath = resizedPath;
-    }
-    //Resize drawing with provided scale factor and scale origin
-    resizePath(element, from, currentMouseX, currentMouseY) {
-        const { scaleOriginXPos, scaleOriginYPos, scale } = this.scaleCorrectly(from, element, currentMouseX, currentMouseY);
-        const scaleOriginX = scaleOriginXPos;
-        const scaleOriginY = scaleOriginYPos;
-        const scaleFactor = scale;
-        const resizedPath = new Path2D();
-        //Create copy
-        const resizedXCords = [...element.xCords];
-        const resizedYCords = [...element.yCords];
-        const originalDistanceX = [];
-        const originalDistanceY = [];
-        //Calculate original distance between origin and x,y coordinates
-        for (let i = 0; i < element.xCords.length; i++) {
-            originalDistanceX[i] = scaleOriginX - element.xCords[i];
-            originalDistanceY[i] = scaleOriginY - element.yCords[i];
-        }
-        //Update to resized coords
-        for (let i = 0; i < resizedXCords.length; i++) {
-            //Calculate new distance based on scale factor
-            const newDistanceX = originalDistanceX[i] * scaleFactor;
-            const newDistanceY = originalDistanceY[i] * scaleFactor;
-            //Place resized coords in the correct place
-            resizedXCords[i] = scaleOriginX - newDistanceX;
-            resizedYCords[i] = scaleOriginY - newDistanceY;
-            //Move path to new coords
-            resizedPath.moveTo(resizedXCords[i - 1], resizedYCords[i - 1]);
-            //Create line to new coords
-            resizedPath.lineTo(resizedXCords[i], resizedYCords[i]);
-        }
-        //Set resized left, right, top and bottom
-        element.resizedCoords.resizedX1 = Math.min(...resizedXCords);
-        element.resizedCoords.resizedY1 = Math.min(...resizedYCords);
-        element.resizedCoords.resizedX2 = Math.max(...resizedXCords);
-        element.resizedCoords.resizedY2 = Math.max(...resizedYCords);
-        element.resizedXCords = resizedXCords;
-        element.resizedYCords = resizedYCords;
-        element.resizedPath = resizedPath;
-    }
     //Checks where LineElement is drawn from
     drawnFrom(drawing) {
         let X;
@@ -954,26 +943,27 @@ class DrawingCanvas {
     mouseWithinSelection(x, y, drawing) {
         assertRequired(drawing.coords);
         const { x1, y1, x2, y2 } = drawing.coords;
+        const offset = 10;
         //Top left rectangle
-        const topLeftX1 = x1;
-        const topLeftX2 = x1 + 10;
-        const topLeftY1 = y1;
-        const topLeftY2 = y1 + 10;
+        const topLeftX1 = x1 - offset;
+        const topLeftX2 = x1 + offset;
+        const topLeftY1 = y1 - offset;
+        const topLeftY2 = y1 + offset;
         //Top right rectangle
-        const topRightX1 = x2 - 10;
-        const topRightX2 = x2;
-        const topRightY1 = y1;
-        const topRightY2 = y1 + 10;
+        const topRightX1 = x2 - offset;
+        const topRightX2 = x2 + offset;
+        const topRightY1 = y1 - offset;
+        const topRightY2 = y1 + offset;
         //Bottom right rectangle
-        const bottomRightX1 = x2 - 10;
-        const bottomRightX2 = x2;
-        const bottomRightY1 = y2 - 10;
-        const bottomRightY2 = y2;
+        const bottomRightX1 = x2 - offset;
+        const bottomRightX2 = x2 + offset;
+        const bottomRightY1 = y2 - offset;
+        const bottomRightY2 = y2 + offset;
         //Bottom left rectangle
-        const bottomLeftX1 = x1;
-        const bottomLeftX2 = x1 + 10;
-        const bottomLeftY1 = y2 - 10;
-        const bottomLeftY2 = y2;
+        const bottomLeftX1 = x1 - offset;
+        const bottomLeftX2 = x1 + offset;
+        const bottomLeftY1 = y2 - offset;
+        const bottomLeftY2 = y2 + offset;
         const mouseIsIn = this.mouseWithin(topLeftX1, topLeftX2, topLeftY1, topLeftY2, x, y)
             ? "tl"
             : this.mouseWithin(topRightX1, topRightX2, topRightY1, topRightY2, x, y)
