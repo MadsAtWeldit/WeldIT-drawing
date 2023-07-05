@@ -231,7 +231,7 @@ class DrawingCanvas {
                             case "line":
                                 {
                                     //Get mouse position within selected element
-                                    const selectionPosition = this.mouseWithinLineSelection(selected, mouseX, mouseY);
+                                    const selectionPosition = this.mouseWithinSelection(mouseX, mouseY, selected);
                                     //IF mouse is not within selected anymore
                                     if (!selectionPosition) {
                                         //Check if its in another drawing
@@ -486,8 +486,8 @@ class DrawingCanvas {
                             break;
                         case "line":
                             {
-                                if (this.mouseWithinLineSelection(drawing, mouseX, mouseY)) {
-                                    const selectionPosition = this.mouseWithinLineSelection(drawing, mouseX, mouseY);
+                                if (this.mouseWithinSelection(mouseX, mouseY, drawing)) {
+                                    const selectionPosition = this.mouseWithinSelection(mouseX, mouseY, drawing);
                                     selectionPosition === "middle"
                                         ? (this.canvas.style.cursor = "move")
                                         : (this.canvas.style.cursor = "pointer");
@@ -867,76 +867,64 @@ class DrawingCanvas {
         }
         return { drawnFromX: X, drawnFromY: Y };
     }
-    //Check if mouse is in corner of LineElement
-    mouseWithinLineSelection(drawing, mouseX, mouseY) {
-        //Throw error if coords is undefined
-        assertRequired(drawing.coords);
-        //Current line element
-        const { startX, startY, endX, endY } = drawing.coords;
-        let mousePosition;
-        const offset = 10;
-        const startX1 = drawing.coords.startX - offset;
-        const startX2 = drawing.coords.startX + offset;
-        const startY1 = drawing.coords.startY - offset;
-        const startY2 = drawing.coords.startY + offset;
-        const endX1 = drawing.coords.endX - offset;
-        const endX2 = drawing.coords.endX + offset;
-        const endY1 = drawing.coords.endY - offset;
-        const endY2 = drawing.coords.endY + offset;
-        if (this.mouseWithin(startX1, startX2, startY1, startY2, mouseX, mouseY)) {
-            console.log("in start");
-            mousePosition = "start";
-        }
-        else if (this.mouseWithin(endX1, endX2, endY1, endY2, mouseX, mouseY)) {
-            console.log("in end");
-            mousePosition = "end";
-        }
-        else if (this.context.isPointInStroke(drawing.path, mouseX, mouseY)) {
-            console.log("in m");
-            mousePosition = "middle";
-        }
-        else {
-            mousePosition = false;
-        }
-        return mousePosition;
-    }
     //Checks if mouse is within selection rectangle for those that have it
     mouseWithinSelection(x, y, drawing) {
         assertRequired(drawing.coords);
-        const { x1, y1, x2, y2 } = drawing.coords;
+        let mouseIsIn;
         //Fine if its close enough
         const offset = 10;
-        //Top left rectangle
-        const topLeftX1 = x1 - offset;
-        const topLeftX2 = x1 + offset;
-        const topLeftY1 = y1 - offset;
-        const topLeftY2 = y1 + offset;
-        //Top right rectangle
-        const topRightX1 = x2 - offset;
-        const topRightX2 = x2 + offset;
-        const topRightY1 = y1 - offset;
-        const topRightY2 = y1 + offset;
-        //Bottom right rectangle
-        const bottomRightX1 = x2 - offset;
-        const bottomRightX2 = x2 + offset;
-        const bottomRightY1 = y2 - offset;
-        const bottomRightY2 = y2 + offset;
-        //Bottom left rectangle
-        const bottomLeftX1 = x1 - offset;
-        const bottomLeftX2 = x1 + offset;
-        const bottomLeftY1 = y2 - offset;
-        const bottomLeftY2 = y2 + offset;
-        const mouseIsIn = this.mouseWithin(topLeftX1, topLeftX2, topLeftY1, topLeftY2, x, y)
-            ? "top-left"
-            : this.mouseWithin(topRightX1, topRightX2, topRightY1, topRightY2, x, y)
-                ? "top-right"
-                : this.mouseWithin(bottomRightX1, bottomRightX2, bottomRightY1, bottomRightY2, x, y)
-                    ? "bottom-right"
-                    : this.mouseWithin(bottomLeftX1, bottomLeftX2, bottomLeftY1, bottomLeftY2, x, y)
-                        ? "bottom-left"
-                        : this.mouseWithin(x1, x2, y1, y2, x, y)
-                            ? "middle"
-                            : false;
+        if (drawing.type === "line") {
+            const { startX, endX, startY, endY } = drawing.coords;
+            const startX1 = startX - offset;
+            const startX2 = startX + offset;
+            const startY1 = startY - offset;
+            const startY2 = startY + offset;
+            const endX1 = endX - offset;
+            const endX2 = endX + offset;
+            const endY1 = endY - offset;
+            const endY2 = endY + offset;
+            mouseIsIn = this.mouseWithin(startX1, startX2, startY1, startY2, x, y)
+                ? "start"
+                : this.mouseWithin(endX1, endX2, endY1, endY2, x, y)
+                    ? "end"
+                    : this.context.isPointInStroke(drawing.path, x, y)
+                        ? "middle"
+                        : null;
+        }
+        else {
+            const { x1, y1, x2, y2 } = drawing.coords;
+            //Top left rectangle
+            const topLeftX1 = x1 - offset;
+            const topLeftX2 = x1 + offset;
+            const topLeftY1 = y1 - offset;
+            const topLeftY2 = y1 + offset;
+            //Top right rectangle
+            const topRightX1 = x2 - offset;
+            const topRightX2 = x2 + offset;
+            const topRightY1 = y1 - offset;
+            const topRightY2 = y1 + offset;
+            //Bottom right rectangle
+            const bottomRightX1 = x2 - offset;
+            const bottomRightX2 = x2 + offset;
+            const bottomRightY1 = y2 - offset;
+            const bottomRightY2 = y2 + offset;
+            //Bottom left rectangle
+            const bottomLeftX1 = x1 - offset;
+            const bottomLeftX2 = x1 + offset;
+            const bottomLeftY1 = y2 - offset;
+            const bottomLeftY2 = y2 + offset;
+            mouseIsIn = this.mouseWithin(topLeftX1, topLeftX2, topLeftY1, topLeftY2, x, y)
+                ? "top-left"
+                : this.mouseWithin(topRightX1, topRightX2, topRightY1, topRightY2, x, y)
+                    ? "top-right"
+                    : this.mouseWithin(bottomRightX1, bottomRightX2, bottomRightY1, bottomRightY2, x, y)
+                        ? "bottom-right"
+                        : this.mouseWithin(bottomLeftX1, bottomLeftX2, bottomLeftY1, bottomLeftY2, x, y)
+                            ? "bottom-left"
+                            : this.mouseWithin(x1, x2, y1, y2, x, y)
+                                ? "middle"
+                                : null;
+        }
         return mouseIsIn;
     }
     //Function for well.. creating a drawing selection
