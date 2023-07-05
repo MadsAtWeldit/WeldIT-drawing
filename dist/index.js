@@ -219,7 +219,7 @@ class DrawingCanvas {
                                         return; //Return because we dont want to move or resize
                                     }
                                     //Check if posistion is in middle else corners
-                                    if (selectionPosition === "m") {
+                                    if (selectionPosition === "middle") {
                                         this.shouldMove = true;
                                     }
                                     else {
@@ -248,7 +248,7 @@ class DrawingCanvas {
                                         return;
                                     }
                                     //IF in corner then we want to resize
-                                    if (selectionPosition === "m") {
+                                    if (selectionPosition === "middle") {
                                         this.shouldMove = true;
                                     }
                                     else {
@@ -464,9 +464,9 @@ class DrawingCanvas {
                                     //Get position within selection
                                     const selectionPosition = this.mouseWithinSelection(mouseX, mouseY, drawing);
                                     //Style accordingly
-                                    selectionPosition === "m"
+                                    selectionPosition === "middle"
                                         ? (this.canvas.style.cursor = "move")
-                                        : selectionPosition === "tl" || selectionPosition === "br"
+                                        : selectionPosition === "top-left" || selectionPosition === "bottom-right"
                                             ? (this.canvas.style.cursor = "nwse-resize")
                                             : (this.canvas.style.cursor = "nesw-resize");
                                 }
@@ -476,9 +476,9 @@ class DrawingCanvas {
                             {
                                 if (this.mouseWithinSelection(mouseX, mouseY, drawing)) {
                                     const selectionPosition = this.mouseWithinSelection(mouseX, mouseY, drawing);
-                                    selectionPosition === "m"
+                                    selectionPosition === "middle"
                                         ? (this.canvas.style.cursor = "move")
-                                        : selectionPosition === "tl" || selectionPosition === "br"
+                                        : selectionPosition === "top-left" || selectionPosition === "bottom-right"
                                             ? (this.canvas.style.cursor = "nwse-resize")
                                             : (this.canvas.style.cursor = "nesw-resize");
                                 }
@@ -488,7 +488,7 @@ class DrawingCanvas {
                             {
                                 if (this.mouseWithinLineSelection(drawing, mouseX, mouseY)) {
                                     const selectionPosition = this.mouseWithinLineSelection(drawing, mouseX, mouseY);
-                                    selectionPosition === "m"
+                                    selectionPosition === "middle"
                                         ? (this.canvas.style.cursor = "move")
                                         : (this.canvas.style.cursor = "pointer");
                                 }
@@ -610,7 +610,7 @@ class DrawingCanvas {
                                 //Replace original font size with resized
                                 const newFont = fontStringCopy.replace(fontSize.toString(), resizedFontSize.toString());
                                 //Store new left and right
-                                if (from === "tl" || from === "bl") {
+                                if (from === "top-left" || from === "bottom-left") {
                                     selectedDrawing.resizedCoords.resizedX1 = scaleOriginX - newDistanceX;
                                     selectedDrawing.resizedCoords.resizedX2 = scaleOriginX;
                                 }
@@ -619,7 +619,7 @@ class DrawingCanvas {
                                     selectedDrawing.resizedCoords.resizedX2 = scaleOriginX - newDistanceX;
                                 }
                                 //Store new top and bottom
-                                if (from === "tl" || from === "tr") {
+                                if (from === "top-left" || from === "top-right") {
                                     selectedDrawing.resizedCoords.resizedY1 = scaleOriginY - newDistanceY;
                                     selectedDrawing.resizedCoords.resizedY2 = scaleOriginY;
                                 }
@@ -802,27 +802,10 @@ class DrawingCanvas {
     scaleCorrectly(from, element, currentMouseX, currentMouseY) {
         assertRequired(element.coords);
         if (element.type === "line") {
-            const { drawnFromX, drawnFromY } = this.drawnFrom(element);
-            let resizeStartCoords = false;
-            let resizeEndCoords = false;
-            switch (from) {
-                case "l":
-                    drawnFromX === "left" ? (resizeStartCoords = true) : (resizeEndCoords = true);
-                    break;
-                case "r":
-                    drawnFromX === "left" ? (resizeEndCoords = true) : (resizeStartCoords = true);
-                    break;
-                case "t":
-                    drawnFromY === "top" ? (resizeStartCoords = true) : (resizeEndCoords = true);
-                    break;
-                case "b":
-                    drawnFromY === "top" ? (resizeEndCoords = true) : (resizeStartCoords = true);
-                    break;
-            }
-            const startCornerX = resizeStartCoords ? element.coords.startX : element.coords.endX;
-            const startCornerY = resizeStartCoords ? element.coords.startY : element.coords.endY;
-            const scaleOriginX = resizeStartCoords ? element.coords.endX : element.coords.startX;
-            const scaleOriginY = resizeStartCoords ? element.coords.endY : element.coords.startY;
+            const startCornerX = from === "start" ? element.coords.startX : element.coords.endX;
+            const startCornerY = from === "start" ? element.coords.startY : element.coords.endY;
+            const scaleOriginX = from === "start" ? element.coords.endX : element.coords.startX;
+            const scaleOriginY = from === "start" ? element.coords.endY : element.coords.startY;
             return {
                 scaleOriginXPos: scaleOriginX,
                 scaleOriginYPos: scaleOriginY,
@@ -833,25 +816,25 @@ class DrawingCanvas {
         }
         else {
             //IF scaling from the left side then start = left : start = right;
-            const startCornerX = from === "tl" || from === "bl" ? element.coords.x1 : element.coords.x2;
-            const startCornerY = from === "tl" || from === "tr" ? element.coords.y1 : element.coords.y2;
+            const startCornerX = from === "top-left" || from === "bottom-left" ? element.coords.x1 : element.coords.x2;
+            const startCornerY = from === "top-left" || from === "top-right" ? element.coords.y1 : element.coords.y2;
             //IF scaling from left side then origin is opposite side so that we scale inwards or outwards based on corner
-            const scaleOriginX = from === "tl" || from === "bl" ? element.coords.x2 : element.coords.x1;
-            const scaleOriginY = from === "tl" || from === "tr" ? element.coords.y2 : element.coords.y1;
+            const scaleOriginX = from === "top-left" || from === "bottom-left" ? element.coords.x2 : element.coords.x1;
+            const scaleOriginY = from === "top-left" || from === "top-right" ? element.coords.y2 : element.coords.y1;
             //For the scaling to work properly i also need where we scale from
             //Since scaling from left side to right side would not work with e.g (x1 - x2 so instead x2 - x1 for distance)
-            const originalDistance = from === "tl" || from === "bl"
+            const originalDistance = from === "top-left" || from === "bottom-left"
                 ? scaleOriginX - startCornerX
                 : startCornerX -
                     scaleOriginX +
-                    (from === "tl" || from === "tr"
+                    (from === "top-left" || from === "top-right"
                         ? scaleOriginY - startCornerY
                         : startCornerY - scaleOriginY);
-            const currentDistance = from === "tl" || from === "bl"
+            const currentDistance = from === "top-left" || from === "bottom-left"
                 ? scaleOriginX - currentMouseX
                 : currentMouseX -
                     scaleOriginX +
-                    (from === "tl" || from === "tr"
+                    (from === "top-left" || from === "top-right"
                         ? scaleOriginY - currentMouseY
                         : currentMouseY - scaleOriginY);
             const scaleFactor = currentDistance / originalDistance;
@@ -890,53 +873,29 @@ class DrawingCanvas {
         assertRequired(drawing.coords);
         //Current line element
         const { startX, startY, endX, endY } = drawing.coords;
-        let left = false;
-        let right = false;
-        let top = false;
-        let bottom = false;
         let mousePosition;
         const offset = 10;
-        //Get info on where line was drawn from
-        const { drawnFromX, drawnFromY } = this.drawnFrom(drawing);
-        //Calculate distance between coords
-        const distanceX = drawnFromX === "left" ? endX - startX : startX - endX;
-        const distanceY = drawnFromY === "top" ? endY - startY : startY - endY;
-        //Check if its considered left or right
-        if (distanceX > distanceY) {
-            //IF drawn across the x axis we wanna say that its either from left to right OR right to left
-            drawnFromX === "left" ? (left = true) : (right = true);
+        const startX1 = drawing.coords.startX - offset;
+        const startX2 = drawing.coords.startX + offset;
+        const startY1 = drawing.coords.startY - offset;
+        const startY2 = drawing.coords.startY + offset;
+        const endX1 = drawing.coords.endX - offset;
+        const endX2 = drawing.coords.endX + offset;
+        const endY1 = drawing.coords.endY - offset;
+        const endY2 = drawing.coords.endY + offset;
+        if (this.mouseWithin(startX1, startX2, startY1, startY2, mouseX, mouseY)) {
+            console.log("in start");
+            mousePosition = "start";
         }
-        else {
-            //IF drawn across y axis we wanna say that its either from top to bottom OR bottom to top
-            drawnFromY === "top" ? (top = true) : (bottom = true);
-        }
-        //IF left to right THEN leftX is startX : leftX is endX
-        //IF top to bottom THEN topX is startX : topX is endX
-        const leftAndTopX = left || top ? startX : endX;
-        const rightAndBottomX = left || top ? endX : startX;
-        const leftAndTopY = left || top ? startY : endY;
-        const rightAndBottomY = left || top ? endY : startY;
-        const leftAndTopX1 = leftAndTopX - offset;
-        const leftAndTopX2 = leftAndTopX + offset;
-        const leftAndTopY1 = leftAndTopY - offset;
-        const leftAndTopY2 = leftAndTopY + offset;
-        const rightAndBottomX1 = rightAndBottomX - offset;
-        const rightAndBottomX2 = rightAndBottomX + offset;
-        const rightAndBottomY1 = rightAndBottomY - offset;
-        const rightAndBottomY2 = rightAndBottomY + offset;
-        if (this.mouseWithin(leftAndTopX1, leftAndTopX2, leftAndTopY1, leftAndTopY2, mouseX, mouseY)) {
-            //Conditional because we dont want to say that its on the left side when its on the top side and so on
-            mousePosition = left || right ? "l" : "t";
-        }
-        else if (this.mouseWithin(rightAndBottomX1, rightAndBottomX2, rightAndBottomY1, rightAndBottomY2, mouseX, mouseY)) {
-            mousePosition = left || right ? "r" : "b";
+        else if (this.mouseWithin(endX1, endX2, endY1, endY2, mouseX, mouseY)) {
+            console.log("in end");
+            mousePosition = "end";
         }
         else if (this.context.isPointInStroke(drawing.path, mouseX, mouseY)) {
-            //IF its not in corner but inside stroke
-            mousePosition = "m";
+            console.log("in m");
+            mousePosition = "middle";
         }
         else {
-            //IF not in line at all
             mousePosition = false;
         }
         return mousePosition;
@@ -968,15 +927,15 @@ class DrawingCanvas {
         const bottomLeftY1 = y2 - offset;
         const bottomLeftY2 = y2 + offset;
         const mouseIsIn = this.mouseWithin(topLeftX1, topLeftX2, topLeftY1, topLeftY2, x, y)
-            ? "tl"
+            ? "top-left"
             : this.mouseWithin(topRightX1, topRightX2, topRightY1, topRightY2, x, y)
-                ? "tr"
+                ? "top-right"
                 : this.mouseWithin(bottomRightX1, bottomRightX2, bottomRightY1, bottomRightY2, x, y)
-                    ? "br"
+                    ? "bottom-right"
                     : this.mouseWithin(bottomLeftX1, bottomLeftX2, bottomLeftY1, bottomLeftY2, x, y)
-                        ? "bl"
+                        ? "bottom-left"
                         : this.mouseWithin(x1, x2, y1, y2, x, y)
-                            ? "m"
+                            ? "middle"
                             : false;
         return mouseIsIn;
     }
