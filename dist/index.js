@@ -241,12 +241,12 @@ class DrawingCanvas {
             if (text) {
                 const canvasContainer = document.querySelector(".drawing-board");
                 //Create textinput
-                const textInput = this.createPersonalElement("input", "text", {
+                const textInput = this.createPersonalElement("input", canvasContainer, {
                     position: "fixed",
                     top: `${evtType.clientY}px`,
                     left: `${evtType.clientX}px`,
-                    background: "transparent",
                     outline: "none",
+                    background: "none",
                     border: "none",
                     "font-size": "30pt",
                     "font-family": "sans-serif",
@@ -492,8 +492,7 @@ class DrawingCanvas {
                             else {
                                 const from = this.shouldResize.from;
                                 this.isResizing = true;
-                                // this.resizePath(selectedDrawing, from, mouseX, mouseY);
-                                const { scaleOriginXPos, scaleOriginYPos, scale } = this.scaleCorrectly(from, selectedDrawing, mouseX, mouseY);
+                                const { scaleOriginXPos, scaleOriginYPos, scale } = this.getScaleInfo(from, selectedDrawing, mouseX, mouseY);
                                 const scaleOriginX = scaleOriginXPos;
                                 const scaleOriginY = scaleOriginYPos;
                                 const scaleFactor = scale;
@@ -547,7 +546,7 @@ class DrawingCanvas {
                             else {
                                 const from = this.shouldResize.from;
                                 this.isResizing = true;
-                                const { scaleOriginXPos, scaleOriginYPos, startCornerXPos, startCornerYPos, scale } = this.scaleCorrectly(from, selectedDrawing, mouseX, mouseY);
+                                const { scaleOriginXPos, scaleOriginYPos, startCornerXPos, startCornerYPos, scale } = this.getScaleInfo(from, selectedDrawing, mouseX, mouseY);
                                 const startCornerX = startCornerXPos;
                                 const startCornerY = startCornerYPos;
                                 const scaleOriginX = scaleOriginXPos;
@@ -611,7 +610,7 @@ class DrawingCanvas {
                             else {
                                 const from = this.shouldResize.from;
                                 this.isResizing = true;
-                                const { scaleOriginXPos, scaleOriginYPos, startCornerXPos, startCornerYPos } = this.scaleCorrectly(from, selectedDrawing, mouseX, mouseY);
+                                const { scaleOriginXPos, scaleOriginYPos, startCornerXPos, startCornerYPos } = this.getScaleInfo(from, selectedDrawing, mouseX, mouseY);
                                 const resizedPath = new Path2D();
                                 const startCornerX = startCornerXPos;
                                 const startCornerY = startCornerYPos;
@@ -672,20 +671,15 @@ class DrawingCanvas {
             }
             e.preventDefault();
         };
-        //Function for creating a html element
-        this.createPersonalElement = (tagName, type, styles) => {
-            const element = document.createElement(tagName);
-            if (type)
-                element.setAttribute("type", type);
+        //Function for creating an html element
+        this.createPersonalElement = (type, parent, styles) => {
+            const element = document.createElement(type);
             if (styles) {
-                const stylings = [];
-                for (const [k, v] of Object.entries(styles)) {
-                    stylings.push(k + ":");
-                    stylings.push(v + ";");
-                }
-                //Apply styles
-                element.setAttribute("style", stylings.join(" "));
+                Object.keys(styles).forEach((k) => {
+                    Reflect.set(element.style, k, styles[k]);
+                });
             }
+            parent.appendChild(element);
             return element;
         };
         //Select canvas element
@@ -758,7 +752,7 @@ class DrawingCanvas {
         this.isDragging = dragging;
     }
     //Function that returns correct coordinates and scalefactor for scaling
-    scaleCorrectly(from, element, currentMouseX, currentMouseY) {
+    getScaleInfo(from, element, currentMouseX, currentMouseY) {
         assertRequired(element.coords);
         if (element.type === "line") {
             const startCornerX = from === "start" ? element.coords.startX : element.coords.endX;

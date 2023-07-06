@@ -352,12 +352,12 @@ class DrawingCanvas {
       const canvasContainer = <HTMLElement>document.querySelector(".drawing-board");
 
       //Create textinput
-      const textInput = <HTMLInputElement>this.createPersonalElement("input", "text", {
+      const textInput = this.createPersonalElement("input", canvasContainer, {
         position: "fixed",
         top: `${evtType.clientY}px`,
         left: `${evtType.clientX}px`,
-        background: "transparent",
         outline: "none",
+        background: "none",
         border: "none",
         "font-size": "30pt",
         "font-family": "sans-serif",
@@ -656,8 +656,8 @@ class DrawingCanvas {
             } else {
               const from = this.shouldResize.from;
               this.isResizing = true;
-              // this.resizePath(selectedDrawing, from, mouseX, mouseY);
-              const { scaleOriginXPos, scaleOriginYPos, scale } = this.scaleCorrectly(
+
+              const { scaleOriginXPos, scaleOriginYPos, scale } = this.getScaleInfo(
                 from,
                 selectedDrawing,
                 mouseX,
@@ -730,7 +730,7 @@ class DrawingCanvas {
               const from = this.shouldResize.from;
               this.isResizing = true;
               const { scaleOriginXPos, scaleOriginYPos, startCornerXPos, startCornerYPos, scale } =
-                this.scaleCorrectly(from, selectedDrawing, mouseX, mouseY);
+                this.getScaleInfo(from, selectedDrawing, mouseX, mouseY);
 
               const startCornerX = startCornerXPos;
               const startCornerY = startCornerYPos;
@@ -812,7 +812,7 @@ class DrawingCanvas {
               this.isResizing = true;
 
               const { scaleOriginXPos, scaleOriginYPos, startCornerXPos, startCornerYPos } =
-                this.scaleCorrectly(from, selectedDrawing, mouseX, mouseY);
+                this.getScaleInfo(from, selectedDrawing, mouseX, mouseY);
 
               const resizedPath = new Path2D();
 
@@ -929,7 +929,7 @@ class DrawingCanvas {
   }
 
   //Function that returns correct coordinates and scalefactor for scaling
-  private scaleCorrectly(
+  private getScaleInfo(
     from: string,
     element: DrawingElements,
     currentMouseX: number,
@@ -1258,35 +1258,20 @@ class DrawingCanvas {
     }
   }
 
-  //Function for creating a html element
-  private createPersonalElement = (
-    tagName: string,
-    type?: string,
-    styles?: {
-      position?: string;
-      top?: string;
-      left?: string;
-      background?: string;
-      outline?: string;
-      border?: string;
-      "font-size"?: string;
-      "font-family"?: string;
-    }
-  ): HTMLElement => {
-    const element = document.createElement(tagName);
-
-    if (type) element.setAttribute("type", type);
+  //Function for creating an html element
+  private createPersonalElement = <T extends keyof HTMLElementTagNameMap>(
+    type: T,
+    parent: HTMLElement,
+    styles?: Record<string, string | number>
+  ): HTMLElementTagNameMap[T] => {
+    const element = document.createElement(type);
     if (styles) {
-      const stylings = [];
-
-      for (const [k, v] of Object.entries(styles)) {
-        stylings.push(k + ":");
-        stylings.push(v + ";");
-      }
-
-      //Apply styles
-      element.setAttribute("style", stylings.join(" "));
+      Object.keys(styles).forEach((k) => {
+        Reflect.set(element.style, k, styles[k]);
+      });
     }
+    parent.appendChild(element);
+
     return element;
   };
 
