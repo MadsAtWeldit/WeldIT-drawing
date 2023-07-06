@@ -1,4 +1,4 @@
-import { excludeNullishProps, assignCorrectly, assertRequired } from "./utils/common.js";
+import { excludeNullishProps, assignCorrectly, assertRequired, incOrDec } from "./utils/common.js";
 //Import element types
 import {
   OptionElement,
@@ -36,12 +36,14 @@ class DrawingCanvas {
   };
 
   //For state tracking
-  private isDrawing = false;
-  private isErasing = false;
-  private isMoving = false;
-  private isResizing = false;
-  private isWriting = false;
-  private isLining = false;
+  private actions = {
+    drawing: false,
+    erasing: false,
+    moving: false,
+    resizing: false,
+    writing: false,
+    lining: false,
+  };
 
   private shouldDraw = false;
   private shouldErase = false;
@@ -265,7 +267,7 @@ class DrawingCanvas {
   private pressDownHandler = (e: MouseEvent | TouchEvent) => {
     this.mouseIsDown = true;
 
-    if (this.isWriting) return;
+    if (this.actions.writing) return;
     //Check if event is touch or mouse
     const evtType = (e as TouchEvent).touches ? (e as TouchEvent).touches[0] : (e as MouseEvent);
 
@@ -364,7 +366,7 @@ class DrawingCanvas {
       });
 
       //We are now writing
-      this.isWriting = true;
+      this.actions.writing = true;
 
       //Focus input
       window.setTimeout(() => textInput.focus(), 0);
@@ -395,12 +397,12 @@ class DrawingCanvas {
         this.context.fillText(this.textObject.text, mouseX, mouseY);
 
         //Save and store index
-        this.index = this.incOrDec(this.index, "increment", 1);
+        this.index = incOrDec(this.index, "increment", 1);
         this.drawingData.push(this.textObject);
 
         canvasContainer.removeChild(textInput);
 
-        this.isWriting = false;
+        this.actions.writing = false;
 
         //Set new text object
         this.textObject = {
@@ -425,7 +427,7 @@ class DrawingCanvas {
     }
 
     if (line) {
-      if (this.isLining) return; //So it jumps to mouseup
+      if (this.actions.lining) return; //So it jumps to mouseup
 
       this.lineObject.operation = "source-over";
 
@@ -443,14 +445,14 @@ class DrawingCanvas {
     //Reset states
     this.mouseIsDown = false;
     this.shouldMove = false;
-    this.isMoving = false;
+    this.actions.moving = false;
 
-    if (this.isDrawing || this.isErasing) {
+    if (this.actions.drawing || this.actions.erasing) {
       this.shouldDraw = false;
       this.shouldErase = false;
 
-      this.isDrawing = false;
-      this.isErasing = false;
+      this.actions.drawing = false;
+      this.actions.erasing = false;
 
       //IF its just a click and no stroke
       if (this.pathObject.xCords.length === 1) {
@@ -480,7 +482,7 @@ class DrawingCanvas {
       };
 
       //Save
-      this.index = this.incOrDec(this.index, "increment", 1);
+      this.index = incOrDec(this.index, "increment", 1);
       this.drawingData.push(this.pathObject);
 
       //Set new pathObject
@@ -500,9 +502,9 @@ class DrawingCanvas {
       };
     }
 
-    if (this.isResizing) {
+    if (this.actions.resizing) {
       this.shouldResize = { toggled: false, from: "" };
-      this.isResizing = false;
+      this.actions.resizing = false;
 
       if (this.selectedDrawingIndex !== null) {
         const selectedDrawing = this.drawingData[this.selectedDrawingIndex];
@@ -511,10 +513,9 @@ class DrawingCanvas {
       }
     }
 
-    //IF we are drawing line when we mouseUp
-    if (this.isLining) {
+    if (this.actions.lining) {
       this.shouldLine = false;
-      this.isLining = false;
+      this.actions.lining = false;
 
       //Set end points
       this.lineObject.coords.endX = this.mouseX;
@@ -524,7 +525,7 @@ class DrawingCanvas {
       this.lineObject.path.lineTo(this.mouseX, this.mouseY);
 
       //Save new line
-      this.index = this.incOrDec(this.index, "increment", 1);
+      this.index = incOrDec(this.index, "increment", 1);
       this.drawingData.push(this.lineObject);
 
       //New lineObject
@@ -631,7 +632,7 @@ class DrawingCanvas {
         case "stroke":
           {
             if (this.shouldMove) {
-              this.isMoving = true;
+              this.actions.moving = true;
               //Update x and y coordinates
               for (let i = 0; i < selectedDrawing.xCords.length; i++) {
                 selectedDrawing.xCords[i] += dx;
@@ -655,7 +656,7 @@ class DrawingCanvas {
               this.startY = mouseY;
             } else {
               const from = this.shouldResize.from;
-              this.isResizing = true;
+              this.actions.resizing = true;
 
               const { scaleOriginXPos, scaleOriginYPos, scale } = this.getScaleInfo(
                 from,
@@ -715,7 +716,7 @@ class DrawingCanvas {
         case "text":
           {
             if (this.shouldMove) {
-              this.isMoving = true;
+              this.actions.moving = true;
 
               //Assign new coordinates
               selectedDrawing.coords.x1 += dx;
@@ -728,7 +729,7 @@ class DrawingCanvas {
               this.startY = mouseY;
             } else {
               const from = this.shouldResize.from;
-              this.isResizing = true;
+              this.actions.resizing = true;
               const { scaleOriginXPos, scaleOriginYPos, startCornerXPos, startCornerYPos, scale } =
                 this.getScaleInfo(from, selectedDrawing, mouseX, mouseY);
 
@@ -790,7 +791,7 @@ class DrawingCanvas {
         case "line":
           {
             if (this.shouldMove) {
-              this.isMoving = true;
+              this.actions.moving = true;
               //Assign new start and end coordinates
               selectedDrawing.coords.startX += dx;
               selectedDrawing.coords.startY += dy;
@@ -809,7 +810,7 @@ class DrawingCanvas {
             } else {
               const from = this.shouldResize.from;
 
-              this.isResizing = true;
+              this.actions.resizing = true;
 
               const { scaleOriginXPos, scaleOriginYPos, startCornerXPos, startCornerYPos } =
                 this.getScaleInfo(from, selectedDrawing, mouseX, mouseY);
@@ -854,8 +855,8 @@ class DrawingCanvas {
     }
 
     if ((this.shouldDraw && this.isDragging) || (this.shouldErase && this.isDragging)) {
-      this.shouldDraw ? (this.isDrawing = true) : (this.isDrawing = false);
-      this.shouldErase ? (this.isErasing = true) : (this.isErasing = false);
+      this.shouldDraw ? (this.actions.drawing = true) : (this.actions.drawing = false);
+      this.shouldErase ? (this.actions.erasing = true) : (this.actions.erasing = false);
       this.redraw(this.drawingData);
 
       //Set props for current path object
@@ -868,7 +869,7 @@ class DrawingCanvas {
     }
 
     if (this.shouldLine) {
-      this.isLining = true;
+      this.actions.lining = true;
       //Redraw data
       this.redraw(this.drawingData);
 
@@ -899,18 +900,19 @@ class DrawingCanvas {
       drawing.xCords = drawing.resizedXCords;
       drawing.yCords = drawing.resizedYCords;
 
-      drawing.path = drawing.resizedPath as Path2D;
       drawing.coords.x1 = Math.min(...drawing.xCords);
       drawing.coords.y1 = Math.min(...drawing.yCords);
       drawing.coords.x2 = Math.max(...drawing.xCords);
       drawing.coords.y2 = Math.max(...drawing.yCords);
-    } else if (drawing.type === "text") {
-      drawing.font = drawing.resizedFont;
 
+      drawing.path = drawing.resizedPath as Path2D;
+    } else if (drawing.type === "text") {
       drawing.coords.x1 = drawing.resizedCoords.resizedX1;
       drawing.coords.y1 = drawing.resizedCoords.resizedY1;
       drawing.coords.x2 = drawing.resizedCoords.resizedX2;
       drawing.coords.y2 = drawing.resizedCoords.resizedY2;
+
+      drawing.font = drawing.resizedFont;
     } else {
       drawing.coords.startX = drawing.resizedCoords.resizedStartX;
       drawing.coords.endX = drawing.resizedCoords.resizedEndX;
@@ -1125,17 +1127,17 @@ class DrawingCanvas {
 
     if (drawing.type === "line") {
       coords = {
-        startX: this.isResizing ? drawing.resizedCoords.resizedStartX : drawing.coords.startX,
-        startY: this.isResizing ? drawing.resizedCoords.resizedStartY : drawing.coords.startY,
-        endX: this.isResizing ? drawing.resizedCoords.resizedEndX : drawing.coords.endX,
-        endY: this.isResizing ? drawing.resizedCoords.resizedEndY : drawing.coords.endY,
+        startX: this.actions.resizing ? drawing.resizedCoords.resizedStartX : drawing.coords.startX,
+        startY: this.actions.resizing ? drawing.resizedCoords.resizedStartY : drawing.coords.startY,
+        endX: this.actions.resizing ? drawing.resizedCoords.resizedEndX : drawing.coords.endX,
+        endY: this.actions.resizing ? drawing.resizedCoords.resizedEndY : drawing.coords.endY,
       };
     } else {
       coords = {
-        x1: this.isResizing ? drawing.resizedCoords.resizedX1 : drawing.coords.x1,
-        y1: this.isResizing ? drawing.resizedCoords.resizedY1 : drawing.coords.y1,
-        x2: this.isResizing ? drawing.resizedCoords.resizedX2 : drawing.coords.x2,
-        y2: this.isResizing ? drawing.resizedCoords.resizedY2 : drawing.coords.y2,
+        x1: this.actions.resizing ? drawing.resizedCoords.resizedX1 : drawing.coords.x1,
+        y1: this.actions.resizing ? drawing.resizedCoords.resizedY1 : drawing.coords.y1,
+        x2: this.actions.resizing ? drawing.resizedCoords.resizedX2 : drawing.coords.x2,
+        y2: this.actions.resizing ? drawing.resizedCoords.resizedY2 : drawing.coords.y2,
       };
     }
     //Make sure that coords are not undefined before returning them
@@ -1178,7 +1180,7 @@ class DrawingCanvas {
       switch (drawing.type) {
         case "stroke":
           if (this.selectedDrawingIndex === i) {
-            if (this.isResizing) {
+            if (this.actions.resizing) {
               this.setCtxStyles(drawing);
 
               this.context.stroke(drawing.resizedPath as Path2D);
@@ -1196,7 +1198,7 @@ class DrawingCanvas {
           break;
         case "text":
           if (this.selectedDrawingIndex === i) {
-            if (this.isResizing) {
+            if (this.actions.resizing) {
               assertRequired(drawing.resizedCoords);
               this.setCtxStyles(drawing);
 
@@ -1224,7 +1226,7 @@ class DrawingCanvas {
           break;
         case "line":
           if (this.selectedDrawingIndex === i) {
-            if (this.isResizing) {
+            if (this.actions.resizing) {
               this.setCtxStyles(drawing);
               this.context.stroke(drawing.resizedPath as Path2D);
               this.createDrawingSelection(drawing);
@@ -1274,15 +1276,6 @@ class DrawingCanvas {
 
     return element;
   };
-
-  //Function for incrementing and decrementing
-  private incOrDec(index: number, action: "increment" | "decrement", steps: number) {
-    if (action === "increment") {
-      return (index += steps);
-    } else {
-      return (index -= steps);
-    }
-  }
 }
 
 new DrawingCanvas("drawing-board", {

@@ -47,4 +47,13 @@ export function assertRequired(coords) {
             throw new Error(`Error type ${k}:${v} must be of type number`);
     });
 }
+//Function for incrementing and decrementing
+export function incOrDec(index, action, steps) {
+    if (action === "increment") {
+        return (index += steps);
+    }
+    else {
+        return (index -= steps);
+    }
+}
 //# sourceMappingURL=common.js.map

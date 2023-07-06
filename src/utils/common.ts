@@ -55,3 +55,12 @@ export function assertRequired<T extends object>(coords: T): asserts coords is R
     if (typeof v !== "number") throw new Error(`Error type ${k}:${v} must be of type number`);
   });
 }
+
+//Function for incrementing and decrementing
+export function incOrDec(index: number, action: "increment" | "decrement", steps: number) {
+  if (action === "increment") {
+    return (index += steps);
+  } else {
+    return (index -= steps);
+  }
+}
