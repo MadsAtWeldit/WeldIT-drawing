@@ -133,6 +133,8 @@ class DrawingCanvas {
                         v === null || v === void 0 ? void 0 : v.classList.remove("active");
                     }
                 });
+                (_a = this.selectedTool.element) === null || _a === void 0 ? void 0 : _a.classList.add("active");
+                this.toolStates[this.selectedTool.name] = true;
                 this.selectedTool.name === "pencil" ||
                     this.selectedTool.name === "eraser" ||
                     this.selectedTool.name === "line"
@@ -140,8 +142,6 @@ class DrawingCanvas {
                     : this.selectedTool.name === "text"
                         ? (this.canvas.style.cursor = "text")
                         : (this.canvas.style.cursor = "default");
-                (_a = this.selectedTool.element) === null || _a === void 0 ? void 0 : _a.classList.add("active");
-                this.toolStates[this.selectedTool.name] = true;
             }
             if (Object.keys(definedCanvasModifiers).length > 0) {
                 if (definedCanvasModifiers.clear === target) {
@@ -490,7 +490,7 @@ class DrawingCanvas {
                                 this.startY = mouseY;
                             }
                             else {
-                                const { from } = this.shouldResize;
+                                const from = this.shouldResize.from;
                                 this.isResizing = true;
                                 // this.resizePath(selectedDrawing, from, mouseX, mouseY);
                                 const { scaleOriginXPos, scaleOriginYPos, scale } = this.scaleCorrectly(from, selectedDrawing, mouseX, mouseY);
@@ -608,7 +608,7 @@ class DrawingCanvas {
                                 this.startX = mouseX;
                                 this.startY = mouseY;
                             }
-                            if (this.shouldResize.toggled) {
+                            else {
                                 const from = this.shouldResize.from;
                                 this.isResizing = true;
                                 const { scaleOriginXPos, scaleOriginYPos, startCornerXPos, startCornerYPos } = this.scaleCorrectly(from, selectedDrawing, mouseX, mouseY);
@@ -775,27 +775,23 @@ class DrawingCanvas {
         }
         else {
             //IF scaling from the left side then start = left : start = right;
-            const startCornerX = from === "top-left" || from === "bottom-left" ? element.coords.x1 : element.coords.x2;
-            const startCornerY = from === "top-left" || from === "top-right" ? element.coords.y1 : element.coords.y2;
+            const startCornerX = from.includes("left") ? element.coords.x1 : element.coords.x2;
+            const startCornerY = from.includes("top") ? element.coords.y1 : element.coords.y2;
             //IF scaling from left side then origin is opposite side so that we scale inwards or outwards based on corner
-            const scaleOriginX = from === "top-left" || from === "bottom-left" ? element.coords.x2 : element.coords.x1;
-            const scaleOriginY = from === "top-left" || from === "top-right" ? element.coords.y2 : element.coords.y1;
+            const scaleOriginX = from.includes("left") ? element.coords.x2 : element.coords.x1;
+            const scaleOriginY = from.includes("top") ? element.coords.y2 : element.coords.y1;
             //For the scaling to work properly i also need where we scale from
             //Since scaling from left side to right side would not work with e.g (x1 - x2 so instead x2 - x1 for distance)
-            const originalDistance = from === "top-left" || from === "bottom-left"
+            const originalDistance = from.includes("left")
                 ? scaleOriginX - startCornerX
                 : startCornerX -
                     scaleOriginX +
-                    (from === "top-left" || from === "top-right"
-                        ? scaleOriginY - startCornerY
-                        : startCornerY - scaleOriginY);
-            const currentDistance = from === "top-left" || from === "bottom-left"
+                    (from.includes("top") ? scaleOriginY - startCornerY : startCornerY - scaleOriginY);
+            const currentDistance = from.includes("left")
                 ? scaleOriginX - currentMouseX
                 : currentMouseX -
                     scaleOriginX +
-                    (from === "top-left" || from === "top-right"
-                        ? scaleOriginY - currentMouseY
-                        : currentMouseY - scaleOriginY);
+                    (from.includes("top") ? scaleOriginY - currentMouseY : currentMouseY - scaleOriginY);
             const scaleFactor = currentDistance / originalDistance;
             return {
                 scaleOriginXPos: scaleOriginX,
@@ -805,26 +801,6 @@ class DrawingCanvas {
                 scale: scaleFactor,
             };
         }
-    }
-    //Checks where LineElement is drawn from
-    drawnFrom(drawing) {
-        let X;
-        let Y;
-        assertRequired(drawing.coords);
-        const { startX, endX, startY, endY } = drawing.coords;
-        if (startX < endX) {
-            X = "left";
-        }
-        else {
-            X = "right";
-        }
-        if (startY < endY) {
-            Y = "top";
-        }
-        else {
-            Y = "bottom";
-        }
-        return { drawnFromX: X, drawnFromY: Y };
     }
     //Checks if mouse is within selection rectangle for those that have it
     mouseWithinSelection(x, y, drawing) {
