@@ -1,4 +1,4 @@
-import { excludeNullishProps, assignCorrectly, assertRequired, incOrDec } from "./utils/common.js";
+import { excludeNullishProps, assignCorrectly, assertRequired, incOrDec, createPersonalElement, } from "./utils/common.js";
 class DrawingCanvas {
     constructor(elementId, options) {
         var _a, _b;
@@ -92,13 +92,6 @@ class DrawingCanvas {
         this.mouseX = 0;
         this.mouseY = 0;
         this.selectedTool = {};
-        //Runs for each element passed to options
-        this.storeElements = (optionElement) => {
-            //Assign each element passed to options to its correct place
-            assignCorrectly(optionElement, this.tools);
-            assignCorrectly(optionElement, this.toolModifiers);
-            assignCorrectly(optionElement, this.canvasModifiers);
-        };
         //Controller Change handler
         this.changeHandler = (e) => {
             const target = e.target;
@@ -243,7 +236,7 @@ class DrawingCanvas {
             if (text) {
                 const canvasContainer = document.querySelector(".drawing-board");
                 //Create textinput
-                const textInput = this.createPersonalElement("input", canvasContainer, {
+                const textInput = createPersonalElement("input", canvasContainer, {
                     position: "fixed",
                     top: `${evtType.clientY}px`,
                     left: `${evtType.clientX}px`,
@@ -672,21 +665,15 @@ class DrawingCanvas {
             }
             e.preventDefault();
         };
-        //Function for creating an html element
-        this.createPersonalElement = (type, parent, styles) => {
-            const element = document.createElement(type);
-            if (styles) {
-                Object.keys(styles).forEach((k) => {
-                    Reflect.set(element.style, k, styles[k]);
-                });
-            }
-            parent.appendChild(element);
-            return element;
-        };
         //Select canvas element
         const canvas = document.getElementById(elementId);
         const context = canvas.getContext("2d");
-        (_a = options === null || options === void 0 ? void 0 : options.elements) === null || _a === void 0 ? void 0 : _a.forEach((element) => this.storeElements(element));
+        (_a = options === null || options === void 0 ? void 0 : options.elements) === null || _a === void 0 ? void 0 : _a.forEach((element) => {
+            //Assign each element passed to options to its correct place
+            assignCorrectly(element, this.tools);
+            assignCorrectly(element, this.toolModifiers);
+            assignCorrectly(element, this.canvasModifiers);
+        });
         //Check if width and height has been set
         (options === null || options === void 0 ? void 0 : options.width)
             ? (canvas.width = options.width)
@@ -1023,7 +1010,5 @@ class DrawingCanvas {
         }
     }
 }
-new DrawingCanvas("drawing-board", {
-    elements: [],
-});
+new DrawingCanvas("drawing-board");
 //# sourceMappingURL=index.js.map

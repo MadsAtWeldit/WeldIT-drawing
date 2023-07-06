@@ -1,4 +1,10 @@
-import { excludeNullishProps, assignCorrectly, assertRequired, incOrDec } from "./utils/common.js";
+import {
+  excludeNullishProps,
+  assignCorrectly,
+  assertRequired,
+  incOrDec,
+  createPersonalElement,
+} from "./utils/common.js";
 //Import element types
 import {
   OptionElement,
@@ -130,7 +136,12 @@ class DrawingCanvas {
     const canvas = document.getElementById(elementId) as HTMLCanvasElement;
     const context = canvas.getContext("2d") as CanvasRenderingContext2D;
 
-    options?.elements?.forEach((element) => this.storeElements(element));
+    options?.elements?.forEach((element) => {
+      //Assign each element passed to options to its correct place
+      assignCorrectly(element, this.tools);
+      assignCorrectly(element, this.toolModifiers);
+      assignCorrectly(element, this.canvasModifiers);
+    });
 
     //Check if width and height has been set
     options?.width
@@ -156,14 +167,6 @@ class DrawingCanvas {
     //Add eventlisteners to canvas
     this.listen();
   }
-
-  //Runs for each element passed to options
-  private storeElements = (optionElement: OptionElement) => {
-    //Assign each element passed to options to its correct place
-    assignCorrectly(optionElement, this.tools);
-    assignCorrectly(optionElement, this.toolModifiers);
-    assignCorrectly(optionElement, this.canvasModifiers);
-  };
 
   //Listen for events on given canvas
   private listen() {
@@ -354,7 +357,7 @@ class DrawingCanvas {
       const canvasContainer = <HTMLElement>document.querySelector(".drawing-board");
 
       //Create textinput
-      const textInput = this.createPersonalElement("input", canvasContainer, {
+      const textInput = createPersonalElement("input", canvasContainer, {
         position: "fixed",
         top: `${evtType.clientY}px`,
         left: `${evtType.clientX}px`,
@@ -1259,25 +1262,6 @@ class DrawingCanvas {
       return false;
     }
   }
-
-  //Function for creating an html element
-  private createPersonalElement = <T extends keyof HTMLElementTagNameMap>(
-    type: T,
-    parent: HTMLElement,
-    styles?: Record<string, string | number>
-  ): HTMLElementTagNameMap[T] => {
-    const element = document.createElement(type);
-    if (styles) {
-      Object.keys(styles).forEach((k) => {
-        Reflect.set(element.style, k, styles[k]);
-      });
-    }
-    parent.appendChild(element);
-
-    return element;
-  };
 }
 
-new DrawingCanvas("drawing-board", {
-  elements: [],
-});
+new DrawingCanvas("drawing-board");

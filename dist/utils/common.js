@@ -56,4 +56,15 @@ export function incOrDec(index, action, steps) {
         return (index -= steps);
     }
 }
+//Function for creating an html element
+export const createPersonalElement = (type, parent, styles) => {
+    const element = document.createElement(type);
+    if (styles) {
+        Object.keys(styles).forEach((k) => {
+            Reflect.set(element.style, k, styles[k]);
+        });
+    }
+    parent.appendChild(element);
+    return element;
+};
 //# sourceMappingURL=common.js.map
