@@ -23,3 +23,12 @@ interface SelectedTool {
   element?: HTMLButtonElement;
   name?: keyof ToolStates;
 }
+
+interface Actions {
+  drawing: boolean;
+  erasing: boolean;
+  moving: boolean;
+  resizing: boolean;
+  writing: boolean;
+  lining: boolean;
+}

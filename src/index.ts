@@ -5,6 +5,9 @@ import {
   incOrDec,
   createPersonalElement,
 } from "./utils/common.js";
+
+import { getCorrectCoords } from "./utils/overloads.js";
+
 //Import element types
 import {
   OptionElement,
@@ -13,6 +16,7 @@ import {
   PathElement,
   TextElement,
 } from "./types/elements.js";
+
 import { DrawingElementType } from "./enums/enum.js";
 
 class DrawingCanvas {
@@ -42,7 +46,7 @@ class DrawingCanvas {
   };
 
   //For state tracking
-  private actions = {
+  private actions: Actions = {
     drawing: false,
     erasing: false,
     moving: false,
@@ -1066,8 +1070,8 @@ class DrawingCanvas {
 
     this.context.lineWidth = 1;
 
-    const coords = this.getCorrectCoords(drawing);
     if (drawing.type === "stroke" || drawing.type === "text") {
+      const coords = getCorrectCoords(drawing, this.actions.resizing);
       const width = coords.x2 - coords.x1;
       const height = coords.y2 - coords.y1;
 
@@ -1077,6 +1081,7 @@ class DrawingCanvas {
       //Draw corners
       this.drawCornerPoints(drawing);
     } else {
+      const coords = getCorrectCoords(drawing, this.actions.resizing);
       //Draw line from start to end
       this.context.lineWidth = 1;
       this.context.moveTo(coords.startX, coords.startY);
@@ -1093,9 +1098,9 @@ class DrawingCanvas {
     let x: number;
     let y: number;
 
-    const coords = this.getCorrectCoords(drawing);
-
     if (drawing.type === "stroke" || drawing.type === "text") {
+      const coords = getCorrectCoords(drawing, this.actions.resizing);
+
       //Selection has 4 corners
       for (let i = 0; i < 4; i++) {
         i === 0
@@ -1111,6 +1116,8 @@ class DrawingCanvas {
         this.context.stroke();
       }
     } else {
+      const coords = getCorrectCoords(drawing, this.actions.resizing);
+
       //Selection has 2 ends
       for (let i = 0; i < 2; i++) {
         i === 0
@@ -1122,31 +1129,6 @@ class DrawingCanvas {
         this.context.stroke();
       }
     }
-  }
-
-  //Function that returns the correct coords of given drawing based on if we are resizing or not
-  private getCorrectCoords(drawing: DrawingElements) {
-    let coords: SelectionCoords & LineSelectionCoords;
-
-    if (drawing.type === "line") {
-      coords = {
-        startX: this.actions.resizing ? drawing.resizedCoords.resizedStartX : drawing.coords.startX,
-        startY: this.actions.resizing ? drawing.resizedCoords.resizedStartY : drawing.coords.startY,
-        endX: this.actions.resizing ? drawing.resizedCoords.resizedEndX : drawing.coords.endX,
-        endY: this.actions.resizing ? drawing.resizedCoords.resizedEndY : drawing.coords.endY,
-      };
-    } else {
-      coords = {
-        x1: this.actions.resizing ? drawing.resizedCoords.resizedX1 : drawing.coords.x1,
-        y1: this.actions.resizing ? drawing.resizedCoords.resizedY1 : drawing.coords.y1,
-        x2: this.actions.resizing ? drawing.resizedCoords.resizedX2 : drawing.coords.x2,
-        y2: this.actions.resizing ? drawing.resizedCoords.resizedY2 : drawing.coords.y2,
-      };
-    }
-    //Make sure that coords are not undefined before returning them
-    assertRequired(coords);
-
-    return coords;
   }
 
   //Checks if mouse is within given coordinates

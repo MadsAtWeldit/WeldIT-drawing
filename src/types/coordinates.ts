@@ -14,3 +14,5 @@ type LineSelectionCoords = Rename<SelectionCoords, "startX" | "startY" | "endX" 
 
 //Type for resized coords for elements that use line selection coords
 type ResizedLineSelectionCoords = Prefix<LineSelectionCoords, "resized">;
+//Union of available coords
+type Coords = SelectionCoords | LineSelectionCoords;
