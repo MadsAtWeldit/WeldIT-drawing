@@ -17,7 +17,6 @@ import {
   TextElement,
 } from "./types/elements.js";
 
-import { DrawingElementType } from "./enums/enum.js";
 
 class DrawingCanvas {
   private canvas: HTMLCanvasElement;
