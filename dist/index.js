@@ -695,7 +695,7 @@ class DrawingCanvas {
         //Add eventlisteners to canvas
         this.listen();
     }
-    //Listen for events on given canvas
+    //Listen for events and call correct function
     listen() {
         const canvas = this.canvas;
         const controller = this.controller;
