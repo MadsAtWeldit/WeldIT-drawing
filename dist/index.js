@@ -39,7 +39,7 @@ class DrawingCanvas {
             from: "",
         };
         this.shouldLine = false;
-        this.toolStates = {
+        this.activeTools = {
             pencil: false,
             eraser: false,
             moveAndResize: false,
@@ -112,7 +112,7 @@ class DrawingCanvas {
             this.selectedDrawingIndex = null;
             const target = e.target;
             const context = this.context;
-            //Return only props that are of non nullish value
+            //Filter out nullish value props
             const definedTools = excludeNullishProps(this.tools);
             const definedCanvasModifiers = excludeNullishProps(this.canvasModifiers);
             if (Object.keys(definedTools).length > 0) {
@@ -125,12 +125,14 @@ class DrawingCanvas {
                         this.selectedTool.name = k;
                     }
                     else {
-                        this.toolStates[k] = false;
+                        this.activeTools[k] = false;
                         v === null || v === void 0 ? void 0 : v.classList.remove("active");
                     }
                 });
+                //Add active class for the selected tool and update activeTools object
                 (_a = this.selectedTool.element) === null || _a === void 0 ? void 0 : _a.classList.add("active");
-                this.toolStates[this.selectedTool.name] = true;
+                this.activeTools[this.selectedTool.name] = true;
+                //Set correct cursor based on selectedTool
                 this.selectedTool.name === "pencil" ||
                     this.selectedTool.name === "eraser" ||
                     this.selectedTool.name === "line"
@@ -166,13 +168,13 @@ class DrawingCanvas {
                 return;
             //Check if event is touch or mouse
             const evtType = e.touches ? e.touches[0] : e;
-            const { pencil, eraser, moveAndResize, text, line } = this.toolStates;
+            const { pencil, eraser, moveAndResize, text, line } = this.activeTools;
             const mouseY = evtType.clientY - this.canvas.offsetTop;
             const mouseX = evtType.clientX - this.canvas.offsetLeft;
             //Store starting positions
             this.startX = mouseX;
             this.startY = mouseY;
-            //IF eraser is toggled
+            //IF eraser is the active tool
             if (eraser) {
                 this.pathObject.operation = "destination-out";
                 this.shouldErase = true;
@@ -403,7 +405,8 @@ class DrawingCanvas {
             this.mouseX = mouseX;
             this.mouseY = mouseY;
             this.mouseIsDown ? (this.isDragging = true) : (this.isDragging = false);
-            if (this.toolStates.moveAndResize) {
+            // If move and resize tool is active
+            if (this.activeTools.moveAndResize) {
                 this.canvas.style.cursor = "default";
                 this.drawingData.forEach((drawing, i) => {
                     switch (drawing.type) {
@@ -412,7 +415,7 @@ class DrawingCanvas {
                                 if (this.context.isPointInStroke(drawing.path, mouseX, mouseY)) {
                                     this.canvas.style.cursor = "move";
                                 }
-                                //IF mouse is within selection of selected drawing
+                                //IF we are hovering the selected drawing
                                 if (this.selectedDrawingIndex === i &&
                                     this.mouseWithinSelection(mouseX, mouseY, drawing)) {
                                     //Get position within selection
@@ -691,7 +694,7 @@ class DrawingCanvas {
         this.tools.pencil &&
             ((this.selectedTool.element = this.tools.pencil), (this.selectedTool.name = "pencil"));
         (_b = this.selectedTool.element) === null || _b === void 0 ? void 0 : _b.classList.add("active");
-        this.toolStates[this.selectedTool.name] = true;
+        this.activeTools[this.selectedTool.name] = true;
         //Add eventlisteners to canvas
         this.listen();
     }
@@ -807,7 +810,7 @@ class DrawingCanvas {
                     ? "end"
                     : this.context.isPointInStroke(drawing.path, x, y)
                         ? "middle"
-                        : null;
+                        : "";
         }
         else {
             const { x1, y1, x2, y2 } = drawing.coords;
@@ -841,7 +844,7 @@ class DrawingCanvas {
                             ? "bottom-left"
                             : this.mouseWithin(x1, x2, y1, y2, x, y)
                                 ? "middle"
-                                : null;
+                                : "";
         }
         return mouseIsIn;
     }

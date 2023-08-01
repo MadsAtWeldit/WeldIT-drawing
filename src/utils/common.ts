@@ -7,8 +7,8 @@ export const excludeNullishProps = <T extends object>(obj: T) => {
 };
 
 //Assigns element passed to options to correct property
-export const assignCorrectly = <T extends object, U>(
-  element: U extends OptionElement ? U : never,
+export const assignCorrectly = <T extends object, U extends OptionElement>(
+  element: U,
   prop: T
 ) => {
   Object.keys(prop).map((key) => {
