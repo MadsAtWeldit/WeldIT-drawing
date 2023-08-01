@@ -171,10 +171,9 @@ class DrawingCanvas {
     this.listen();
   }
 
-  //Listen for events on given canvas
+  //Listen for events and call correct function
   private listen() {
     const canvas = this.canvas;
-
     const controller = this.controller;
 
     canvas.addEventListener("mousedown", this.pressDownHandler);
@@ -236,12 +235,12 @@ class DrawingCanvas {
       this.toolStates[this.selectedTool.name as keyof ToolStates] = true;
 
       this.selectedTool.name === "pencil" ||
-      this.selectedTool.name === "eraser" ||
-      this.selectedTool.name === "line"
+        this.selectedTool.name === "eraser" ||
+        this.selectedTool.name === "line"
         ? (this.canvas.style.cursor = "crosshair")
         : this.selectedTool.name === "text"
-        ? (this.canvas.style.cursor = "text")
-        : (this.canvas.style.cursor = "default");
+          ? (this.canvas.style.cursor = "text")
+          : (this.canvas.style.cursor = "default");
     }
 
     if (Object.keys(definedCanvasModifiers).length > 0) {
@@ -586,8 +585,8 @@ class DrawingCanvas {
                 selectionPosition === "middle"
                   ? (this.canvas.style.cursor = "move")
                   : selectionPosition === "top-left" || selectionPosition === "bottom-right"
-                  ? (this.canvas.style.cursor = "nwse-resize")
-                  : (this.canvas.style.cursor = "nesw-resize");
+                    ? (this.canvas.style.cursor = "nwse-resize")
+                    : (this.canvas.style.cursor = "nesw-resize");
               }
             }
             break;
@@ -600,8 +599,8 @@ class DrawingCanvas {
                 selectionPosition === "middle"
                   ? (this.canvas.style.cursor = "move")
                   : selectionPosition === "top-left" || selectionPosition === "bottom-right"
-                  ? (this.canvas.style.cursor = "nwse-resize")
-                  : (this.canvas.style.cursor = "nesw-resize");
+                    ? (this.canvas.style.cursor = "nwse-resize")
+                    : (this.canvas.style.cursor = "nesw-resize");
               }
             }
 
@@ -972,14 +971,14 @@ class DrawingCanvas {
       const originalDistance = from.includes("left")
         ? scaleOriginX - startCornerX
         : startCornerX -
-          scaleOriginX +
-          (from.includes("top") ? scaleOriginY - startCornerY : startCornerY - scaleOriginY);
+        scaleOriginX +
+        (from.includes("top") ? scaleOriginY - startCornerY : startCornerY - scaleOriginY);
 
       const currentDistance = from.includes("left")
         ? scaleOriginX - currentMouseX
         : currentMouseX -
-          scaleOriginX +
-          (from.includes("top") ? scaleOriginY - currentMouseY : currentMouseY - scaleOriginY);
+        scaleOriginX +
+        (from.includes("top") ? scaleOriginY - currentMouseY : currentMouseY - scaleOriginY);
 
       const scaleFactor = currentDistance / originalDistance;
 
@@ -1018,10 +1017,10 @@ class DrawingCanvas {
       mouseIsIn = this.mouseWithin(startX1, startX2, startY1, startY2, x, y)
         ? "start"
         : this.mouseWithin(endX1, endX2, endY1, endY2, x, y)
-        ? "end"
-        : this.context.isPointInStroke(drawing.path, x, y)
-        ? "middle"
-        : null;
+          ? "end"
+          : this.context.isPointInStroke(drawing.path, x, y)
+            ? "middle"
+            : null;
     } else {
       const { x1, y1, x2, y2 } = drawing.coords;
 
@@ -1049,14 +1048,14 @@ class DrawingCanvas {
       mouseIsIn = this.mouseWithin(topLeftX1, topLeftX2, topLeftY1, topLeftY2, x, y)
         ? "top-left"
         : this.mouseWithin(topRightX1, topRightX2, topRightY1, topRightY2, x, y)
-        ? "top-right"
-        : this.mouseWithin(bottomRightX1, bottomRightX2, bottomRightY1, bottomRightY2, x, y)
-        ? "bottom-right"
-        : this.mouseWithin(bottomLeftX1, bottomLeftX2, bottomLeftY1, bottomLeftY2, x, y)
-        ? "bottom-left"
-        : this.mouseWithin(x1, x2, y1, y2, x, y)
-        ? "middle"
-        : null;
+          ? "top-right"
+          : this.mouseWithin(bottomRightX1, bottomRightX2, bottomRightY1, bottomRightY2, x, y)
+            ? "bottom-right"
+            : this.mouseWithin(bottomLeftX1, bottomLeftX2, bottomLeftY1, bottomLeftY2, x, y)
+              ? "bottom-left"
+              : this.mouseWithin(x1, x2, y1, y2, x, y)
+                ? "middle"
+                : null;
     }
 
     return mouseIsIn;
@@ -1105,10 +1104,10 @@ class DrawingCanvas {
         i === 0
           ? ((x = coords.x1), (y = coords.y1)) //First draw top left corner
           : i === 1
-          ? ((x = coords.x2), (y = coords.y1)) //Second draw top right corner
-          : i === 2
-          ? ((x = coords.x1), (y = coords.y2)) //Third draw bottom left corner
-          : ((x = coords.x2), (y = coords.y2)); //Last draw bottom right corner
+            ? ((x = coords.x2), (y = coords.y1)) //Second draw top right corner
+            : i === 2
+              ? ((x = coords.x1), (y = coords.y2)) //Third draw bottom left corner
+              : ((x = coords.x2), (y = coords.y2)); //Last draw bottom right corner
 
         this.context.beginPath();
         this.context.arc(x, y, 1, 0, 2 * Math.PI);
