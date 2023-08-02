@@ -729,7 +729,6 @@ class DrawingCanvas {
               //Assign new coordinates
               selectedDrawing.coords.x1 += dx;
               selectedDrawing.coords.y1 += dy;
-
               selectedDrawing.coords.x2 += dx;
               selectedDrawing.coords.y2 += dy;
 
@@ -1144,15 +1143,12 @@ class DrawingCanvas {
     this.context.globalCompositeOperation = drawing.operation;
     this.context.lineCap = "round";
 
-    if (drawing.type === "stroke") {
+    if (drawing.type === "stroke" || drawing.type === "line") {
       this.context.lineWidth = drawing.lineWidth;
       this.context.strokeStyle = drawing.strokeStyle;
     } else if (drawing.type === "text") {
       this.context.textBaseline = drawing.baseline as CanvasTextBaseline;
       this.context.font = drawing.font;
-    } else {
-      this.context.lineWidth = drawing.lineWidth;
-      this.context.strokeStyle = drawing.strokeStyle;
     }
   }
 
