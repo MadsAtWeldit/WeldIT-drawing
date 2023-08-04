@@ -7,7 +7,7 @@ https://github.com/MadsAtWeldit/WeldIT-drawing/assets/127091473/813c774e-e497-42
 
 > This is just to show the functionality. I have not been assigned the task to make this look good. I'll leave that up to the css nerds :stuck_out_tongue_closed_eyes:
 
-----------
+-------
 ## About
 This is a drawing **demo** app using HTML-canvas running in the browser, written in Typescript with as little dependencies as possible. It's not meant to be a full production version, only a.. if I might say so myself a solid foundation to build upon.
 
@@ -67,22 +67,22 @@ Since the code is written in Typescript without any frameworks, I found the best
 
 I don't know what framework will be used, but to my knowledge it will be Vue.js and Laravel.php. So try to think of the class as a big component and then split some of that logic into smaller child components. Or simply instantiate the class inside the Vue component. Up to you how you guys wanna do it.
 
-----------
+
 2. **Drag and drop image**
 
 The drag and drop image function should be implemented before pushing this to production.
 
-----------
+
 3. **Better CSS**
 
 Write some better CSS as the currently written styles are simply ugly.
 
-----------
+
 3. **Download**
 
 Download button should be added so the user can download the drawing.
 
-----------
+
 4. **Server requests and storage**
 
 When you draw on the canvas and a user wants to save the drawing, they will then send a POST request with the drawing object to be saved for their user. And when they log back into WeldIT to use the drawing app, they will fetch the last saved drawing, and also maybe add an option to load previous drawings. 
@@ -91,17 +91,17 @@ Look into the most efficient ways to send and store the drawing data.
 
 So for example an alternative to the raw object is to use something like the CanvasRenderingContext2D: getImageData() method to save the current drawing and then send that via POST instead.
 
-----------
+
 5. **Testing**
 
 Obviously you need to test every aspect of this app and make sure there are as little bugs (preferably none) as possible. Since I've been working solo on this project so far I might have missed a few or forgotten to fix them.
 
-----------
+
 6. **Use Typescript (optional)**
 
 Since this is written in Typescript I recommend using that, but of course that is also up to you. So if not then just look at the compiled code and modify that. I have already pitched the idea to add Typescript support to the WeldIT repo.
 
-----------
+
 
 7. **Ask questions (optional)**
 
