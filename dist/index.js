@@ -1,688 +1,113 @@
 import { excludeNullishProps, assignCorrectly, assertRequired, incOrDec, createPersonalElement, } from "./utils/common.js";
 import { getCorrectCoords } from "./utils/overloads.js";
 class DrawingCanvas {
+    canvas;
+    context;
+    controller = document.getElementById("toolbar");
+    //Base tools
+    tools = {
+        pencil: document.getElementById("pencil"),
+        eraser: document.getElementById("eraser"),
+        moveAndResize: document.getElementById("mv-rz"),
+        text: document.getElementById("text"),
+        line: document.getElementById("line"),
+    };
+    //Tools for changing state of tools
+    toolModifiers = {
+        color: document.getElementById("color"),
+        width: document.getElementById("lineWidth"),
+    };
+    //Tools for changing state of Canvas
+    canvasModifiers = {
+        clear: document.getElementById("clear"),
+        undo: document.getElementById("undo"),
+    };
+    //For state tracking
+    actions = {
+        drawing: false,
+        erasing: false,
+        moving: false,
+        resizing: false,
+        writing: false,
+        lining: false,
+    };
+    shouldDraw = false;
+    shouldErase = false;
+    shouldMove = false;
+    shouldResize = {
+        toggled: false,
+        from: "",
+    };
+    shouldLine = false;
+    activeTools = {
+        pencil: false,
+        eraser: false,
+        moveAndResize: false,
+        text: false,
+        line: false,
+    };
+    mouseIsDown = false;
+    isDragging = false;
+    index = -1;
+    selectedDrawingIndex = null;
+    //Create default path object
+    pathObject = {
+        type: "stroke",
+        path: new Path2D(),
+        resizedPath: null,
+        lineWidth: 5,
+        strokeStyle: "black",
+        operation: "source-over",
+        coords: {},
+        resizedCoords: {},
+        xCords: [],
+        yCords: [],
+        resizedXCords: [],
+        resizedYCords: [],
+    };
+    //Create default text object
+    textObject = {
+        type: "text",
+        text: "",
+        font: "30pt sans-serif",
+        resizedFont: "",
+        baseline: "top",
+        operation: "source-over",
+        coords: {},
+        resizedCoords: {},
+    };
+    //Create default line object
+    lineObject = {
+        type: "line",
+        path: new Path2D(),
+        resizedPath: null,
+        lineWidth: 5,
+        strokeStyle: "black",
+        operation: "source-over",
+        coords: {},
+        resizedCoords: {},
+    };
+    drawingData = [];
+    startX = 0;
+    startY = 0;
+    mouseX = 0;
+    mouseY = 0;
+    selectedTool = {};
     constructor(elementId, options) {
-        var _a, _b;
-        this.controller = document.getElementById("toolbar");
-        //Base tools
-        this.tools = {
-            pencil: document.getElementById("pencil"),
-            eraser: document.getElementById("eraser"),
-            moveAndResize: document.getElementById("mv-rz"),
-            text: document.getElementById("text"),
-            line: document.getElementById("line"),
-        };
-        //Tools for changing state of tools
-        this.toolModifiers = {
-            color: document.getElementById("color"),
-            width: document.getElementById("lineWidth"),
-        };
-        //Tools for changing state of Canvas
-        this.canvasModifiers = {
-            clear: document.getElementById("clear"),
-            undo: document.getElementById("undo"),
-        };
-        //For state tracking
-        this.actions = {
-            drawing: false,
-            erasing: false,
-            moving: false,
-            resizing: false,
-            writing: false,
-            lining: false,
-        };
-        this.shouldDraw = false;
-        this.shouldErase = false;
-        this.shouldMove = false;
-        this.shouldResize = {
-            toggled: false,
-            from: "",
-        };
-        this.shouldLine = false;
-        this.activeTools = {
-            pencil: false,
-            eraser: false,
-            moveAndResize: false,
-            text: false,
-            line: false,
-        };
-        this.mouseIsDown = false;
-        this.isDragging = false;
-        this.index = -1;
-        this.selectedDrawingIndex = null;
-        //Create default path object
-        this.pathObject = {
-            type: "stroke",
-            path: new Path2D(),
-            resizedPath: null,
-            lineWidth: 5,
-            strokeStyle: "black",
-            operation: "source-over",
-            coords: {},
-            resizedCoords: {},
-            xCords: [],
-            yCords: [],
-            resizedXCords: [],
-            resizedYCords: [],
-        };
-        //Create default text object
-        this.textObject = {
-            type: "text",
-            text: "",
-            font: "30pt sans-serif",
-            resizedFont: "",
-            baseline: "top",
-            operation: "source-over",
-            coords: {},
-            resizedCoords: {},
-        };
-        //Create default line object
-        this.lineObject = {
-            type: "line",
-            path: new Path2D(),
-            resizedPath: null,
-            lineWidth: 5,
-            strokeStyle: "black",
-            operation: "source-over",
-            coords: {},
-            resizedCoords: {},
-        };
-        this.drawingData = [];
-        this.startX = 0;
-        this.startY = 0;
-        this.mouseX = 0;
-        this.mouseY = 0;
-        this.selectedTool = {};
-        //Controller Change handler
-        this.changeHandler = (e) => {
-            const target = e.target;
-            const colorPicker = this.toolModifiers.color;
-            const lineWidthPicker = this.toolModifiers.width;
-            if (colorPicker && this.targetIs(colorPicker, target)) {
-                //Change current path object strokeStyle
-                this.pathObject.strokeStyle = target.value;
-            }
-            if (lineWidthPicker && this.targetIs(lineWidthPicker, target)) {
-                this.pathObject.lineWidth = Number(target.value);
-            }
-        };
-        //Controller click handler
-        this.toolSelectHandler = (e) => {
-            var _a;
-            this.selectedDrawingIndex = null;
-            const target = e.target;
-            const context = this.context;
-            //Filter out nullish value props
-            const definedTools = excludeNullishProps(this.tools);
-            const definedCanvasModifiers = excludeNullishProps(this.canvasModifiers);
-            if (Object.keys(definedTools).length > 0) {
-                //Loop each defined element and check which of them are the target
-                Object.entries(definedTools).forEach(([k, v]) => {
-                    //IF tool is target
-                    if (v === target) {
-                        //Store tool name and element as selected
-                        this.selectedTool.element = v;
-                        this.selectedTool.name = k;
-                    }
-                    else {
-                        this.activeTools[k] = false;
-                        v === null || v === void 0 ? void 0 : v.classList.remove("active");
-                    }
-                });
-                //Add active class for the selected tool and update activeTools object
-                (_a = this.selectedTool.element) === null || _a === void 0 ? void 0 : _a.classList.add("active");
-                this.activeTools[this.selectedTool.name] = true;
-                //Set correct cursor based on selectedTool
-                this.selectedTool.name === "pencil" ||
-                    this.selectedTool.name === "eraser" ||
-                    this.selectedTool.name === "line"
-                    ? (this.canvas.style.cursor = "crosshair")
-                    : this.selectedTool.name === "text"
-                        ? (this.canvas.style.cursor = "text")
-                        : (this.canvas.style.cursor = "default");
-            }
-            if (Object.keys(definedCanvasModifiers).length > 0) {
-                if (definedCanvasModifiers.clear === target) {
-                    context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-                    this.index = -1;
-                    this.drawingData = [];
-                }
-                if (definedCanvasModifiers.undo === target) {
-                    if (this.index <= 0) {
-                        context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-                        this.index = -1;
-                        this.drawingData = [];
-                    }
-                    else {
-                        this.index -= 1;
-                        this.drawingData.pop();
-                        this.redraw(this.drawingData);
-                    }
-                }
-            }
-        };
-        //Handles pressdown/click
-        this.pressDownHandler = (e) => {
-            this.mouseIsDown = true;
-            if (this.actions.writing)
-                return;
-            //Check if event is touch or mouse
-            const evtType = e.touches ? e.touches[0] : e;
-            const { pencil, eraser, moveAndResize, text, line } = this.activeTools;
-            const mouseY = evtType.clientY - this.canvas.offsetTop;
-            const mouseX = evtType.clientX - this.canvas.offsetLeft;
-            //Store starting positions
-            this.startX = mouseX;
-            this.startY = mouseY;
-            //IF eraser is the active tool
-            if (eraser) {
-                this.pathObject.operation = "destination-out";
-                this.shouldErase = true;
-                this.addCoords(mouseX, mouseY, false);
-            }
-            if (pencil) {
-                this.pathObject.operation = "source-over";
-                this.shouldDraw = true;
-                this.addCoords(mouseX, mouseY, false);
-            }
-            if (moveAndResize) {
-                //IF no paths
-                if (this.drawingData.length <= 0)
-                    return;
-                //IF there already is a selected drawing
-                if (this.selectedDrawingIndex !== null) {
-                    const selected = this.drawingData[this.selectedDrawingIndex];
-                    //Get position of mouse within drawing
-                    const selectionPosition = this.mouseWithinSelection(mouseX, mouseY, selected);
-                    //IF mouse is not in drawing anymore
-                    if (!selectionPosition) {
-                        //Disselect the selected
-                        this.selectedDrawingIndex = null;
-                    }
-                    else {
-                        //IF mouse is inside the selection THEN check if move or resize
-                        selectionPosition === "middle"
-                            ? (this.shouldMove = true)
-                            : ((this.shouldResize.toggled = true),
-                                (this.shouldResize.from = selectionPosition));
-                    }
-                }
-                //Loop through each drawing and check if one has been clicked on and set that as the selected drawing
-                this.drawingData.forEach((drawing, i) => {
-                    if (drawing.type === "stroke" || drawing.type === "line") {
-                        //Mouse is inside stroke
-                        if (this.context.isPointInStroke(drawing.path, mouseX, mouseY)) {
-                            //Set selected drawing
-                            this.selectedDrawingIndex = i;
-                            const selected = this.drawingData[this.selectedDrawingIndex];
-                            //Then check mouse position if we should resize or move
-                            const selectionPosition = this.mouseWithinSelection(mouseX, mouseY, selected);
-                            selectionPosition === "middle"
-                                ? (this.shouldMove = true)
-                                : ((this.shouldResize.toggled = true),
-                                    (this.shouldResize.from = selectionPosition));
-                        }
-                    }
-                    else {
-                        if (this.mouseWithinSelection(mouseX, mouseY, drawing)) {
-                            this.selectedDrawingIndex = i;
-                            const selected = this.drawingData[this.selectedDrawingIndex];
-                            const selectionPosition = this.mouseWithinSelection(mouseX, mouseY, selected);
-                            selectionPosition === "middle"
-                                ? (this.shouldMove = true)
-                                : ((this.shouldResize.toggled = true),
-                                    (this.shouldResize.from = selectionPosition));
-                        }
-                    }
-                });
-            }
-            if (text) {
-                const canvasContainer = document.querySelector(".drawing-board");
-                //Create textinput
-                const textInput = createPersonalElement("input", canvasContainer, {
-                    position: "fixed",
-                    top: `${evtType.clientY}px`,
-                    left: `${evtType.clientX}px`,
-                    outline: "none",
-                    background: "none",
-                    border: "none",
-                    "font-size": "30pt",
-                    "font-family": "sans-serif",
-                });
-                //We are now writing
-                this.actions.writing = true;
-                //Focus input
-                window.setTimeout(() => textInput.focus(), 0);
-                //Runs whenever we unfocus input
-                textInput.addEventListener("blur", () => {
-                    this.redraw(this.drawingData);
-                    //Store value of text in drawing for later refernce when drawing it
-                    this.textObject.text = textInput.value;
-                    //Set context props based on current drawing
-                    this.setCtxStyles(this.textObject);
-                    //Measure the drawn text
-                    const textWidth = this.context.measureText(textInput.value).width;
-                    const textHeight = parseInt(this.context.font);
-                    //Init coordinates
-                    this.textObject.coords = {
-                        x1: mouseX,
-                        y1: mouseY,
-                        x2: Math.round(mouseX + textWidth),
-                        y2: Math.round(mouseY + textHeight),
-                    };
-                    //Draw the text
-                    this.context.fillText(this.textObject.text, mouseX, mouseY);
-                    //Save and store index
-                    this.index = incOrDec(this.index, "increment", 1);
-                    this.drawingData.push(this.textObject);
-                    canvasContainer.removeChild(textInput);
-                    this.actions.writing = false;
-                    //Set new text object
-                    this.textObject = {
-                        type: "text",
-                        text: "",
-                        font: "30pt sans-serif",
-                        resizedFont: "",
-                        baseline: "top",
-                        operation: "source-over",
-                        coords: {},
-                        resizedCoords: {},
-                    };
-                });
-                textInput.addEventListener("keypress", (e) => {
-                    if (e.key === "Enter") {
-                        textInput.blur();
-                    }
-                });
-                canvasContainer === null || canvasContainer === void 0 ? void 0 : canvasContainer.appendChild(textInput);
-            }
-            if (line) {
-                if (this.actions.lining)
-                    return; //So it jumps to mouseup
-                this.lineObject.operation = "source-over";
-                //Signal that we are trying to draw a line
-                this.shouldLine = true;
-                this.lineObject.path.moveTo(mouseX, mouseY);
-                //Init start coordinates
-                this.lineObject.coords = { startX: mouseX, startY: mouseY };
-            }
-        };
-        //Handles mouse release
-        this.mouseUpHandler = () => {
-            //Reset states
-            this.mouseIsDown = false;
-            this.shouldMove = false;
-            this.actions.moving = false;
-            if (this.actions.drawing || this.actions.erasing) {
-                this.shouldDraw = false;
-                this.shouldErase = false;
-                this.actions.drawing = false;
-                this.actions.erasing = false;
-                //IF its just a click and no stroke
-                if (this.pathObject.xCords.length === 1) {
-                    this.pathObject = {
-                        type: "stroke",
-                        path: new Path2D(),
-                        resizedPath: null,
-                        lineWidth: this.context.lineWidth,
-                        strokeStyle: String(this.context.strokeStyle),
-                        operation: "source-over",
-                        coords: {},
-                        resizedCoords: {},
-                        xCords: [],
-                        yCords: [],
-                        resizedXCords: [],
-                        resizedYCords: [],
-                    };
-                    return;
-                }
-                //Init coords
-                this.pathObject.coords = {
-                    x1: Math.min(...this.pathObject.xCords),
-                    y1: Math.min(...this.pathObject.yCords),
-                    x2: Math.max(...this.pathObject.xCords),
-                    y2: Math.max(...this.pathObject.yCords),
-                };
-                //Save
-                this.index = incOrDec(this.index, "increment", 1);
-                this.drawingData.push(this.pathObject);
-                //Set new pathObject
-                this.pathObject = {
-                    type: "stroke",
-                    path: new Path2D(),
-                    resizedPath: null,
-                    lineWidth: this.context.lineWidth,
-                    strokeStyle: String(this.context.strokeStyle),
-                    operation: "source-over",
-                    coords: {},
-                    resizedCoords: {},
-                    xCords: [],
-                    yCords: [],
-                    resizedXCords: [],
-                    resizedYCords: [],
-                };
-            }
-            if (this.actions.resizing) {
-                this.shouldResize = { toggled: false, from: "" };
-                this.actions.resizing = false;
-                if (this.selectedDrawingIndex !== null) {
-                    const selectedDrawing = this.drawingData[this.selectedDrawingIndex];
-                    this.updateToResized(selectedDrawing);
-                }
-            }
-            if (this.actions.lining) {
-                this.shouldLine = false;
-                this.actions.lining = false;
-                //Set end points
-                this.lineObject.coords.endX = this.mouseX;
-                this.lineObject.coords.endY = this.mouseY;
-                //Take the path and line it to end
-                this.lineObject.path.lineTo(this.mouseX, this.mouseY);
-                //Save new line
-                this.index = incOrDec(this.index, "increment", 1);
-                this.drawingData.push(this.lineObject);
-                //New lineObject
-                this.lineObject = {
-                    type: "line",
-                    path: new Path2D(),
-                    resizedPath: null,
-                    lineWidth: 5,
-                    strokeStyle: "black",
-                    operation: "source-over",
-                    coords: {},
-                    resizedCoords: {},
-                };
-            }
-            this.redraw(this.drawingData);
-        };
-        //Handles moving mouse
-        this.mouseMoveHandler = (e) => {
-            const evtType = e.touches ? e.touches[0] : e;
-            //Current mouse positions
-            const mouseX = evtType.clientX - this.canvas.offsetLeft;
-            const mouseY = evtType.clientY - this.canvas.offsetTop;
-            //Store current mousePosition
-            this.mouseX = mouseX;
-            this.mouseY = mouseY;
-            this.mouseIsDown ? (this.isDragging = true) : (this.isDragging = false);
-            // If move and resize tool is active
-            if (this.activeTools.moveAndResize) {
-                this.canvas.style.cursor = "default";
-                this.drawingData.forEach((drawing, i) => {
-                    switch (drawing.type) {
-                        case "stroke":
-                            {
-                                if (this.context.isPointInStroke(drawing.path, mouseX, mouseY)) {
-                                    this.canvas.style.cursor = "move";
-                                }
-                                //IF we are hovering the selected drawing
-                                if (this.selectedDrawingIndex === i &&
-                                    this.mouseWithinSelection(mouseX, mouseY, drawing)) {
-                                    //Get position within selection
-                                    const selectionPosition = this.mouseWithinSelection(mouseX, mouseY, drawing);
-                                    //Style accordingly
-                                    selectionPosition === "middle"
-                                        ? (this.canvas.style.cursor = "move")
-                                        : selectionPosition === "top-left" || selectionPosition === "bottom-right"
-                                            ? (this.canvas.style.cursor = "nwse-resize")
-                                            : (this.canvas.style.cursor = "nesw-resize");
-                                }
-                            }
-                            break;
-                        case "text":
-                            {
-                                if (this.mouseWithinSelection(mouseX, mouseY, drawing)) {
-                                    const selectionPosition = this.mouseWithinSelection(mouseX, mouseY, drawing);
-                                    selectionPosition === "middle"
-                                        ? (this.canvas.style.cursor = "move")
-                                        : selectionPosition === "top-left" || selectionPosition === "bottom-right"
-                                            ? (this.canvas.style.cursor = "nwse-resize")
-                                            : (this.canvas.style.cursor = "nesw-resize");
-                                }
-                            }
-                            break;
-                        case "line":
-                            {
-                                if (this.mouseWithinSelection(mouseX, mouseY, drawing)) {
-                                    const selectionPosition = this.mouseWithinSelection(mouseX, mouseY, drawing);
-                                    selectionPosition === "middle"
-                                        ? (this.canvas.style.cursor = "move")
-                                        : (this.canvas.style.cursor = "pointer");
-                                }
-                            }
-                            break;
-                    }
-                });
-            }
-            //IF we have a selected drawing and we are dragging
-            if (this.selectedDrawingIndex !== null && this.isDragging) {
-                //Move with respect to current mouse
-                const dx = mouseX - this.startX;
-                const dy = mouseY - this.startY;
-                //Selected drawing
-                const selectedDrawing = this.drawingData[this.selectedDrawingIndex];
-                //Coords are required IF not present then throw an error
-                assertRequired(selectedDrawing.coords);
-                switch (selectedDrawing.type) {
-                    case "stroke":
-                        {
-                            if (this.shouldMove) {
-                                this.actions.moving = true;
-                                //Update x and y coordinates
-                                for (let i = 0; i < selectedDrawing.xCords.length; i++) {
-                                    selectedDrawing.xCords[i] += dx;
-                                    selectedDrawing.yCords[i] += dy;
-                                }
-                                //Update left, top, right and bottom
-                                selectedDrawing.coords.x1 = Math.min(...selectedDrawing.xCords);
-                                selectedDrawing.coords.y1 = Math.min(...selectedDrawing.yCords);
-                                selectedDrawing.coords.x2 = Math.max(...selectedDrawing.xCords);
-                                selectedDrawing.coords.y2 = Math.max(...selectedDrawing.yCords);
-                                //Create new path from existing path
-                                const newPath = new Path2D();
-                                const m = new DOMMatrix().translate(dx, dy);
-                                newPath.addPath(selectedDrawing.path, m);
-                                selectedDrawing.path = newPath;
-                                //Set start positions to current
-                                this.startX = mouseX;
-                                this.startY = mouseY;
-                            }
-                            else {
-                                const from = this.shouldResize.from;
-                                this.actions.resizing = true;
-                                const { scaleOriginXPos, scaleOriginYPos, scale } = this.getScaleInfo(from, selectedDrawing, mouseX, mouseY);
-                                const scaleOriginX = scaleOriginXPos;
-                                const scaleOriginY = scaleOriginYPos;
-                                const scaleFactor = scale;
-                                const resizedPath = new Path2D();
-                                //Create copy
-                                const resizedXCords = [...selectedDrawing.xCords];
-                                const resizedYCords = [...selectedDrawing.yCords];
-                                const originalDistanceX = [];
-                                const originalDistanceY = [];
-                                //Calculate original distance between origin and x,y coordinates
-                                for (let i = 0; i < selectedDrawing.xCords.length; i++) {
-                                    originalDistanceX[i] = scaleOriginX - selectedDrawing.xCords[i];
-                                    originalDistanceY[i] = scaleOriginY - selectedDrawing.yCords[i];
-                                }
-                                //Update to resized coords
-                                for (let i = 0; i < resizedXCords.length; i++) {
-                                    //Calculate new distance based on scale factor
-                                    const newDistanceX = originalDistanceX[i] * scaleFactor;
-                                    const newDistanceY = originalDistanceY[i] * scaleFactor;
-                                    //Place resized coords in the correct place
-                                    resizedXCords[i] = scaleOriginX - newDistanceX;
-                                    resizedYCords[i] = scaleOriginY - newDistanceY;
-                                    //Move path to new coords
-                                    resizedPath.moveTo(resizedXCords[i - 1], resizedYCords[i - 1]);
-                                    //Create line to new coords
-                                    resizedPath.lineTo(resizedXCords[i], resizedYCords[i]);
-                                }
-                                //Set resized left, right, top and bottom
-                                selectedDrawing.resizedCoords.resizedX1 = Math.min(...resizedXCords);
-                                selectedDrawing.resizedCoords.resizedY1 = Math.min(...resizedYCords);
-                                selectedDrawing.resizedCoords.resizedX2 = Math.max(...resizedXCords);
-                                selectedDrawing.resizedCoords.resizedY2 = Math.max(...resizedYCords);
-                                selectedDrawing.resizedXCords = resizedXCords;
-                                selectedDrawing.resizedYCords = resizedYCords;
-                                selectedDrawing.resizedPath = resizedPath;
-                            }
-                        }
-                        break;
-                    case "text":
-                        {
-                            if (this.shouldMove) {
-                                this.actions.moving = true;
-                                //Assign new coordinates
-                                selectedDrawing.coords.x1 += dx;
-                                selectedDrawing.coords.y1 += dy;
-                                selectedDrawing.coords.x2 += dx;
-                                selectedDrawing.coords.y2 += dy;
-                                this.startX = mouseX;
-                                this.startY = mouseY;
-                            }
-                            else {
-                                const from = this.shouldResize.from;
-                                this.actions.resizing = true;
-                                const { scaleOriginXPos, scaleOriginYPos, startCornerXPos, startCornerYPos, scale } = this.getScaleInfo(from, selectedDrawing, mouseX, mouseY);
-                                const startCornerX = startCornerXPos;
-                                const startCornerY = startCornerYPos;
-                                const scaleOriginX = scaleOriginXPos;
-                                const scaleOriginY = scaleOriginYPos;
-                                //Scale factor based on mouse
-                                const scaleFactor = scale;
-                                //Create copy of original font string
-                                const fontStringCopy = selectedDrawing.font.slice();
-                                //Convert font size to number/float
-                                const fontSize = parseFloat(fontStringCopy);
-                                //Get original distance from scale origin to start corner/current mouse
-                                const originalDistanceX = scaleOriginX - startCornerX;
-                                const originalDistanceY = scaleOriginY - startCornerY;
-                                //Resize font size
-                                const resizedFontSize = fontSize * scaleFactor;
-                                //Get new distance based on scale factor
-                                const newDistanceX = originalDistanceX * scaleFactor;
-                                const newDistanceY = originalDistanceY * scaleFactor;
-                                //Replace original font size with resized
-                                const newFont = fontStringCopy.replace(fontSize.toString(), resizedFontSize.toString());
-                                //Store new left and right
-                                if (from === "top-left" || from === "bottom-left") {
-                                    selectedDrawing.resizedCoords.resizedX1 = scaleOriginX - newDistanceX;
-                                    selectedDrawing.resizedCoords.resizedX2 = scaleOriginX;
-                                }
-                                else {
-                                    selectedDrawing.resizedCoords.resizedX1 = scaleOriginX;
-                                    selectedDrawing.resizedCoords.resizedX2 = scaleOriginX - newDistanceX;
-                                }
-                                //Store new top and bottom
-                                if (from === "top-left" || from === "top-right") {
-                                    selectedDrawing.resizedCoords.resizedY1 = scaleOriginY - newDistanceY;
-                                    selectedDrawing.resizedCoords.resizedY2 = scaleOriginY;
-                                }
-                                else {
-                                    selectedDrawing.resizedCoords.resizedY1 = scaleOriginY;
-                                    selectedDrawing.resizedCoords.resizedY2 = scaleOriginY - newDistanceY;
-                                }
-                                //Store the new font size
-                                selectedDrawing.resizedFont = newFont;
-                            }
-                        }
-                        break;
-                    case "line":
-                        {
-                            if (this.shouldMove) {
-                                this.actions.moving = true;
-                                //Assign new start and end coordinates
-                                selectedDrawing.coords.startX += dx;
-                                selectedDrawing.coords.startY += dy;
-                                selectedDrawing.coords.endX += dx;
-                                selectedDrawing.coords.endY += dy;
-                                //Create new path from existing path
-                                const newPath = new Path2D();
-                                const m = new DOMMatrix().translate(dx, dy);
-                                newPath.addPath(selectedDrawing.path, m);
-                                selectedDrawing.path = newPath;
-                                this.startX = mouseX;
-                                this.startY = mouseY;
-                            }
-                            else {
-                                const from = this.shouldResize.from;
-                                this.actions.resizing = true;
-                                const { scaleOriginXPos, scaleOriginYPos, startCornerXPos, startCornerYPos } = this.getScaleInfo(from, selectedDrawing, mouseX, mouseY);
-                                const resizedPath = new Path2D();
-                                const startCornerX = startCornerXPos;
-                                const startCornerY = startCornerYPos;
-                                const scaleOriginX = scaleOriginXPos;
-                                const scaleOriginY = scaleOriginYPos;
-                                //Assign start and end x
-                                if (startCornerX === selectedDrawing.coords.startX) {
-                                    selectedDrawing.resizedCoords.resizedStartX = mouseX;
-                                    selectedDrawing.resizedCoords.resizedEndX = scaleOriginX;
-                                }
-                                else {
-                                    selectedDrawing.resizedCoords.resizedStartX = scaleOriginX;
-                                    selectedDrawing.resizedCoords.resizedEndX = mouseX;
-                                }
-                                //Assign start and end y
-                                if (startCornerY === selectedDrawing.coords.startY) {
-                                    selectedDrawing.resizedCoords.resizedStartY = mouseY;
-                                    selectedDrawing.resizedCoords.resizedEndY = scaleOriginY;
-                                }
-                                else {
-                                    selectedDrawing.resizedCoords.resizedStartY = scaleOriginY;
-                                    selectedDrawing.resizedCoords.resizedEndY = mouseY;
-                                }
-                                this.context.beginPath();
-                                resizedPath.moveTo(mouseX, mouseY);
-                                resizedPath.lineTo(scaleOriginX, scaleOriginY);
-                                selectedDrawing.resizedPath = resizedPath;
-                            }
-                        }
-                        break;
-                }
-                this.redraw(this.drawingData);
-            }
-            if ((this.shouldDraw && this.isDragging) || (this.shouldErase && this.isDragging)) {
-                this.shouldDraw ? (this.actions.drawing = true) : (this.actions.drawing = false);
-                this.shouldErase ? (this.actions.erasing = true) : (this.actions.erasing = false);
-                this.redraw(this.drawingData);
-                //Set props for current path object
-                this.setCtxStyles(this.pathObject);
-                this.addCoords(mouseX, mouseY, true);
-                this.pathObject.path.lineTo(mouseX, mouseY);
-                this.context.stroke(this.pathObject.path);
-            }
-            if (this.shouldLine) {
-                this.actions.lining = true;
-                //Redraw data
-                this.redraw(this.drawingData);
-                this.setCtxStyles(this.lineObject);
-                //Begin current path
-                this.context.beginPath();
-                //Move context to start position of lineObject
-                this.context.moveTo(this.lineObject.coords.startX, this.lineObject.coords.startY); //We know that since we "shouldLine" we have clicked so we can say as
-                //Draw a line to current mouse position
-                this.context.lineTo(mouseX, mouseY);
-                //Close the path and save -> repeat while moving
-                this.context.closePath();
-                this.context.stroke();
-            }
-            e.preventDefault();
-        };
         //Select canvas element
         const canvas = document.getElementById(elementId);
         const context = canvas.getContext("2d");
-        (_a = options === null || options === void 0 ? void 0 : options.elements) === null || _a === void 0 ? void 0 : _a.forEach((element) => {
+        options?.elements?.forEach((element) => {
             //Assign each element passed to options to its correct place
             assignCorrectly(element, this.tools);
             assignCorrectly(element, this.toolModifiers);
             assignCorrectly(element, this.canvasModifiers);
         });
         //Check if width and height has been set
-        (options === null || options === void 0 ? void 0 : options.width)
+        options?.width
             ? (canvas.width = options.width)
             : (canvas.width = window.innerWidth - canvas.offsetLeft);
-        (options === null || options === void 0 ? void 0 : options.height)
+        options?.height
             ? (canvas.height = options.height)
             : (canvas.height = window.innerHeight - canvas.offsetTop);
         //Save canvas and context in class
@@ -693,7 +118,7 @@ class DrawingCanvas {
         //Set selected tool as pencil if exists
         this.tools.pencil &&
             ((this.selectedTool.element = this.tools.pencil), (this.selectedTool.name = "pencil"));
-        (_b = this.selectedTool.element) === null || _b === void 0 ? void 0 : _b.classList.add("active");
+        this.selectedTool.element?.classList.add("active");
         this.activeTools[this.selectedTool.name] = true;
         //Add eventlisteners to canvas
         this.listen();
@@ -708,9 +133,584 @@ class DrawingCanvas {
         canvas.addEventListener("touchstart", this.pressDownHandler);
         canvas.addEventListener("touchend", this.mouseUpHandler);
         canvas.addEventListener("touchmove", this.mouseMoveHandler);
-        controller === null || controller === void 0 ? void 0 : controller.addEventListener("change", this.changeHandler);
-        controller === null || controller === void 0 ? void 0 : controller.addEventListener("click", this.toolSelectHandler);
+        controller?.addEventListener("change", this.changeHandler);
+        controller?.addEventListener("click", this.toolSelectHandler);
     }
+    //Controller Change handler
+    changeHandler = (e) => {
+        const target = e.target;
+        const colorPicker = this.toolModifiers.color;
+        const lineWidthPicker = this.toolModifiers.width;
+        if (colorPicker && this.targetIs(colorPicker, target)) {
+            //Change current path object strokeStyle
+            this.pathObject.strokeStyle = target.value;
+        }
+        if (lineWidthPicker && this.targetIs(lineWidthPicker, target)) {
+            this.pathObject.lineWidth = Number(target.value);
+        }
+    };
+    //Controller click handler
+    toolSelectHandler = (e) => {
+        this.selectedDrawingIndex = null;
+        const target = e.target;
+        const context = this.context;
+        //Filter out nullish value props
+        const definedTools = excludeNullishProps(this.tools);
+        const definedCanvasModifiers = excludeNullishProps(this.canvasModifiers);
+        if (Object.keys(definedTools).length > 0) {
+            //Loop each defined element and check which of them are the target
+            Object.entries(definedTools).forEach(([k, v]) => {
+                //IF tool is target
+                if (v === target) {
+                    //Store tool name and element as selected
+                    this.selectedTool.element = v;
+                    this.selectedTool.name = k;
+                }
+                else {
+                    this.activeTools[k] = false;
+                    v?.classList.remove("active");
+                }
+            });
+            //Add active class for the selected tool and update activeTools object
+            this.selectedTool.element?.classList.add("active");
+            this.activeTools[this.selectedTool.name] = true;
+            //Set correct cursor based on selectedTool
+            this.selectedTool.name === "pencil" ||
+                this.selectedTool.name === "eraser" ||
+                this.selectedTool.name === "line"
+                ? (this.canvas.style.cursor = "crosshair")
+                : this.selectedTool.name === "text"
+                    ? (this.canvas.style.cursor = "text")
+                    : (this.canvas.style.cursor = "default");
+        }
+        if (Object.keys(definedCanvasModifiers).length > 0) {
+            if (definedCanvasModifiers.clear === target) {
+                context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                this.index = -1;
+                this.drawingData = [];
+            }
+            if (definedCanvasModifiers.undo === target) {
+                if (this.index <= 0) {
+                    context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                    this.index = -1;
+                    this.drawingData = [];
+                }
+                else {
+                    this.index -= 1;
+                    this.drawingData.pop();
+                    this.redraw(this.drawingData);
+                }
+            }
+        }
+    };
+    //Handles pressdown/click
+    pressDownHandler = (e) => {
+        this.mouseIsDown = true;
+        if (this.actions.writing)
+            return;
+        //Check if event is touch or mouse
+        const evtType = e.touches ? e.touches[0] : e;
+        const { pencil, eraser, moveAndResize, text, line } = this.activeTools;
+        const mouseY = evtType.clientY - this.canvas.offsetTop;
+        const mouseX = evtType.clientX - this.canvas.offsetLeft;
+        //Store starting positions
+        this.startX = mouseX;
+        this.startY = mouseY;
+        //IF eraser is the active tool
+        if (eraser) {
+            this.pathObject.operation = "destination-out";
+            this.shouldErase = true;
+            this.addCoords(mouseX, mouseY, false);
+        }
+        if (pencil) {
+            this.pathObject.operation = "source-over";
+            this.shouldDraw = true;
+            this.addCoords(mouseX, mouseY, false);
+        }
+        if (moveAndResize) {
+            //IF no paths
+            if (this.drawingData.length <= 0)
+                return;
+            //IF there already is a selected drawing
+            if (this.selectedDrawingIndex !== null) {
+                const selected = this.drawingData[this.selectedDrawingIndex];
+                //Get position of mouse within drawing
+                const selectionPosition = this.mouseWithinSelection(mouseX, mouseY, selected);
+                //IF mouse is not in drawing anymore
+                if (!selectionPosition) {
+                    //Disselect the selected
+                    this.selectedDrawingIndex = null;
+                }
+                else {
+                    //IF mouse is inside the selection THEN check if move or resize
+                    selectionPosition === "middle"
+                        ? (this.shouldMove = true)
+                        : ((this.shouldResize.toggled = true),
+                            (this.shouldResize.from = selectionPosition));
+                }
+            }
+            //Loop through each drawing and check if one has been clicked on and set that as the selected drawing
+            this.drawingData.forEach((drawing, i) => {
+                if (drawing.type === "stroke" || drawing.type === "line") {
+                    //Mouse is inside stroke
+                    if (this.context.isPointInStroke(drawing.path, mouseX, mouseY)) {
+                        //Set selected drawing
+                        this.selectedDrawingIndex = i;
+                        const selected = this.drawingData[this.selectedDrawingIndex];
+                        //Then check mouse position if we should resize or move
+                        const selectionPosition = this.mouseWithinSelection(mouseX, mouseY, selected);
+                        selectionPosition === "middle"
+                            ? (this.shouldMove = true)
+                            : ((this.shouldResize.toggled = true),
+                                (this.shouldResize.from = selectionPosition));
+                    }
+                }
+                else {
+                    if (this.mouseWithinSelection(mouseX, mouseY, drawing)) {
+                        this.selectedDrawingIndex = i;
+                        const selected = this.drawingData[this.selectedDrawingIndex];
+                        const selectionPosition = this.mouseWithinSelection(mouseX, mouseY, selected);
+                        selectionPosition === "middle"
+                            ? (this.shouldMove = true)
+                            : ((this.shouldResize.toggled = true),
+                                (this.shouldResize.from = selectionPosition));
+                    }
+                }
+            });
+        }
+        if (text) {
+            const canvasContainer = document.querySelector(".drawing-board");
+            //Create textinput
+            const textInput = createPersonalElement("input", canvasContainer, {
+                position: "fixed",
+                top: `${evtType.clientY}px`,
+                left: `${evtType.clientX}px`,
+                outline: "none",
+                background: "none",
+                border: "none",
+                "font-size": "30pt",
+                "font-family": "sans-serif",
+            });
+            //We are now writing
+            this.actions.writing = true;
+            //Focus input
+            window.setTimeout(() => textInput.focus(), 0);
+            //Runs whenever we unfocus input
+            textInput.addEventListener("blur", () => {
+                this.redraw(this.drawingData);
+                //Store value of text in drawing for later refernce when drawing it
+                this.textObject.text = textInput.value;
+                //Set context props based on current drawing
+                this.setCtxStyles(this.textObject);
+                //Measure the drawn text
+                const textWidth = this.context.measureText(textInput.value).width;
+                const textHeight = parseInt(this.context.font);
+                //Init coordinates
+                this.textObject.coords = {
+                    x1: mouseX,
+                    y1: mouseY,
+                    x2: Math.round(mouseX + textWidth),
+                    y2: Math.round(mouseY + textHeight),
+                };
+                //Draw the text
+                this.context.fillText(this.textObject.text, mouseX, mouseY);
+                //Save and store index
+                this.index = incOrDec(this.index, "increment", 1);
+                this.drawingData.push(this.textObject);
+                canvasContainer.removeChild(textInput);
+                this.actions.writing = false;
+                //Set new text object
+                this.textObject = {
+                    type: "text",
+                    text: "",
+                    font: "30pt sans-serif",
+                    resizedFont: "",
+                    baseline: "top",
+                    operation: "source-over",
+                    coords: {},
+                    resizedCoords: {},
+                };
+            });
+            textInput.addEventListener("keypress", (e) => {
+                if (e.key === "Enter") {
+                    textInput.blur();
+                }
+            });
+            canvasContainer?.appendChild(textInput);
+        }
+        if (line) {
+            if (this.actions.lining)
+                return; //So it jumps to mouseup
+            this.lineObject.operation = "source-over";
+            //Signal that we are trying to draw a line
+            this.shouldLine = true;
+            this.lineObject.path.moveTo(mouseX, mouseY);
+            //Init start coordinates
+            this.lineObject.coords = { startX: mouseX, startY: mouseY };
+        }
+    };
+    //Handles mouse release
+    mouseUpHandler = () => {
+        //Reset states
+        this.mouseIsDown = false;
+        this.shouldMove = false;
+        this.actions.moving = false;
+        if (this.actions.drawing || this.actions.erasing) {
+            this.shouldDraw = false;
+            this.shouldErase = false;
+            this.actions.drawing = false;
+            this.actions.erasing = false;
+            //IF its just a click and no stroke
+            if (this.pathObject.xCords.length === 1) {
+                this.pathObject = {
+                    type: "stroke",
+                    path: new Path2D(),
+                    resizedPath: null,
+                    lineWidth: this.context.lineWidth,
+                    strokeStyle: String(this.context.strokeStyle),
+                    operation: "source-over",
+                    coords: {},
+                    resizedCoords: {},
+                    xCords: [],
+                    yCords: [],
+                    resizedXCords: [],
+                    resizedYCords: [],
+                };
+                return;
+            }
+            //Init coords
+            this.pathObject.coords = {
+                x1: Math.min(...this.pathObject.xCords),
+                y1: Math.min(...this.pathObject.yCords),
+                x2: Math.max(...this.pathObject.xCords),
+                y2: Math.max(...this.pathObject.yCords),
+            };
+            //Save
+            this.index = incOrDec(this.index, "increment", 1);
+            this.drawingData.push(this.pathObject);
+            //Set new pathObject
+            this.pathObject = {
+                type: "stroke",
+                path: new Path2D(),
+                resizedPath: null,
+                lineWidth: this.context.lineWidth,
+                strokeStyle: String(this.context.strokeStyle),
+                operation: "source-over",
+                coords: {},
+                resizedCoords: {},
+                xCords: [],
+                yCords: [],
+                resizedXCords: [],
+                resizedYCords: [],
+            };
+        }
+        if (this.actions.resizing) {
+            this.shouldResize = { toggled: false, from: "" };
+            this.actions.resizing = false;
+            if (this.selectedDrawingIndex !== null) {
+                const selectedDrawing = this.drawingData[this.selectedDrawingIndex];
+                this.updateToResized(selectedDrawing);
+            }
+        }
+        if (this.actions.lining) {
+            this.shouldLine = false;
+            this.actions.lining = false;
+            //Set end points
+            this.lineObject.coords.endX = this.mouseX;
+            this.lineObject.coords.endY = this.mouseY;
+            //Take the path and line it to end
+            this.lineObject.path.lineTo(this.mouseX, this.mouseY);
+            //Save new line
+            this.index = incOrDec(this.index, "increment", 1);
+            this.drawingData.push(this.lineObject);
+            //New lineObject
+            this.lineObject = {
+                type: "line",
+                path: new Path2D(),
+                resizedPath: null,
+                lineWidth: 5,
+                strokeStyle: "black",
+                operation: "source-over",
+                coords: {},
+                resizedCoords: {},
+            };
+        }
+        this.redraw(this.drawingData);
+    };
+    //Handles moving mouse
+    mouseMoveHandler = (e) => {
+        const evtType = e.touches ? e.touches[0] : e;
+        //Current mouse positions
+        const mouseX = evtType.clientX - this.canvas.offsetLeft;
+        const mouseY = evtType.clientY - this.canvas.offsetTop;
+        //Store current mousePosition
+        this.mouseX = mouseX;
+        this.mouseY = mouseY;
+        this.mouseIsDown ? (this.isDragging = true) : (this.isDragging = false);
+        // If move and resize tool is active
+        if (this.activeTools.moveAndResize) {
+            this.canvas.style.cursor = "default";
+            this.drawingData.forEach((drawing, i) => {
+                switch (drawing.type) {
+                    case "stroke":
+                        {
+                            if (this.context.isPointInStroke(drawing.path, mouseX, mouseY)) {
+                                this.canvas.style.cursor = "move";
+                            }
+                            //IF we are hovering the selected drawing
+                            if (this.selectedDrawingIndex === i &&
+                                this.mouseWithinSelection(mouseX, mouseY, drawing)) {
+                                //Get position within selection
+                                const selectionPosition = this.mouseWithinSelection(mouseX, mouseY, drawing);
+                                //Style accordingly
+                                selectionPosition === "middle"
+                                    ? (this.canvas.style.cursor = "move")
+                                    : selectionPosition === "top-left" || selectionPosition === "bottom-right"
+                                        ? (this.canvas.style.cursor = "nwse-resize")
+                                        : (this.canvas.style.cursor = "nesw-resize");
+                            }
+                        }
+                        break;
+                    case "text":
+                        {
+                            if (this.mouseWithinSelection(mouseX, mouseY, drawing)) {
+                                const selectionPosition = this.mouseWithinSelection(mouseX, mouseY, drawing);
+                                selectionPosition === "middle"
+                                    ? (this.canvas.style.cursor = "move")
+                                    : selectionPosition === "top-left" || selectionPosition === "bottom-right"
+                                        ? (this.canvas.style.cursor = "nwse-resize")
+                                        : (this.canvas.style.cursor = "nesw-resize");
+                            }
+                        }
+                        break;
+                    case "line":
+                        {
+                            if (this.mouseWithinSelection(mouseX, mouseY, drawing)) {
+                                const selectionPosition = this.mouseWithinSelection(mouseX, mouseY, drawing);
+                                selectionPosition === "middle"
+                                    ? (this.canvas.style.cursor = "move")
+                                    : (this.canvas.style.cursor = "pointer");
+                            }
+                        }
+                        break;
+                }
+            });
+        }
+        //IF we have a selected drawing and we are dragging
+        if (this.selectedDrawingIndex !== null && this.isDragging) {
+            //Move with respect to current mouse
+            const dx = mouseX - this.startX;
+            const dy = mouseY - this.startY;
+            //Selected drawing
+            const selectedDrawing = this.drawingData[this.selectedDrawingIndex];
+            //Coords are required IF not present then throw an error
+            assertRequired(selectedDrawing.coords);
+            switch (selectedDrawing.type) {
+                case "stroke":
+                    {
+                        if (this.shouldMove) {
+                            this.actions.moving = true;
+                            //Update x and y coordinates
+                            for (let i = 0; i < selectedDrawing.xCords.length; i++) {
+                                selectedDrawing.xCords[i] += dx;
+                                selectedDrawing.yCords[i] += dy;
+                            }
+                            //Update left, top, right and bottom
+                            selectedDrawing.coords.x1 = Math.min(...selectedDrawing.xCords);
+                            selectedDrawing.coords.y1 = Math.min(...selectedDrawing.yCords);
+                            selectedDrawing.coords.x2 = Math.max(...selectedDrawing.xCords);
+                            selectedDrawing.coords.y2 = Math.max(...selectedDrawing.yCords);
+                            //Create new path from existing path
+                            const newPath = new Path2D();
+                            const m = new DOMMatrix().translate(dx, dy);
+                            newPath.addPath(selectedDrawing.path, m);
+                            selectedDrawing.path = newPath;
+                            //Set start positions to current
+                            this.startX = mouseX;
+                            this.startY = mouseY;
+                        }
+                        else {
+                            const from = this.shouldResize.from;
+                            this.actions.resizing = true;
+                            const { scaleOriginXPos, scaleOriginYPos, scale } = this.getScaleInfo(from, selectedDrawing, mouseX, mouseY);
+                            const scaleOriginX = scaleOriginXPos;
+                            const scaleOriginY = scaleOriginYPos;
+                            const scaleFactor = scale;
+                            const resizedPath = new Path2D();
+                            //Create copy
+                            const resizedXCords = [...selectedDrawing.xCords];
+                            const resizedYCords = [...selectedDrawing.yCords];
+                            const originalDistanceX = [];
+                            const originalDistanceY = [];
+                            //Calculate original distance between origin and x,y coordinates
+                            for (let i = 0; i < selectedDrawing.xCords.length; i++) {
+                                originalDistanceX[i] = scaleOriginX - selectedDrawing.xCords[i];
+                                originalDistanceY[i] = scaleOriginY - selectedDrawing.yCords[i];
+                            }
+                            //Update to resized coords
+                            for (let i = 0; i < resizedXCords.length; i++) {
+                                //Calculate new distance based on scale factor
+                                const newDistanceX = originalDistanceX[i] * scaleFactor;
+                                const newDistanceY = originalDistanceY[i] * scaleFactor;
+                                //Place resized coords in the correct place
+                                resizedXCords[i] = scaleOriginX - newDistanceX;
+                                resizedYCords[i] = scaleOriginY - newDistanceY;
+                                //Move path to new coords
+                                resizedPath.moveTo(resizedXCords[i - 1], resizedYCords[i - 1]);
+                                //Create line to new coords
+                                resizedPath.lineTo(resizedXCords[i], resizedYCords[i]);
+                            }
+                            //Set resized left, right, top and bottom
+                            selectedDrawing.resizedCoords.resizedX1 = Math.min(...resizedXCords);
+                            selectedDrawing.resizedCoords.resizedY1 = Math.min(...resizedYCords);
+                            selectedDrawing.resizedCoords.resizedX2 = Math.max(...resizedXCords);
+                            selectedDrawing.resizedCoords.resizedY2 = Math.max(...resizedYCords);
+                            selectedDrawing.resizedXCords = resizedXCords;
+                            selectedDrawing.resizedYCords = resizedYCords;
+                            selectedDrawing.resizedPath = resizedPath;
+                        }
+                    }
+                    break;
+                case "text":
+                    {
+                        if (this.shouldMove) {
+                            this.actions.moving = true;
+                            //Assign new coordinates
+                            selectedDrawing.coords.x1 += dx;
+                            selectedDrawing.coords.y1 += dy;
+                            selectedDrawing.coords.x2 += dx;
+                            selectedDrawing.coords.y2 += dy;
+                            this.startX = mouseX;
+                            this.startY = mouseY;
+                        }
+                        else {
+                            const from = this.shouldResize.from;
+                            this.actions.resizing = true;
+                            const { scaleOriginXPos, scaleOriginYPos, startCornerXPos, startCornerYPos, scale } = this.getScaleInfo(from, selectedDrawing, mouseX, mouseY);
+                            const startCornerX = startCornerXPos;
+                            const startCornerY = startCornerYPos;
+                            const scaleOriginX = scaleOriginXPos;
+                            const scaleOriginY = scaleOriginYPos;
+                            //Scale factor based on mouse
+                            const scaleFactor = scale;
+                            //Create copy of original font string
+                            const fontStringCopy = selectedDrawing.font.slice();
+                            //Convert font size to number/float
+                            const fontSize = parseFloat(fontStringCopy);
+                            //Get original distance from scale origin to start corner/current mouse
+                            const originalDistanceX = scaleOriginX - startCornerX;
+                            const originalDistanceY = scaleOriginY - startCornerY;
+                            //Resize font size
+                            const resizedFontSize = fontSize * scaleFactor;
+                            //Get new distance based on scale factor
+                            const newDistanceX = originalDistanceX * scaleFactor;
+                            const newDistanceY = originalDistanceY * scaleFactor;
+                            //Replace original font size with resized
+                            const newFont = fontStringCopy.replace(fontSize.toString(), resizedFontSize.toString());
+                            //Store new left and right
+                            if (from === "top-left" || from === "bottom-left") {
+                                selectedDrawing.resizedCoords.resizedX1 = scaleOriginX - newDistanceX;
+                                selectedDrawing.resizedCoords.resizedX2 = scaleOriginX;
+                            }
+                            else {
+                                selectedDrawing.resizedCoords.resizedX1 = scaleOriginX;
+                                selectedDrawing.resizedCoords.resizedX2 = scaleOriginX - newDistanceX;
+                            }
+                            //Store new top and bottom
+                            if (from === "top-left" || from === "top-right") {
+                                selectedDrawing.resizedCoords.resizedY1 = scaleOriginY - newDistanceY;
+                                selectedDrawing.resizedCoords.resizedY2 = scaleOriginY;
+                            }
+                            else {
+                                selectedDrawing.resizedCoords.resizedY1 = scaleOriginY;
+                                selectedDrawing.resizedCoords.resizedY2 = scaleOriginY - newDistanceY;
+                            }
+                            //Store the new font size
+                            selectedDrawing.resizedFont = newFont;
+                        }
+                    }
+                    break;
+                case "line":
+                    {
+                        if (this.shouldMove) {
+                            this.actions.moving = true;
+                            //Assign new start and end coordinates
+                            selectedDrawing.coords.startX += dx;
+                            selectedDrawing.coords.startY += dy;
+                            selectedDrawing.coords.endX += dx;
+                            selectedDrawing.coords.endY += dy;
+                            //Create new path from existing path
+                            const newPath = new Path2D();
+                            const m = new DOMMatrix().translate(dx, dy);
+                            newPath.addPath(selectedDrawing.path, m);
+                            selectedDrawing.path = newPath;
+                            this.startX = mouseX;
+                            this.startY = mouseY;
+                        }
+                        else {
+                            const from = this.shouldResize.from;
+                            this.actions.resizing = true;
+                            const { scaleOriginXPos, scaleOriginYPos, startCornerXPos, startCornerYPos } = this.getScaleInfo(from, selectedDrawing, mouseX, mouseY);
+                            const resizedPath = new Path2D();
+                            const startCornerX = startCornerXPos;
+                            const startCornerY = startCornerYPos;
+                            const scaleOriginX = scaleOriginXPos;
+                            const scaleOriginY = scaleOriginYPos;
+                            //Assign start and end x
+                            if (startCornerX === selectedDrawing.coords.startX) {
+                                selectedDrawing.resizedCoords.resizedStartX = mouseX;
+                                selectedDrawing.resizedCoords.resizedEndX = scaleOriginX;
+                            }
+                            else {
+                                selectedDrawing.resizedCoords.resizedStartX = scaleOriginX;
+                                selectedDrawing.resizedCoords.resizedEndX = mouseX;
+                            }
+                            //Assign start and end y
+                            if (startCornerY === selectedDrawing.coords.startY) {
+                                selectedDrawing.resizedCoords.resizedStartY = mouseY;
+                                selectedDrawing.resizedCoords.resizedEndY = scaleOriginY;
+                            }
+                            else {
+                                selectedDrawing.resizedCoords.resizedStartY = scaleOriginY;
+                                selectedDrawing.resizedCoords.resizedEndY = mouseY;
+                            }
+                            this.context.beginPath();
+                            resizedPath.moveTo(mouseX, mouseY);
+                            resizedPath.lineTo(scaleOriginX, scaleOriginY);
+                            selectedDrawing.resizedPath = resizedPath;
+                        }
+                    }
+                    break;
+            }
+            this.redraw(this.drawingData);
+        }
+        if ((this.shouldDraw && this.isDragging) || (this.shouldErase && this.isDragging)) {
+            this.shouldDraw ? (this.actions.drawing = true) : (this.actions.drawing = false);
+            this.shouldErase ? (this.actions.erasing = true) : (this.actions.erasing = false);
+            this.redraw(this.drawingData);
+            //Set props for current path object
+            this.setCtxStyles(this.pathObject);
+            this.addCoords(mouseX, mouseY, true);
+            this.pathObject.path.lineTo(mouseX, mouseY);
+            this.context.stroke(this.pathObject.path);
+        }
+        if (this.shouldLine) {
+            this.actions.lining = true;
+            //Redraw data
+            this.redraw(this.drawingData);
+            this.setCtxStyles(this.lineObject);
+            //Begin current path
+            this.context.beginPath();
+            //Move context to start position of lineObject
+            this.context.moveTo(this.lineObject.coords.startX, this.lineObject.coords.startY); //We know that since we "shouldLine" we have clicked so we can say as
+            //Draw a line to current mouse position
+            this.context.lineTo(mouseX, mouseY);
+            //Close the path and save -> repeat while moving
+            this.context.closePath();
+            this.context.stroke();
+        }
+        e.preventDefault();
+    };
     //Function that updates given drawings coords to resized coords
     updateToResized(drawing) {
         if (drawing.type === "stroke") {
@@ -916,17 +916,13 @@ class DrawingCanvas {
     setCtxStyles(drawing) {
         this.context.globalCompositeOperation = drawing.operation;
         this.context.lineCap = "round";
-        if (drawing.type === "stroke") {
+        if (drawing.type === "stroke" || drawing.type === "line") {
             this.context.lineWidth = drawing.lineWidth;
             this.context.strokeStyle = drawing.strokeStyle;
         }
         else if (drawing.type === "text") {
             this.context.textBaseline = drawing.baseline;
             this.context.font = drawing.font;
-        }
-        else {
-            this.context.lineWidth = drawing.lineWidth;
-            this.context.strokeStyle = drawing.strokeStyle;
         }
     }
     //Function for redrawing canvas when interactive
