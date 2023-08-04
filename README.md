@@ -1,14 +1,17 @@
 # WeldIT Drawing App Demo :pencil2:
 
 ###### This app is made to be used in the CMS of WeldIT
-![Showcase](../test.mp4)
-> This is just to show the functionality. I have not been assigned the task to make this look good. I'll leave that up to the css nerds :P
+
+https://github.com/MadsAtWeldit/WeldIT-drawing/assets/127091473/813c774e-e497-4247-9db3-3f89ac6c0f3b
+
+
+> This is just to show the functionality. I have not been assigned the task to make this look good. I'll leave that up to the css nerds :stuck_out_tongue_closed_eyes:
 
 ----------
 ## About
 This is a drawing **demo** app using HTML-canvas running in the browser, written in Typescript with as little dependencies as possible. It's not meant to be a full production version, only a.. if I might say so myself a solid foundation to build upon.
 
-This is something I have been working on for the last few months during my internship for [WeldIT](https://www.weldit.no/). So please don't be too harsh as I have only been doing development for less than a year and this is also my first "big" project in Typescript/Javascript :)!. 
+This is something I have been working on for the last few months during my internship for [WeldIT](https://www.weldit.no/). So please don't be too harsh as I have only been doing development for less than a year and this is also my first "big" project in Typescript/Javascript :blush:!. 
 
 
 
@@ -16,9 +19,9 @@ This is something I have been working on for the last few months during my inter
 I started off making this knowing almost nothing about HTML-canvas and using Typescript to draw different strokes and shapes. So I kind of just learned it as I went. Starting off with very basic stuff such as drawing a simple line by passing in hardcoded values and changing color of said line and then gradually made things more advanced. Did many refactors along the way and learned alot of things about what you can do with Typescript and HTML-canvas. Event though I enjoy doing backend stuff more this was still a nice thing to learn. So it has definitely been an experience that I will take with me further down the road.
 
 #### Things that were challenging but also rewarding about this project
-So obviously one of the challenges I faced was learning HTML-canvas from scratch while coding such a big application (for me atleast :P). But that wasn't the biggest challenge. The biggest challenge was having a balance between this app being dynamic, readable, typesafe and scalable. Most of the challenges I faced was the Typescript part as it's being very strict and I refused to take the easy way and cast things to any as that would just defeat the whole purpose of using it in the first place. And it seems that I made the right choice as it helped alot during the development process with not needing to deal with errors that come up for no apparent reason.
+So obviously one of the challenges I faced was learning HTML-canvas from scratch while coding such a big application (for me atleast :smirk:). But that wasn't the biggest challenge. The biggest challenge was having a balance between this app being dynamic, readable, typesafe and scalable. Most of the challenges I faced was the Typescript part as it's being very strict and I refused to take the easy way and cast things to any as that would just defeat the whole purpose of using it in the first place. And it seems that I made the right choice as it helped alot during the development process with not needing to deal with errors that come up for no apparent reason.
 
-I learned a few things to-do and not-to-do and will continue to when you guys start roasting how bad my code is :( /s.
+I learned a few things to-do and not-to-do and will continue to when you guys start roasting how bad my code is :sweat_smile: /s.
 
 #### Some of the things I learned
 - How to use the Canvas API to draw graphics via Typescript
@@ -56,7 +59,7 @@ I learned a few things to-do and not-to-do and will continue to when you guys st
 
 ----------
 ### Things to note
-*This is only the foundation for the logic moving forward with this application. It would have been extremely hard to implement everything within the period of time I've had and with my level of experience. I expect it to go alot faster when an actual team continues to work on it instead of just little me :P. Here are some things I would do before pushing this to production:*
+*This is only the foundation for the logic moving forward with this application. It would have been extremely hard to implement everything within the period of time I've had and with my level of experience. I expect it to go alot faster when an actual team continues to work on it instead of just little me :grimacing:. Here are some things I would do before pushing this to production:*
 
 1. **Find the best way to structure the code**
 
@@ -102,7 +105,7 @@ Since this is written in Typescript I recommend using that, but of course that i
 
 7. **Ask questions (optional)**
 
-If you have any questions about anything, don't be afraid to ask. I want this to be a good addition to WeldIT so don't hesitate to contact me :). You can send me a mail on: mads@weldit.no, or on Slack and Teams.
+If you have any questions about anything, don't be afraid to ask. I want this to be a good addition to WeldIT so don't hesitate to contact me :smiley:. You can send me a mail on: mads@weldit.no, or on Slack and Teams.
 
 ----------
 ##### So now on to some refactors that I haven't had the time to implement yet, these are just a few examples to make the code better and more readable:
