@@ -141,7 +141,7 @@ So yeah there are some things that can be better that I am aware of but haven't 
 
 ## Usage
 First clone the repo
-`git clone --depth 1 https://github.com/MadsAtWeldit/WeldIT-drawing.git`
+`git clone https://github.com/MadsAtWeldit/WeldIT-drawing.git`
 
 Then run this command
 `cd WeldIT-drawing && npm i && npx tsc && live-server`
