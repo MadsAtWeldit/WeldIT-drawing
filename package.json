@@ -5,8 +5,9 @@
   "description": "",
   "scripts": {
     "lint": "eslint . --ext .ts",
+    "predeploy": "npm run build",
     "deploy": "gh-pages -d dist",
-    "build": "parcel build src/index.html --public-url ."
+    "build": "parcel build index.html --public-url ."
   },
   "author": "MadsAtWeldit",
   "license": "ISC",
@@ -16,6 +17,7 @@
     "@typescript-eslint/parser": "^5.58.0",
     "eslint": "^8.38.0",
     "gh-pages": "^5.0.0",
+    "live-server": "^1.2.2",
     "reflect-metadata": "^0.1.13",
     "typescript": "^5.0.4"
   },
@@ -25,7 +27,5 @@
   "exports": {
     "import": "./node_modules/reflect-metadata/Reflect.js",
     "require": "./node_modules/reflect-metadata/Reflect.js"
-    
   }
-  
 }
