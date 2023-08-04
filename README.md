@@ -144,7 +144,7 @@ First clone the repo
 `git clone https://github.com/MadsAtWeldit/WeldIT-drawing.git`
 
 Then run this command
-`cd WeldIT-drawing && npm i && npx tsc && live-server`
+`cd WeldIT-drawing && npm i && npx tsc && npx live-server`
 
 And that's it. The application should now be running in your browser and you are free to experiment and test things out on your local copy. 
 
