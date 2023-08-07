@@ -117,4 +117,4 @@ Then run this command
 
 And that's it. The application should now be running in your browser and you are free to experiment and test things out on your local copy. 
 
-Also feel free to contribute if you have any good ideas!. If you don't know how to contribute then please refer to [this](https://docs.github.com/en/communities/setting-up-your-project-for-healthy-contributions/setting-guidelines-for-repository-contributors).
+Also feel free to contribute if you have any good ideas!. If you don't know how to contribute then please refer to [this](https://docs.github.com/en/get-started/quickstart/contributing-to-projects).
