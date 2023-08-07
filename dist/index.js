@@ -232,7 +232,7 @@ class DrawingCanvas {
             if (this.drawingData.length <= 0)
                 return;
             //IF there already is a selected drawing
-            if (this.selectedDrawingIndex !== null) {
+            if (typeof this.selectedDrawingIndex === "number") {
                 const selected = this.drawingData[this.selectedDrawingIndex];
                 //Get position of mouse within drawing
                 const selectionPosition = this.mouseWithinSelection(mouseX, mouseY, selected);
@@ -404,7 +404,7 @@ class DrawingCanvas {
         if (this.actions.resizing) {
             this.shouldResize = { toggled: false, from: "" };
             this.actions.resizing = false;
-            if (this.selectedDrawingIndex !== null) {
+            if (typeof this.selectedDrawingIndex === "number") {
                 const selectedDrawing = this.drawingData[this.selectedDrawingIndex];
                 this.updateToResized(selectedDrawing);
             }
@@ -484,7 +484,7 @@ class DrawingCanvas {
             });
         }
         //IF we have a selected drawing and we are dragging
-        if (this.selectedDrawingIndex !== null && this.isDragging) {
+        if (typeof this.selectedDrawingIndex === "number" && this.isDragging) {
             //Move with respect to current mouse
             const dx = mouseX - this.startX;
             const dy = mouseY - this.startY;
