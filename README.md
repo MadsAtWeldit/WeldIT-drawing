@@ -107,37 +107,6 @@ Since this is written in Typescript I recommend using that, but of course that i
 
 If you have any questions about anything, don't be afraid to ask. I want this to be a good addition to WeldIT so don't hesitate to contact me :smiley:. You can send me a mail on: mads@weldit.no, or on Slack and Teams.
 
-----------
-##### So now on to some refactors that I haven't had the time to implement yet, these are just a few examples to make the code better and more readable:
-
-###### Taken from the mouseMoveHandler switch case on line 573
-```typescript
-selectionPosition === "middle"
-  ? (this.canvas.style.cursor = "move")
-  : selectionPosition === "top-left" || selectionPosition === "bottom-right"
-    ? (this.canvas.style.cursor = "nwse-resize")
-    : (this.canvas.style.cursor = "nesw-resize");
-```
-> Instead of repeating this you could maybe move it to a function instead.
-
-
-###### Taken from the mouseMoveHandler switch case on line 639
-```typescript
-  selectedDrawing.coords.x1 += dx;
-  selectedDrawing.coords.y1 += dy;
-  selectedDrawing.coords.x2 += dx;
-  selectedDrawing.coords.y2 += dy;
-
-  this.startX = mouseX;
-  this.startY = mouseY;
-```
-> This code is repeating aswell and might be turned into something like this to make it more reusable:
-```typescript 
-for (const [k,v] of Object.entries(selectedDrawing.coords)){
-    k.includes("x") ? v += dx : v += dy;
-}
-```
-So yeah there are some things that can be better that I am aware of but haven't had the time to do yet. Those are just a few examples to show how easily it can be better.
 
 ## Usage
 First clone the repo
