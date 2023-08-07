@@ -576,10 +576,9 @@ class DrawingCanvas {
                         if (this.shouldMove) {
                             this.actions.moving = true;
                             //Assign new coordinates
-                            selectedDrawing.coords.x1 += dx;
-                            selectedDrawing.coords.y1 += dy;
-                            selectedDrawing.coords.x2 += dx;
-                            selectedDrawing.coords.y2 += dy;
+                            for (const k of Object.keys(selectedDrawing.coords)) {
+                                k.includes("x") ? selectedDrawing.coords[k] += dx : selectedDrawing.coords[k] += dy;
+                            }
                             this.startX = mouseX;
                             this.startY = mouseY;
                         }
@@ -635,10 +634,9 @@ class DrawingCanvas {
                         if (this.shouldMove) {
                             this.actions.moving = true;
                             //Assign new start and end coordinates
-                            selectedDrawing.coords.startX += dx;
-                            selectedDrawing.coords.startY += dy;
-                            selectedDrawing.coords.endX += dx;
-                            selectedDrawing.coords.endY += dy;
+                            for (const k of Object.keys(selectedDrawing.coords)) {
+                                k.includes("X") ? selectedDrawing.coords[k] += dx : selectedDrawing.coords[k] += dy;
+                            }
                             //Create new path from existing path
                             const newPath = new Path2D();
                             const m = new DOMMatrix().translate(dx, dy);
