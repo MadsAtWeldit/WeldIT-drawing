@@ -585,11 +585,7 @@ class DrawingCanvas {
                 const selectionPosition = this.mouseWithinSelection(mouseX, mouseY, drawing);
 
                 //Style accordingly
-                selectionPosition === "middle"
-                  ? (this.canvas.style.cursor = "move")
-                  : selectionPosition === "top-left" || selectionPosition === "bottom-right"
-                    ? (this.canvas.style.cursor = "nwse-resize")
-                    : (this.canvas.style.cursor = "nesw-resize");
+                this.setCursorStyles(selectionPosition);
               }
             }
             break;
@@ -599,11 +595,7 @@ class DrawingCanvas {
               if (this.mouseWithinSelection(mouseX, mouseY, drawing)) {
                 const selectionPosition = this.mouseWithinSelection(mouseX, mouseY, drawing);
 
-                selectionPosition === "middle"
-                  ? (this.canvas.style.cursor = "move")
-                  : selectionPosition === "top-left" || selectionPosition === "bottom-right"
-                    ? (this.canvas.style.cursor = "nwse-resize")
-                    : (this.canvas.style.cursor = "nesw-resize");
+                this.setCursorStyles(selectionPosition);
               }
             }
 
@@ -613,9 +605,8 @@ class DrawingCanvas {
             {
               if (this.mouseWithinSelection(mouseX, mouseY, drawing)) {
                 const selectionPosition = this.mouseWithinSelection(mouseX, mouseY, drawing);
-                selectionPosition === "middle"
-                  ? (this.canvas.style.cursor = "move")
-                  : (this.canvas.style.cursor = "pointer");
+
+                this.setCursorStyles(selectionPosition);
               }
             }
 
@@ -1151,6 +1142,24 @@ class DrawingCanvas {
     }
   }
 
+  //Function for setting cursor styles
+  private setCursorStyles(mousePos: string) {
+    if(mousePos === "bottom-left" || mousePos === "top-right"){
+      this.canvas.style.cursor = "nesw-resize";
+      return;
+    }
+
+    if(mousePos === "top-left" || mousePos === "bottom-right" ){
+      this.canvas.style.cursor = "nwse-resize";
+      return;
+    }
+
+    if(mousePos === "start" || mousePos === "end"){
+      this.canvas.style.cursor = "pointer"
+      return;
+    }
+    this.canvas.style.cursor = "move";
+  }
   //Function for redrawing canvas when interactive
   private redraw(drawingData: DrawingElements[]) {
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
