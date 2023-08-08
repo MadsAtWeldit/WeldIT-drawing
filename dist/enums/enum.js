@@ -1,17 +1,17 @@
 //Values for different types of elements
 export var DrawingElementType;
 (function (DrawingElementType) {
-    DrawingElementType["controller"] = "controller";
-    DrawingElementType["pencil"] = "pencil";
-    DrawingElementType["eraser"] = "eraser";
-    DrawingElementType["color"] = "color";
-    DrawingElementType["width"] = "width";
-    DrawingElementType["clearCanvas"] = "clearCanvas";
-    DrawingElementType["moveAndResize"] = "moveAndResize";
-    DrawingElementType["undo"] = "undo";
-    DrawingElementType["text"] = "text";
-    DrawingElementType["line"] = "line";
-    DrawingElementType["rectangle"] = "rectangle";
+    DrawingElementType["CONTROLLER"] = "CONTROLLER";
+    DrawingElementType["PENCIL"] = "PENCIL";
+    DrawingElementType["ERASER"] = "ERASER";
+    DrawingElementType["COLOR"] = "COLOR";
+    DrawingElementType["WIDTH"] = "WIDTH";
+    DrawingElementType["CLEARCANVAS"] = "CLEARCANVAS";
+    DrawingElementType["MOVEANDRESIZE"] = "MOVEANDRESIZE";
+    DrawingElementType["UNDO"] = "UNDO";
+    DrawingElementType["TEXT"] = "TEXT";
+    DrawingElementType["LINE"] = "LINE";
+    DrawingElementType["RECTANGLE"] = "RECTANGLE";
 })(DrawingElementType || (DrawingElementType = {}));
 export var SelectionPosition;
 (function (SelectionPosition) {

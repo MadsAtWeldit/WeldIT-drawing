@@ -1,16 +1,16 @@
 //Values for different types of elements
 export enum DrawingElementType {
-  controller = "controller",
-  pencil = "pencil",
-  eraser = "eraser",
-  color = "color",
-  width = "width",
-  clearCanvas = "clearCanvas",
-  moveAndResize = "moveAndResize",
-  undo = "undo",
-  text = "text",
-  line = "line",
-  rectangle = "rectangle",
+  CONTROLLER = "CONTROLLER",
+  PENCIL = "PENCIL",
+  ERASER = "ERASER",
+  COLOR = "COLOR",
+  WIDTH = "WIDTH",
+  CLEARCANVAS = "CLEARCANVAS",
+  MOVEANDRESIZE = "MOVEANDRESIZE",
+  UNDO = "UNDO",
+  TEXT = "TEXT",
+  LINE = "LINE",
+  RECTANGLE = "RECTANGLE",
 }
 
 export enum SelectionPosition {
