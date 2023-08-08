@@ -323,7 +323,7 @@ class DrawingCanvas {
           selectionPosition === "middle"
             ? (this.shouldMove = true)
             : ((this.shouldResize.toggled = true),
-              (this.shouldResize.from = selectionPosition as string));
+              (this.shouldResize.from = selectionPosition));
         }
       }
 
@@ -341,7 +341,7 @@ class DrawingCanvas {
             selectionPosition === "middle"
               ? (this.shouldMove = true)
               : ((this.shouldResize.toggled = true),
-                (this.shouldResize.from = selectionPosition as string));
+                (this.shouldResize.from = selectionPosition));
 
           }
           return;
@@ -359,7 +359,7 @@ class DrawingCanvas {
           selectionPosition === "middle"
             ? (this.shouldMove = true)
             : ((this.shouldResize.toggled = true),
-              (this.shouldResize.from = selectionPosition as string));
+              (this.shouldResize.from = selectionPosition));
         }
       });
     }
