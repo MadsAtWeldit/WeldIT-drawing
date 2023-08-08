@@ -12,7 +12,7 @@ export const assignCorrectly = <T extends object, U extends OptionElement>(
   prop: T
 ) => {
   Object.keys(prop).map((key) => {
-    if (element.type === key) {
+    if (element.type === key.toUpperCase()) {
       const index = key as keyof T;
       if (!element.className && !element.id)
         throw new Error(`Please provide a class or id for element: ${element.type}`);

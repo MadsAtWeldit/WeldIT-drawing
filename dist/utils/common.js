@@ -5,7 +5,7 @@ export const excludeNullishProps = (obj) => {
 //Assigns element passed to options to correct property
 export const assignCorrectly = (element, prop) => {
     Object.keys(prop).map((key) => {
-        if (element.type === key) {
+        if (element.type === key.toUpperCase()) {
             const index = key;
             if (!element.className && !element.id)
                 throw new Error(`Please provide a class or id for element: ${element.type}`);
