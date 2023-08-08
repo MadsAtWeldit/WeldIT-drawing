@@ -17,6 +17,7 @@ import {
   TextElement,
 } from "./types/elements.js";
 
+import { SelectionPosition } from "./enums/enum.js"
 
 class DrawingCanvas {
   private canvas: HTMLCanvasElement;
@@ -59,7 +60,7 @@ class DrawingCanvas {
   private shouldMove = false;
   private shouldResize = {
     toggled: false,
-    from: "",
+    from: SelectionPosition.NONE
   };
   private shouldLine = false;
 
@@ -315,30 +316,27 @@ class DrawingCanvas {
         const selectionPosition = this.mouseWithinSelection(mouseX, mouseY, selected);
 
         //IF mouse is not in drawing anymore then disselect
-        if (!selectionPosition) this.selectedDrawingIndex = null;
+        if (selectionPosition === SelectionPosition.NONE) this.selectedDrawingIndex = null;
 
-
-        if (selectionPosition) {
-          //IF mouse is inside the selection THEN check if move or resize
-          selectionPosition === "middle"
-            ? (this.shouldMove = true)
-            : ((this.shouldResize.toggled = true),
-              (this.shouldResize.from = selectionPosition));
-        }
+        //IF mouse is inside the selection THEN check if move or resize
+        selectionPosition === SelectionPosition.MIDDLE
+          ? (this.shouldMove = true)
+          : ((this.shouldResize.toggled = true),
+            (this.shouldResize.from = selectionPosition));
       }
 
       //Loop through each drawing and check if one has been clicked on and set that as the selected drawing
       this.drawingData.forEach((drawing, i) => {
         if (drawing.type === "text") {
           //If its text we only need to check if its within selection since it doesn't have a stroke
-          if (this.mouseWithinSelection(mouseX, mouseY, drawing)) {
+          if (this.mouseWithinSelection(mouseX, mouseY, drawing) !== SelectionPosition.NONE) {
             this.selectedDrawingIndex = i;
 
             const selected = this.drawingData[this.selectedDrawingIndex];
 
             const selectionPosition = this.mouseWithinSelection(mouseX, mouseY, selected);
 
-            selectionPosition === "middle"
+            selectionPosition === SelectionPosition.MIDDLE
               ? (this.shouldMove = true)
               : ((this.shouldResize.toggled = true),
                 (this.shouldResize.from = selectionPosition));
@@ -356,7 +354,7 @@ class DrawingCanvas {
           //Then check mouse position if we should resize or move
           const selectionPosition = this.mouseWithinSelection(mouseX, mouseY, selected);
 
-          selectionPosition === "middle"
+          selectionPosition === SelectionPosition.MIDDLE
             ? (this.shouldMove = true)
             : ((this.shouldResize.toggled = true),
               (this.shouldResize.from = selectionPosition));
@@ -517,7 +515,7 @@ class DrawingCanvas {
     }
 
     if (this.actions.resizing) {
-      this.shouldResize = { toggled: false, from: "" };
+      this.shouldResize = { toggled: false, from: SelectionPosition.NONE };
       this.actions.resizing = false;
 
       if (typeof this.selectedDrawingIndex === "number") {
@@ -742,7 +740,7 @@ class DrawingCanvas {
               );
 
               //Store new left and right
-              if (from === "top-left" || from === "bottom-left") {
+              if (from === SelectionPosition.TOP_LEFT || from === SelectionPosition.BOTTOM_LEFT) {
                 selectedDrawing.resizedCoords.resizedX1 = scaleOriginX - newDistanceX;
                 selectedDrawing.resizedCoords.resizedX2 = scaleOriginX;
               } else {
@@ -751,7 +749,7 @@ class DrawingCanvas {
               }
 
               //Store new top and bottom
-              if (from === "top-left" || from === "top-right") {
+              if (from === SelectionPosition.TOP_LEFT || from === SelectionPosition.TOP_RIGHT) {
                 selectedDrawing.resizedCoords.resizedY1 = scaleOriginY - newDistanceY;
                 selectedDrawing.resizedCoords.resizedY2 = scaleOriginY;
               } else {
@@ -908,7 +906,7 @@ class DrawingCanvas {
 
   //Function that returns correct coordinates and scalefactor for scaling
   private getScaleInfo(
-    from: string,
+    from: SelectionPosition,
     element: DrawingElements,
     currentMouseX: number,
     currentMouseY: number
@@ -916,11 +914,11 @@ class DrawingCanvas {
     assertRequired(element.coords);
 
     if (element.type === "line") {
-      const startCornerX = from === "start" ? element.coords.startX : element.coords.endX;
-      const startCornerY = from === "start" ? element.coords.startY : element.coords.endY;
+      const startCornerX = from === SelectionPosition.START ? element.coords.startX : element.coords.endX;
+      const startCornerY = from === SelectionPosition.START ? element.coords.startY : element.coords.endY;
 
-      const scaleOriginX = from === "start" ? element.coords.endX : element.coords.startX;
-      const scaleOriginY = from === "start" ? element.coords.endY : element.coords.startY;
+      const scaleOriginX = from === SelectionPosition.START ? element.coords.endX : element.coords.startX;
+      const scaleOriginY = from === SelectionPosition.START ? element.coords.endY : element.coords.startY;
       return {
         scaleOriginXPos: scaleOriginX,
         scaleOriginYPos: scaleOriginY,
@@ -930,26 +928,26 @@ class DrawingCanvas {
       };
     } else {
       //IF scaling from the left side then start = left : start = right;
-      const startCornerX = from.includes("left") ? element.coords.x1 : element.coords.x2;
-      const startCornerY = from.includes("top") ? element.coords.y1 : element.coords.y2;
+      const startCornerX = from.includes("LEFT") ? element.coords.x1 : element.coords.x2;
+      const startCornerY = from.includes("TOP") ? element.coords.y1 : element.coords.y2;
 
       //IF scaling from left side then origin is opposite side so that we scale inwards or outwards based on corner
-      const scaleOriginX = from.includes("left") ? element.coords.x2 : element.coords.x1;
-      const scaleOriginY = from.includes("top") ? element.coords.y2 : element.coords.y1;
+      const scaleOriginX = from.includes("LEFT") ? element.coords.x2 : element.coords.x1;
+      const scaleOriginY = from.includes("TOP") ? element.coords.y2 : element.coords.y1;
 
       //For the scaling to work properly i also need where we scale from
       //Since scaling from left side to right side would not work with e.g (x1 - x2 so instead x2 - x1 for distance)
-      const originalDistance = from.includes("left")
+      const originalDistance = from.includes("LEFT")
         ? scaleOriginX - startCornerX
         : startCornerX -
         scaleOriginX +
-        (from.includes("top") ? scaleOriginY - startCornerY : startCornerY - scaleOriginY);
+        (from.includes("TOP") ? scaleOriginY - startCornerY : startCornerY - scaleOriginY);
 
-      const currentDistance = from.includes("left")
+      const currentDistance = from.includes("LEFT")
         ? scaleOriginX - currentMouseX
         : currentMouseX -
         scaleOriginX +
-        (from.includes("top") ? scaleOriginY - currentMouseY : currentMouseY - scaleOriginY);
+        (from.includes("TOP") ? scaleOriginY - currentMouseY : currentMouseY - scaleOriginY);
 
       const scaleFactor = currentDistance / originalDistance;
 
@@ -964,10 +962,10 @@ class DrawingCanvas {
   }
 
   //Checks if mouse is within selection rectangle for those that have it
-  private mouseWithinSelection(x: number, y: number, drawing: DrawingElements): string {
+  private mouseWithinSelection(x: number, y: number, drawing: DrawingElements): SelectionPosition {
     assertRequired(drawing.coords);
 
-    let mouseIsIn: string;
+    let mouseIsIn: SelectionPosition;
 
     //Fine if its close enough
     const offset = 10;
@@ -986,12 +984,12 @@ class DrawingCanvas {
       const endY2 = endY + offset;
 
       mouseIsIn = this.mouseWithin(startX1, startX2, startY1, startY2, x, y)
-        ? "start"
+        ? SelectionPosition.START
         : this.mouseWithin(endX1, endX2, endY1, endY2, x, y)
-          ? "end"
+          ? SelectionPosition.END
           : this.context.isPointInStroke(drawing.path, x, y)
-            ? "middle"
-            : "";
+            ? SelectionPosition.MIDDLE
+            : SelectionPosition.NONE;
     } else {
       const { x1, y1, x2, y2 } = drawing.coords;
 
@@ -1017,16 +1015,16 @@ class DrawingCanvas {
       const bottomLeftY2 = y2 + offset;
 
       mouseIsIn = this.mouseWithin(topLeftX1, topLeftX2, topLeftY1, topLeftY2, x, y)
-        ? "top-left"
+        ? SelectionPosition.TOP_LEFT
         : this.mouseWithin(topRightX1, topRightX2, topRightY1, topRightY2, x, y)
-          ? "top-right"
+          ? SelectionPosition.TOP_RIGHT
           : this.mouseWithin(bottomRightX1, bottomRightX2, bottomRightY1, bottomRightY2, x, y)
-            ? "bottom-right"
+            ? SelectionPosition.BOTTOM_RIGHT
             : this.mouseWithin(bottomLeftX1, bottomLeftX2, bottomLeftY1, bottomLeftY2, x, y)
-              ? "bottom-left"
+              ? SelectionPosition.BOTTOM_LEFT
               : this.mouseWithin(x1, x2, y1, y2, x, y)
-                ? "middle"
-                : "";
+                ? SelectionPosition.MIDDLE
+                : SelectionPosition.NONE;
     }
 
     return mouseIsIn;
@@ -1122,20 +1120,21 @@ class DrawingCanvas {
   }
 
   //Function for setting cursor styles
-  private setCursorStyles(mousePos: string) {
-    if (mousePos === "bottom-left" || mousePos === "top-right") {
+  private setCursorStyles(mousePos: SelectionPosition) {
+    if (mousePos === SelectionPosition.BOTTOM_LEFT || mousePos === SelectionPosition.TOP_RIGHT) {
       this.canvas.style.cursor = "nesw-resize";
-    } else if (mousePos === "top-left" || mousePos === "bottom-right") {
+    } else if (mousePos === SelectionPosition.TOP_LEFT || mousePos === SelectionPosition.BOTTOM_RIGHT) {
       this.canvas.style.cursor = "nwse-resize";
-    } else if (mousePos === "start" || mousePos === "end") {
+    } else if (mousePos === SelectionPosition.START || mousePos === SelectionPosition.END) {
       this.canvas.style.cursor = "pointer"
-    } else if (mousePos === "middle") {
+    } else if (mousePos === SelectionPosition.MIDDLE) {
       this.canvas.style.cursor = "move";
     }
 
 
 
   }
+
   //Function for redrawing canvas when interactive
   private redraw(drawingData: DrawingElements[]) {
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
