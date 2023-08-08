@@ -306,6 +306,7 @@ class DrawingCanvas {
     if (moveAndResize) {
       //IF no paths
       if (this.drawingData.length <= 0) return;
+
       //IF there already is a selected drawing
       if (typeof this.selectedDrawingIndex === "number") {
         const selected = this.drawingData[this.selectedDrawingIndex];
@@ -573,52 +574,23 @@ class DrawingCanvas {
 
     // If move and resize tool is active
     if (this.activeTools.moveAndResize) {
+      //Reset cursor style
       this.canvas.style.cursor = "default";
-
+      //Loop through and set correct cursor based on the selectionPosition
       this.drawingData.forEach((drawing, i) => {
-        switch (drawing.type) {
-          case "stroke":
-            {
-              if (this.context.isPointInStroke(drawing.path, mouseX, mouseY)) {
-                this.canvas.style.cursor = "move";
-              }
+        //If the current drawing is a stroke and we have not selected it then we check if it's within the stroke first
+        if (drawing.type === "stroke" && this.selectedDrawingIndex !== i) {
+          this.context.isPointInStroke(drawing.path, mouseX, mouseY) ? this.canvas.style.cursor = "move" : "default";
 
-              //IF we are hovering the selected drawing
-              if (
-                this.selectedDrawingIndex === i &&
-                this.mouseWithinSelection(mouseX, mouseY, drawing)
-              ) {
-                //Get position within selection
-                const selectionPosition = this.mouseWithinSelection(mouseX, mouseY, drawing);
-
-                //Style accordingly
-                this.setCursorStyles(selectionPosition);
-              }
-            }
-            break;
-
-          case "text":
-            {
-              if (this.mouseWithinSelection(mouseX, mouseY, drawing)) {
-                const selectionPosition = this.mouseWithinSelection(mouseX, mouseY, drawing);
-
-                this.setCursorStyles(selectionPosition);
-              }
-            }
-
-            break;
-
-          case "line":
-            {
-              if (this.mouseWithinSelection(mouseX, mouseY, drawing)) {
-                const selectionPosition = this.mouseWithinSelection(mouseX, mouseY, drawing);
-
-                this.setCursorStyles(selectionPosition);
-              }
-            }
-
-            break;
+          return;
         }
+
+        //Get position within selection
+        const selectionPosition = this.mouseWithinSelection(mouseX, mouseY, drawing);
+
+        //Style accordingly
+        this.setCursorStyles(selectionPosition);
+
       });
     }
 
@@ -1153,19 +1125,16 @@ class DrawingCanvas {
   private setCursorStyles(mousePos: string) {
     if (mousePos === "bottom-left" || mousePos === "top-right") {
       this.canvas.style.cursor = "nesw-resize";
-      return;
-    }
-
-    if (mousePos === "top-left" || mousePos === "bottom-right") {
+    } else if (mousePos === "top-left" || mousePos === "bottom-right") {
       this.canvas.style.cursor = "nwse-resize";
-      return;
+    } else if (mousePos === "start" || mousePos === "end") {
+      this.canvas.style.cursor = "pointer"
+    } else if (mousePos === "middle") {
+      this.canvas.style.cursor = "move";
     }
 
-    if (mousePos === "start" || mousePos === "end") {
-      this.canvas.style.cursor = "pointer"
-      return;
-    }
-    this.canvas.style.cursor = "move";
+
+
   }
   //Function for redrawing canvas when interactive
   private redraw(drawingData: DrawingElements[]) {
