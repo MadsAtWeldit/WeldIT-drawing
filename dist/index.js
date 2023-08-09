@@ -839,23 +839,7 @@ class DrawingCanvas {
         this.context.lineWidth = 5;
         let x;
         let y;
-        if (drawing.type === "stroke" || drawing.type === "text") {
-            const coords = getCorrectCoords(drawing, this.actions.resizing);
-            //Selection has 4 corners
-            for (let i = 0; i < 4; i++) {
-                i === 0
-                    ? ((x = coords.x1), (y = coords.y1)) //First draw top left corner
-                    : i === 1
-                        ? ((x = coords.x2), (y = coords.y1)) //Second draw top right corner
-                        : i === 2
-                            ? ((x = coords.x1), (y = coords.y2)) //Third draw bottom left corner
-                            : ((x = coords.x2), (y = coords.y2)); //Last draw bottom right corner
-                this.context.beginPath();
-                this.context.arc(x, y, 1, 0, 2 * Math.PI);
-                this.context.stroke();
-            }
-        }
-        else {
+        if (drawing.type === "line") {
             const coords = getCorrectCoords(drawing, this.actions.resizing);
             //Selection has 2 ends
             for (let i = 0; i < 2; i++) {
@@ -866,6 +850,21 @@ class DrawingCanvas {
                 this.context.arc(x, y, 1, 0, 2 * Math.PI);
                 this.context.stroke();
             }
+            return;
+        }
+        const coords = getCorrectCoords(drawing, this.actions.resizing);
+        //Selection has 4 corners
+        for (let i = 0; i < 4; i++) {
+            i === 0
+                ? ((x = coords.x1), (y = coords.y1)) //First draw top left corner
+                : i === 1
+                    ? ((x = coords.x2), (y = coords.y1)) //Second draw top right corner
+                    : i === 2
+                        ? ((x = coords.x1), (y = coords.y2)) //Third draw bottom left corner
+                        : ((x = coords.x2), (y = coords.y2)); //Last draw bottom right corner
+            this.context.beginPath();
+            this.context.arc(x, y, 1, 0, 2 * Math.PI);
+            this.context.stroke();
         }
     }
     //Checks if mouse is within given coordinates
