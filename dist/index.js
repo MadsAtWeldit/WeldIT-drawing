@@ -878,14 +878,13 @@ class DrawingCanvas {
     setCtxStyles(drawing) {
         this.context.globalCompositeOperation = drawing.operation;
         this.context.lineCap = "round";
-        if (drawing.type === "stroke" || drawing.type === "line") {
-            this.context.lineWidth = drawing.lineWidth;
-            this.context.strokeStyle = drawing.strokeStyle;
-        }
-        else if (drawing.type === "text") {
+        if (drawing.type === "text") {
             this.context.textBaseline = drawing.baseline;
             this.context.font = drawing.font;
+            return;
         }
+        this.context.lineWidth = drawing.lineWidth;
+        this.context.strokeStyle = drawing.strokeStyle;
     }
     //Function for setting cursor styles
     setCursorStyles(mousePos) {
@@ -908,19 +907,21 @@ class DrawingCanvas {
         if (drawingData.length <= 0)
             return;
         drawingData.forEach((drawing, i) => {
-            if (this.selectedDrawingIndex === i)
-                this.createDrawingSelection(drawing);
             this.setCtxStyles(drawing);
-            //Override the globalCompositeOperation from setCtxStyles function so that the selection will always be over even though it was drawn first
-            this.context.globalCompositeOperation = "destination-over";
             if (drawing.type === "text") {
                 //If we are resizing AND the selected drawing is the current drawing in the array THEN draw it using the resized values
-                this.actions.resizing && this.selectedDrawingIndex === i ?
-                    (this.context.font = drawing.resizedFont, this.context.fillText(drawing.text, drawing.resizedCoords.resizedX1 ?? 0, drawing.resizedCoords.resizedY1 ?? 0))
-                    : this.context.fillText(drawing.text, drawing.coords.x1 ?? 0, drawing.coords.y1 ?? 0);
+                const font = this.actions.resizing && this.selectedDrawingIndex === i ? drawing.resizedFont : drawing.font;
+                const x1 = this.actions.resizing && this.selectedDrawingIndex === i ? drawing.resizedCoords.resizedX1 : drawing.coords.x1;
+                const y1 = this.actions.resizing && this.selectedDrawingIndex === i ? drawing.resizedCoords.resizedY1 : drawing.coords.y1;
+                this.context.font = font;
+                this.context.fillText(drawing.text, x1 ?? 0, y1 ?? 0);
+                //Needs to be called after since it should be drawn on top of the stroke
+                this.selectedDrawingIndex === i && this.createDrawingSelection(drawing);
                 return;
             }
-            this.actions.resizing && this.selectedDrawingIndex === i ? this.context.stroke(drawing.resizedPath) : this.context.stroke(drawing.path);
+            const path = this.actions.resizing && this.selectedDrawingIndex === i ? drawing.resizedPath : drawing.path;
+            this.context.stroke(path);
+            this.selectedDrawingIndex === i && this.createDrawingSelection(drawing);
         });
     }
     //Function that checks if given element is target
