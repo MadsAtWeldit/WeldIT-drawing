@@ -908,51 +908,19 @@ class DrawingCanvas {
         if (drawingData.length <= 0)
             return;
         drawingData.forEach((drawing, i) => {
-            switch (drawing.type) {
-                case "stroke":
-                    if (this.selectedDrawingIndex === i) {
-                        if (this.actions.resizing) {
-                            this.setCtxStyles(drawing);
-                            this.context.stroke(drawing.resizedPath);
-                            this.createDrawingSelection(drawing);
-                            return;
-                        }
-                        this.createDrawingSelection(drawing);
-                    }
-                    this.setCtxStyles(drawing);
-                    this.context.stroke(drawing.path);
-                    break;
-                case "text":
-                    if (this.selectedDrawingIndex === i) {
-                        if (this.actions.resizing) {
-                            assertRequired(drawing.resizedCoords);
-                            this.setCtxStyles(drawing);
-                            this.context.font = drawing.resizedFont;
-                            this.context.fillText(drawing.text, drawing.resizedCoords.resizedX1, drawing.resizedCoords.resizedY1);
-                            this.createDrawingSelection(drawing);
-                            return;
-                        }
-                        this.createDrawingSelection(drawing);
-                    }
-                    this.setCtxStyles(drawing);
-                    this.context.fillText(drawing.text, drawing.coords.x1, drawing.coords.y1);
-                    break;
-                case "line":
-                    if (this.selectedDrawingIndex === i) {
-                        if (this.actions.resizing) {
-                            this.setCtxStyles(drawing);
-                            this.context.stroke(drawing.resizedPath);
-                            this.createDrawingSelection(drawing);
-                            return;
-                        }
-                    }
-                    this.setCtxStyles(drawing);
-                    this.context.stroke(drawing.path);
-                    if (this.selectedDrawingIndex === i) {
-                        this.createDrawingSelection(drawing);
-                    }
-                    break;
+            if (this.selectedDrawingIndex === i)
+                this.createDrawingSelection(drawing);
+            this.setCtxStyles(drawing);
+            //Override the globalCompositeOperation from setCtxStyles function so that the selection will always be over even though it was drawn first
+            this.context.globalCompositeOperation = "destination-over";
+            if (drawing.type === "text") {
+                //If we are resizing AND the selected drawing is the current drawing in the array THEN draw it using the resized values
+                this.actions.resizing && this.selectedDrawingIndex === i ?
+                    (this.context.font = drawing.resizedFont, this.context.fillText(drawing.text, drawing.resizedCoords.resizedX1 ?? 0, drawing.resizedCoords.resizedY1 ?? 0))
+                    : this.context.fillText(drawing.text, drawing.coords.x1 ?? 0, drawing.coords.y1 ?? 0);
+                return;
             }
+            this.actions.resizing && this.selectedDrawingIndex === i ? this.context.stroke(drawing.resizedPath) : this.context.stroke(drawing.path);
         });
     }
     //Function that checks if given element is target
