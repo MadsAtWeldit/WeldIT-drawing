@@ -919,6 +919,7 @@ class DrawingCanvas {
 
       const scaleOriginX = from === SelectionPosition.START ? element.coords.endX : element.coords.startX;
       const scaleOriginY = from === SelectionPosition.START ? element.coords.endY : element.coords.startY;
+
       return {
         scaleOriginXPos: scaleOriginX,
         scaleOriginYPos: scaleOriginY,
@@ -926,39 +927,40 @@ class DrawingCanvas {
         startCornerYPos: startCornerY,
         scale: 0,
       };
-    } else {
-      //IF scaling from the left side then start = left : start = right;
-      const startCornerX = from.includes("LEFT") ? element.coords.x1 : element.coords.x2;
-      const startCornerY = from.includes("TOP") ? element.coords.y1 : element.coords.y2;
-
-      //IF scaling from left side then origin is opposite side so that we scale inwards or outwards based on corner
-      const scaleOriginX = from.includes("LEFT") ? element.coords.x2 : element.coords.x1;
-      const scaleOriginY = from.includes("TOP") ? element.coords.y2 : element.coords.y1;
-
-      //For the scaling to work properly i also need where we scale from
-      //Since scaling from left side to right side would not work with e.g (x1 - x2 so instead x2 - x1 for distance)
-      const originalDistance = from.includes("LEFT")
-        ? scaleOriginX - startCornerX
-        : startCornerX -
-        scaleOriginX +
-        (from.includes("TOP") ? scaleOriginY - startCornerY : startCornerY - scaleOriginY);
-
-      const currentDistance = from.includes("LEFT")
-        ? scaleOriginX - currentMouseX
-        : currentMouseX -
-        scaleOriginX +
-        (from.includes("TOP") ? scaleOriginY - currentMouseY : currentMouseY - scaleOriginY);
-
-      const scaleFactor = currentDistance / originalDistance;
-
-      return {
-        scaleOriginXPos: scaleOriginX,
-        scaleOriginYPos: scaleOriginY,
-        startCornerXPos: startCornerX,
-        startCornerYPos: startCornerY,
-        scale: scaleFactor,
-      };
     }
+
+    //IF scaling from the left side then start = left : start = right;
+    const startCornerX = from.includes("LEFT") ? element.coords.x1 : element.coords.x2;
+    const startCornerY = from.includes("TOP") ? element.coords.y1 : element.coords.y2;
+
+    //IF scaling from left side then origin is opposite side so that we scale inwards or outwards based on corner
+    const scaleOriginX = from.includes("LEFT") ? element.coords.x2 : element.coords.x1;
+    const scaleOriginY = from.includes("TOP") ? element.coords.y2 : element.coords.y1;
+
+    //For the scaling to work properly i also need where we scale from
+    //Since scaling from left side to right side would not work with e.g (x1 - x2 so instead x2 - x1 for distance)
+    const originalDistance = from.includes("LEFT")
+      ? scaleOriginX - startCornerX
+      : startCornerX -
+      scaleOriginX +
+      (from.includes("TOP") ? scaleOriginY - startCornerY : startCornerY - scaleOriginY);
+
+    const currentDistance = from.includes("LEFT")
+      ? scaleOriginX - currentMouseX
+      : currentMouseX -
+      scaleOriginX +
+      (from.includes("TOP") ? scaleOriginY - currentMouseY : currentMouseY - scaleOriginY);
+
+    const scaleFactor = currentDistance / originalDistance;
+
+    return {
+      scaleOriginXPos: scaleOriginX,
+      scaleOriginYPos: scaleOriginY,
+      startCornerXPos: startCornerX,
+      startCornerYPos: startCornerY,
+      scale: scaleFactor,
+    };
+
   }
 
   //Checks if mouse is within selection rectangle for those that have it
@@ -983,51 +985,51 @@ class DrawingCanvas {
       const endY1 = endY - offset;
       const endY2 = endY + offset;
 
-      mouseIsIn = this.mouseWithin(startX1, startX2, startY1, startY2, x, y)
+      return mouseIsIn = this.mouseWithin(startX1, startX2, startY1, startY2, x, y)
         ? SelectionPosition.START
         : this.mouseWithin(endX1, endX2, endY1, endY2, x, y)
           ? SelectionPosition.END
           : this.context.isPointInStroke(drawing.path, x, y)
             ? SelectionPosition.MIDDLE
             : SelectionPosition.NONE;
-    } else {
-      const { x1, y1, x2, y2 } = drawing.coords;
-
-      //Top left rectangle
-      const topLeftX1 = x1 - offset;
-      const topLeftX2 = x1 + offset;
-      const topLeftY1 = y1 - offset;
-      const topLeftY2 = y1 + offset;
-      //Top right rectangle
-      const topRightX1 = x2 - offset;
-      const topRightX2 = x2 + offset;
-      const topRightY1 = y1 - offset;
-      const topRightY2 = y1 + offset;
-      //Bottom right rectangle
-      const bottomRightX1 = x2 - offset;
-      const bottomRightX2 = x2 + offset;
-      const bottomRightY1 = y2 - offset;
-      const bottomRightY2 = y2 + offset;
-      //Bottom left rectangle
-      const bottomLeftX1 = x1 - offset;
-      const bottomLeftX2 = x1 + offset;
-      const bottomLeftY1 = y2 - offset;
-      const bottomLeftY2 = y2 + offset;
-
-      mouseIsIn = this.mouseWithin(topLeftX1, topLeftX2, topLeftY1, topLeftY2, x, y)
-        ? SelectionPosition.TOP_LEFT
-        : this.mouseWithin(topRightX1, topRightX2, topRightY1, topRightY2, x, y)
-          ? SelectionPosition.TOP_RIGHT
-          : this.mouseWithin(bottomRightX1, bottomRightX2, bottomRightY1, bottomRightY2, x, y)
-            ? SelectionPosition.BOTTOM_RIGHT
-            : this.mouseWithin(bottomLeftX1, bottomLeftX2, bottomLeftY1, bottomLeftY2, x, y)
-              ? SelectionPosition.BOTTOM_LEFT
-              : this.mouseWithin(x1, x2, y1, y2, x, y)
-                ? SelectionPosition.MIDDLE
-                : SelectionPosition.NONE;
     }
 
-    return mouseIsIn;
+    const { x1, y1, x2, y2 } = drawing.coords;
+
+    //Top left rectangle
+    const topLeftX1 = x1 - offset;
+    const topLeftX2 = x1 + offset;
+    const topLeftY1 = y1 - offset;
+    const topLeftY2 = y1 + offset;
+    //Top right rectangle
+    const topRightX1 = x2 - offset;
+    const topRightX2 = x2 + offset;
+    const topRightY1 = y1 - offset;
+    const topRightY2 = y1 + offset;
+    //Bottom right rectangle
+    const bottomRightX1 = x2 - offset;
+    const bottomRightX2 = x2 + offset;
+    const bottomRightY1 = y2 - offset;
+    const bottomRightY2 = y2 + offset;
+    //Bottom left rectangle
+    const bottomLeftX1 = x1 - offset;
+    const bottomLeftX2 = x1 + offset;
+    const bottomLeftY1 = y2 - offset;
+    const bottomLeftY2 = y2 + offset;
+
+    return mouseIsIn = this.mouseWithin(topLeftX1, topLeftX2, topLeftY1, topLeftY2, x, y)
+      ? SelectionPosition.TOP_LEFT
+      : this.mouseWithin(topRightX1, topRightX2, topRightY1, topRightY2, x, y)
+        ? SelectionPosition.TOP_RIGHT
+        : this.mouseWithin(bottomRightX1, bottomRightX2, bottomRightY1, bottomRightY2, x, y)
+          ? SelectionPosition.BOTTOM_RIGHT
+          : this.mouseWithin(bottomLeftX1, bottomLeftX2, bottomLeftY1, bottomLeftY2, x, y)
+            ? SelectionPosition.BOTTOM_LEFT
+            : this.mouseWithin(x1, x2, y1, y2, x, y)
+              ? SelectionPosition.MIDDLE
+              : SelectionPosition.NONE;
+
+
   }
 
   //Function for well.. creating a drawing selection
@@ -1037,17 +1039,7 @@ class DrawingCanvas {
 
     this.context.lineWidth = 1;
 
-    if (drawing.type === "stroke" || drawing.type === "text") {
-      const coords = getCorrectCoords(drawing, this.actions.resizing);
-      const width = coords.x2 - coords.x1;
-      const height = coords.y2 - coords.y1;
-
-      //Draw main rectangle
-      this.context.strokeRect(coords.x1, coords.y1, width, height);
-
-      //Draw corners
-      this.drawCornerPoints(drawing);
-    } else {
+    if (drawing.type === "line") {
       const coords = getCorrectCoords(drawing, this.actions.resizing);
 
       //Draw line from start to end
@@ -1057,7 +1049,19 @@ class DrawingCanvas {
       this.context.stroke();
 
       this.drawCornerPoints(drawing);
+
+      return;
     }
+
+    const coords = getCorrectCoords(drawing, this.actions.resizing);
+    const width = coords.x2 - coords.x1;
+    const height = coords.y2 - coords.y1;
+
+    //Draw main rectangle
+    this.context.strokeRect(coords.x1, coords.y1, width, height);
+
+    //Draw corners
+    this.drawCornerPoints(drawing);
   }
 
   //Function for drawing corner points :P
@@ -1084,7 +1088,7 @@ class DrawingCanvas {
     }
 
     const coords = getCorrectCoords(drawing, this.actions.resizing);
-    
+
     //Selection has 4 corners
     for (let i = 0; i < 4; i++) {
       i === 0
