@@ -248,16 +248,15 @@ class DrawingCanvas {
             //Loop through each drawing and check if one has been clicked on and set that as the selected drawing
             this.drawingData.forEach((drawing, i) => {
                 if (drawing.type === "text") {
-                    //If its text we only need to check if its within selection since it doesn't have a stroke
-                    if (this.mouseWithinSelection(mouseX, mouseY, drawing) !== SelectionPosition.NONE) {
-                        this.selectedDrawingIndex = i;
-                        const selected = this.drawingData[this.selectedDrawingIndex];
-                        const selectionPosition = this.mouseWithinSelection(mouseX, mouseY, selected);
-                        selectionPosition === SelectionPosition.MIDDLE
-                            ? (this.shouldMove = true)
-                            : ((this.shouldResize.toggled = true),
-                                (this.shouldResize.from = selectionPosition));
-                    }
+                    if (this.mouseWithinSelection(mouseX, mouseY, drawing) === SelectionPosition.NONE)
+                        return;
+                    this.selectedDrawingIndex = i;
+                    const selected = this.drawingData[this.selectedDrawingIndex];
+                    const selectionPosition = this.mouseWithinSelection(mouseX, mouseY, selected);
+                    selectionPosition === SelectionPosition.MIDDLE
+                        ? (this.shouldMove = true)
+                        : ((this.shouldResize.toggled = true),
+                            (this.shouldResize.from = selectionPosition));
                     return;
                 }
                 //If its stroke or line we need to check if its within stroke
