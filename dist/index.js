@@ -195,12 +195,11 @@ class DrawingCanvas {
                     context.clearRect(0, 0, this.canvas.width, this.canvas.height);
                     this.index = -1;
                     this.drawingData = [];
+                    return;
                 }
-                else {
-                    this.index -= 1;
-                    this.drawingData.pop();
-                    this.redraw(this.drawingData);
-                }
+                this.index -= 1;
+                this.drawingData.pop();
+                this.redraw(this.drawingData);
             }
         }
     };

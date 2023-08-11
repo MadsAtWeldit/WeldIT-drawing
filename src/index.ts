@@ -252,6 +252,7 @@ class DrawingCanvas {
         this.index = -1;
 
         this.drawingData = [];
+
       }
 
       if (definedCanvasModifiers.undo === target) {
@@ -260,12 +261,15 @@ class DrawingCanvas {
 
           this.index = -1;
           this.drawingData = [];
-        } else {
-          this.index -= 1;
-          this.drawingData.pop();
 
-          this.redraw(this.drawingData);
+          return;
         }
+
+        this.index -= 1;
+        this.drawingData.pop();
+
+        this.redraw(this.drawingData);
+
       }
     }
   };
