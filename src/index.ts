@@ -521,11 +521,11 @@ class DrawingCanvas {
       this.shouldResize = { toggled: false, from: SelectionPosition.NONE };
       this.actions.resizing = false;
 
-      if (typeof this.selectedDrawingIndex === "number") {
-        const selectedDrawing = this.drawingData[this.selectedDrawingIndex];
+      if (typeof this.selectedDrawingIndex !== "number") return;
 
-        this.updateToResized(selectedDrawing);
-      }
+      const selectedDrawing = this.drawingData[this.selectedDrawingIndex];
+
+      this.updateToResized(selectedDrawing);
     }
 
     if (this.actions.lining) {

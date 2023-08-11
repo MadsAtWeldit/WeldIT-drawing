@@ -401,10 +401,10 @@ class DrawingCanvas {
         if (this.actions.resizing) {
             this.shouldResize = { toggled: false, from: SelectionPosition.NONE };
             this.actions.resizing = false;
-            if (typeof this.selectedDrawingIndex === "number") {
-                const selectedDrawing = this.drawingData[this.selectedDrawingIndex];
-                this.updateToResized(selectedDrawing);
-            }
+            if (typeof this.selectedDrawingIndex !== "number")
+                return;
+            const selectedDrawing = this.drawingData[this.selectedDrawingIndex];
+            this.updateToResized(selectedDrawing);
         }
         if (this.actions.lining) {
             this.shouldLine = false;
