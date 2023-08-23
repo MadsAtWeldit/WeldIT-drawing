@@ -1,3 +1,5 @@
+import { excludeNullishProps } from "../utils/common.js";
+
 //All possible tools
 export enum ToolTypes {
   PENCIL = "PENCIL",
@@ -107,8 +109,25 @@ export class ToolBar {
       this.assignCorrectly(tool, this.tools.canvas);
     })
 
+    //Set a default active tool
+    this.defaultActive();
+
+
+
+
     //Listen for events on the toolbar
     this.handleEvents();
+  }
+
+  //Find the first tool and set that as active
+  private defaultActive() {
+    const activatable = excludeNullishProps(this.tools.activatable);
+    const defaultActive = Object.entries(activatable).find(tool => tool);
+
+    if (!defaultActive || Object.keys(activatable).length <= 0) return;
+
+    this.active = { name: defaultActive[0], element: defaultActive[1] } as ActiveTool;
+
   }
 
   //Assigns tools passed to correct property
@@ -145,7 +164,6 @@ export class ToolBar {
 
   public handleEvents() {
     this.toolBar.addEventListener("click", this.toolSelectHandler);
-    // this.toolBar.addEventListener("change", this.changeHandler);
   }
 
   //Runs when click event happens on the toolbar
@@ -162,8 +180,6 @@ export class ToolBar {
 
       this.target = targetTool;
 
-      console.log(this.targetTool);
-
     }
   }
 
@@ -178,21 +194,8 @@ export class ToolBar {
     return tool;
   }
 
-  // private changeHandler = (e: Event) => {
-  //   const definedToolModifiers = excludeNullishProps(this.tools.modifiers);
-  //
-  //   if (e.target instanceof Element) {
-  //     const target = e.target as Element;
-  //
-  //     Object.entries(definedToolModifiers).forEach(([name, element]) => {
-  //       if (target === element) {
-  //         this.current = { name: name as NonActivatableToolNames, element };
-  //       }
-  //     })
-  //   }
-  // }
 
-  //////////////////Methods for current tool\\\\\\\\\\\\\\\\\\\\\
+  //////////////////Methods for target tool\\\\\\\\\\\\\\\\\\\\\
   public set target(tool: TargetTool) {
     this.targetTool = tool;
   }
@@ -201,7 +204,7 @@ export class ToolBar {
     return this.targetTool;
   }
 
-  //////////////////Methods for activating a tool\\\\\\\\\\\\\\\\\\\\\
+  //////////////////Methods for active tool\\\\\\\\\\\\\\\\\\\\\
   //Method for setting the active tool
   public set active(tool: ActiveTool) {
     //Remove active class before applying it to a new one

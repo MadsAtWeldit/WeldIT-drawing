@@ -3,10 +3,10 @@ import { ToolTypes } from "./classes/ToolBar.js";
 
 new DrawingApp("drawing-board", {
   id: "toolbar", tools: [
-    {
-      type: ToolTypes.PENCIL,
-      className: "lol"
-    }
+    // {
+    //   type: ToolTypes.PENCIL,
+    //   className: "lol"
+    // }
   ]
 })
 
