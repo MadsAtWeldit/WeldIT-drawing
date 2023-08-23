@@ -1,4 +1,3 @@
-import { DrawingElementType } from "../enums/enum";
 export interface PathElement {
   type: "stroke";
   path: Path2D;
@@ -37,9 +36,3 @@ export interface LineElement {
 }
 export type DrawingElements = PathElement | TextElement | LineElement;
 
-//Expected structure of element passed to options
-export interface OptionElement {
-  type: DrawingElementType;
-  className?: string;
-  id?: string;
-}
