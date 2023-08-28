@@ -1,14 +1,14 @@
+export interface CursorPosition {
+  x: number;
+  y: number;
+}
 export class Cursor {
   private element: HTMLElement
 
-  private startPosition: {
-    x: number;
-    y: number;
-  }
-  private currentPosition: {
-    x: number;
-    y: number;
-  }
+  private startPosition: CursorPosition;
+
+  private currentPosition: CursorPosition;
+
   private cursorIsDown: boolean = false;
 
   constructor(element: HTMLElement) {
@@ -26,6 +26,22 @@ export class Cursor {
 
   public set isDown(value: boolean) {
     this.cursorIsDown = value;
+  }
+
+  public set startPos(pos: CursorPosition) {
+    this.startPosition = pos;
+  }
+
+  public get startPos() {
+    return this.startPosition;
+  }
+
+  public set currentPos(pos: CursorPosition) {
+    this.currentPosition = pos;
+  }
+
+  public get currentPos(): CursorPosition {
+    return this.currentPosition;
   }
 
   public reset() {

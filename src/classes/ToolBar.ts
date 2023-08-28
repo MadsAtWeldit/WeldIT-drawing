@@ -112,11 +112,6 @@ export class ToolBar {
     //Set a default active tool
     this.defaultActive();
 
-
-
-
-    //Listen for events on the toolbar
-    this.handleEvents();
   }
 
   //Find the first tool and set that as active
@@ -162,12 +157,9 @@ export class ToolBar {
     });
   };
 
-  public handleEvents() {
-    this.toolBar.addEventListener("click", this.toolSelectHandler);
-  }
 
   //Runs when click event happens on the toolbar
-  private toolSelectHandler = (e: MouseEvent | TouchEvent) => {
+  public handleEvent = (e: Event) => {
     //Check if the target is an Element
     if (e.target instanceof Element) {
       const target = e.target as Element;//We know it's an element
@@ -177,7 +169,7 @@ export class ToolBar {
 
       //IF targetTool is activatable then set it as active aswell
       targetTool.name in this.tools.activatable && (this.active = targetTool as ActiveTool);
-
+      
       this.target = targetTool;
 
     }

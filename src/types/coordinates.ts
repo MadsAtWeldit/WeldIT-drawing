@@ -16,3 +16,5 @@ type LineSelectionCoords = Rename<SelectionCoords, "startX" | "startY" | "endX" 
 type ResizedLineSelectionCoords = Prefix<LineSelectionCoords, "resized">;
 //Union of available coords
 type Coords = SelectionCoords | LineSelectionCoords;
+
+type ResizedCoords = ResizedSelectionCoords | ResizedLineSelectionCoords;
