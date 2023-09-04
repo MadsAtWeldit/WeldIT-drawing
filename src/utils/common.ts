@@ -34,19 +34,19 @@ export const excludeNullishProps = <T extends object>(obj: T) => {
 //   }
 // }
 //
-// //Function for creating an html element
-// export const createPersonalElement = <T extends keyof HTMLElementTagNameMap>(
-//   type: T,
-//   parent: HTMLElement,
-//   styles?: Record<string, string | number>
-// ): HTMLElementTagNameMap[T] => {
-//   const element = document.createElement(type);
-//   if (styles) {
-//     Object.keys(styles).forEach((k) => {
-//       Reflect.set(element.style, k, styles[k]);
-//     });
-//   }
-//   parent.appendChild(element);
-//
-//   return element;
-// };
+//Function for creating an html element
+export const createPersonalElement = <T extends keyof HTMLElementTagNameMap>(
+  type: T,
+  parent: HTMLElement,
+  styles?: Record<string, string | number>
+): HTMLElementTagNameMap[T] => {
+  const element = document.createElement(type);
+  if (styles) {
+    Object.keys(styles).forEach((k) => {
+      Reflect.set(element.style, k, styles[k]);
+    });
+  }
+  parent.appendChild(element);
+
+  return element;
+};

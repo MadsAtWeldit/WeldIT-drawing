@@ -169,7 +169,7 @@ export class ToolBar {
 
       //IF targetTool is activatable then set it as active aswell
       targetTool.name in this.tools.activatable && (this.active = targetTool as ActiveTool);
-      
+
       this.target = targetTool;
 
     }
@@ -187,7 +187,6 @@ export class ToolBar {
   }
 
 
-  //////////////////Methods for target tool\\\\\\\\\\\\\\\\\\\\\
   public set target(tool: TargetTool) {
     this.targetTool = tool;
   }
@@ -196,7 +195,6 @@ export class ToolBar {
     return this.targetTool;
   }
 
-  //////////////////Methods for active tool\\\\\\\\\\\\\\\\\\\\\
   //Method for setting the active tool
   public set active(tool: ActiveTool) {
     //Remove active class before applying it to a new one

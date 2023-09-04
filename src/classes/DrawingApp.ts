@@ -1,6 +1,7 @@
+import { createPersonalElement } from "../utils/common.js";
 import { Cursor } from "./Cursor.js";
 import { DrawingCanvas } from "./DrawingCanvas.js"
-import { SHAPE_TYPE, Shape, Shapes } from "./Shape.js";
+import { FreeDrawShape, LineShape, SHAPE_TYPE, ShapeProvider, Shapes, TextShape } from "./Shape.js";
 import { ToolBar, Tool, TargetTool, ActiveTool } from "./ToolBar.js";
 
 export class DrawingApp {
@@ -10,8 +11,6 @@ export class DrawingApp {
 
   private cursor: Cursor;
 
-  //Prop for using shape methods
-  private shape: Shape;
   //Prop for storing the current shape
   private currentShape: Shapes;
 
@@ -38,12 +37,11 @@ export class DrawingApp {
       lining: false,
       writing: false,
       moving: false
-    }
+    },
   }
 
   constructor(canvasId: string, toolBar?: { id: string, tools: Tool[] }) {
     this.canvasElement = document.getElementById(canvasId) as HTMLCanvasElement;
-
     if (!this.canvasElement) throw new Error(`Could not find a canvasElement with id of: ${canvasId}`);
 
     //Create a new cursor for canvasElement
@@ -55,6 +53,8 @@ export class DrawingApp {
     this.canvasElement.addEventListener("mousedown", (e: TouchEvent | MouseEvent) => {
       this.cursor.isDown = true;
       this.cursor.style = "crosshair";
+
+      if (this.actions.is.writing) return;
 
       //Check if event is touch or mouse
       const evtType = (e as TouchEvent).touches ? (e as TouchEvent).touches[0] : (e as MouseEvent);
@@ -70,17 +70,75 @@ export class DrawingApp {
       const { name, element } = this.toolBar.active;
 
       if (name === "pencil" || name === "eraser") {
-        this.shape = new Shape(SHAPE_TYPE.FREEDRAW);//Create a new shape object of type freedraw
+        this.currentShape = ShapeProvider.freedraw;
 
-        this.currentShape = this.shape.get();//Store the current shape
-
-        //Set composite operation based on if  eraser or pencil
+        //Set composite operation based on if eraser or pencil
         name === "eraser" ?
-          (this.shape.get().operation = "destination-out", this.actions.should.erase = true)
-          : (this.shape.get().operation = "source-over", this.actions.should.draw);
+          (this.currentShape.operation = "destination-out", this.actions.should.erase = true)
+          : (this.currentShape.operation = "source-over", this.actions.should.draw = true);
 
-        //Add startPos to shape
-        this.shape.addCoords(this.cursor.startPos);
+        //Push cursor position
+        this.currentShape.xCoords.push(this.cursor.startPos.x);
+        this.currentShape.yCoords.push(this.cursor.startPos.y);
+      }
+
+      if (name === "text") {
+        this.currentShape = ShapeProvider.text;
+        const canvasContainer = document.querySelector<HTMLElement>(".drawing-board");
+
+        if (!canvasContainer) return;
+
+        const textInput = createPersonalElement("input", canvasContainer, {
+          position: "fixed",
+          top: `${evtType.clientY}px`,
+          left: `${evtType.clientX}px`,
+          outline: "none",
+          background: "none",
+          border: "none",
+          "font-size": "30pt",
+          "font-family": "sans-serif",
+        });
+
+        this.actions.is.writing = true;
+
+        window.setTimeout(() => textInput.focus(), 0);
+
+        canvasContainer.appendChild(textInput);
+
+        textInput.addEventListener("blur", () => {
+          if (this.currentShape.type !== SHAPE_TYPE.TEXT) return;
+
+          this.currentShape.text = textInput.value;
+
+          this.canvas.contextStyles(this.currentShape);
+
+          const { width, height } = this.canvas.measureText(textInput.value);
+
+          this.currentShape.coords = {
+            x1: this.cursor.startPos.x,
+            y1: this.cursor.startPos.y,
+            x2: Math.round(this.cursor.startPos.x + width),
+            y2: Math.round(this.cursor.startPos.y + height)
+          }
+
+          this.canvas.fillText(this.currentShape.text, this.currentShape.coords.x1 ?? 0, this.currentShape.coords.y1 ?? 0);
+
+          this.canvas.shapesIndex += 1;
+          this.canvas.addShape(this.currentShape);
+
+          canvasContainer.removeChild(textInput);
+
+          this.actions.is.writing = false;
+
+        })
+
+        textInput.addEventListener("keypress", (e: KeyboardEvent) => {
+          if (e.key === "Enter") {
+            textInput.blur();
+          }
+        })
+
+
       }
     })
 
@@ -99,10 +157,12 @@ export class DrawingApp {
         (this.actions.should.draw) && (this.actions.is.drawing = true);
         (this.actions.should.erase) && (this.actions.is.erasing = true);
 
-        //Add coords to current shape 
-        this.shape.addCoords(this.cursor.currentPos);
+        this.canvas.contextStyles(this.currentShape);//Set context styles based on current shape
 
         if (this.currentShape.type === SHAPE_TYPE.FREEDRAW) {
+          this.currentShape.xCoords.push(this.cursor.currentPos.x);
+          this.currentShape.yCoords.push(this.cursor.currentPos.y);
+
           //Create line to current current cursor position
           this.currentShape.path.lineTo(this.cursor.currentPos.x, this.cursor.currentPos.y);
           //Stroke the currentShape path
@@ -111,6 +171,28 @@ export class DrawingApp {
       }
     })
 
+    this.canvasElement.addEventListener("mouseup", () => {
+      //Cursor is no longer down so reset to initial state
+      this.cursor.reset();
+
+      if ((this.actions.is.drawing) || (this.actions.is.erasing)) {
+        this.actions.should.draw = false;
+        this.actions.is.drawing = false;
+
+        this.actions.should.erase = false;
+        this.actions.is.erasing = false;
+
+        //Save
+        this.canvas.shapesIndex += 1;
+        this.canvas.addShape(this.currentShape);
+
+        //Redraw the canvas
+        this.canvas.redraw()
+
+      }
+    })
+
+    //If toolbar was passed to constructor
     if (toolBar) {
       this.toolBarElement = document.getElementById(toolBar.id) as HTMLElement;
       if (!this.toolBarElement) throw new Error(`Could not find a toolBarElement with id of: ${toolBar.id}`);
@@ -128,12 +210,19 @@ export class DrawingApp {
 
         if (this.targetTool.name === "undo") this.canvas.undo();
 
+        //Redraw the canvas
+        this.canvas.redraw();
 
       })
+
       this.toolBarElement.addEventListener("change", (e: Event) => {
         this.toolBar.handleEvent(e);
 
         this.targetTool = this.toolBar.target;
+        if (this.currentShape.type === SHAPE_TYPE.FREEDRAW) {
+          if (this.targetTool.name === "width") ShapeProvider.shapeWidth = Number(this.targetTool.element.value);
+          if (this.targetTool.name === "color") ShapeProvider.shapeColor = this.targetTool.element.value;
+        }
 
       })
     }
