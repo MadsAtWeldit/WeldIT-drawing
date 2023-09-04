@@ -50,97 +50,7 @@ export class DrawingApp {
     //Create a new drawing canvas
     this.canvas = new DrawingCanvas(this.canvasElement);
 
-    this.canvasElement.addEventListener("mousedown", (e: TouchEvent | MouseEvent) => {
-      this.cursor.isDown = true;
-      this.cursor.style = "crosshair";
-
-      if (this.actions.is.writing) return;
-
-      //Check if event is touch or mouse
-      const evtType = (e as TouchEvent).touches ? (e as TouchEvent).touches[0] : (e as MouseEvent);
-
-      //Set start position
-      this.cursor.startPos = {
-        x: evtType.clientX - this.canvasElement.offsetLeft,
-        y: evtType.clientY - this.canvasElement.offsetTop
-      };
-
-
-      //Get the active tool
-      const { name, element } = this.toolBar.active;
-
-      if (name === "pencil" || name === "eraser") {
-        this.currentShape = ShapeProvider.freedraw;
-
-        //Set composite operation based on if eraser or pencil
-        name === "eraser" ?
-          (this.currentShape.operation = "destination-out", this.actions.should.erase = true)
-          : (this.currentShape.operation = "source-over", this.actions.should.draw = true);
-
-        //Push cursor position
-        this.currentShape.xCoords.push(this.cursor.startPos.x);
-        this.currentShape.yCoords.push(this.cursor.startPos.y);
-      }
-
-      if (name === "text") {
-        this.currentShape = ShapeProvider.text;
-        const canvasContainer = document.querySelector<HTMLElement>(".drawing-board");
-
-        if (!canvasContainer) return;
-
-        const textInput = createPersonalElement("input", canvasContainer, {
-          position: "fixed",
-          top: `${evtType.clientY}px`,
-          left: `${evtType.clientX}px`,
-          outline: "none",
-          background: "none",
-          border: "none",
-          "font-size": "30pt",
-          "font-family": "sans-serif",
-        });
-
-        this.actions.is.writing = true;
-
-        window.setTimeout(() => textInput.focus(), 0);
-
-        canvasContainer.appendChild(textInput);
-
-        textInput.addEventListener("blur", () => {
-          if (this.currentShape.type !== SHAPE_TYPE.TEXT) return;
-
-          this.currentShape.text = textInput.value;
-
-          this.canvas.contextStyles(this.currentShape);
-
-          const { width, height } = this.canvas.measureText(textInput.value);
-
-          this.currentShape.coords = {
-            x1: this.cursor.startPos.x,
-            y1: this.cursor.startPos.y,
-            x2: Math.round(this.cursor.startPos.x + width),
-            y2: Math.round(this.cursor.startPos.y + height)
-          }
-
-          this.canvas.fillText(this.currentShape.text, this.currentShape.coords.x1 ?? 0, this.currentShape.coords.y1 ?? 0);
-
-          this.canvas.shapesIndex += 1;
-          this.canvas.addShape(this.currentShape);
-
-          canvasContainer.removeChild(textInput);
-
-          this.actions.is.writing = false;
-
-        })
-
-        textInput.addEventListener("keypress", (e: KeyboardEvent) => {
-          if (e.key === "Enter") {
-            textInput.blur();
-          }
-        })
-
-
-      }
-    })
+    this.canvasElement.addEventListener("mousedown", this.mousedownHandler);
 
     this.canvasElement.addEventListener("mousemove", (e: TouchEvent | MouseEvent) => {
       //Check which type of event it is
@@ -217,15 +127,106 @@ export class DrawingApp {
 
       this.toolBarElement.addEventListener("change", (e: Event) => {
         this.toolBar.handleEvent(e);
-
         this.targetTool = this.toolBar.target;
-        if (this.currentShape.type === SHAPE_TYPE.FREEDRAW) {
+
+
           if (this.targetTool.name === "width") ShapeProvider.shapeWidth = Number(this.targetTool.element.value);
           if (this.targetTool.name === "color") ShapeProvider.shapeColor = this.targetTool.element.value;
-        }
 
       })
     }
   }
-}
 
+  //Handle for mousedown/touchstart
+  private mousedownHandler = (e: MouseEvent | TouchEvent) => {
+    this.cursor.isDown = true;
+    this.cursor.style = "crosshair";
+
+    if (this.actions.is.writing) return;
+
+    //Check if event is touch or mouse
+    const evtType = (e as TouchEvent).touches ? (e as TouchEvent).touches[0] : (e as MouseEvent);
+
+    //Set start position
+    this.cursor.startPos = {
+      x: evtType.clientX - this.canvasElement.offsetLeft,
+      y: evtType.clientY - this.canvasElement.offsetTop
+    };
+
+
+    //Get the active tool
+    const { name, element } = this.toolBar.active;
+
+    if (name === "pencil" || name === "eraser") {
+      this.currentShape = ShapeProvider.freedraw;
+
+      //Set composite operation based on if eraser or pencil
+      name === "eraser" ?
+        (this.currentShape.operation = "destination-out", this.actions.should.erase = true)
+        : (this.currentShape.operation = "source-over", this.actions.should.draw = true);
+
+      //Push cursor position
+      this.currentShape.xCoords.push(this.cursor.startPos.x);
+      this.currentShape.yCoords.push(this.cursor.startPos.y);
+    }
+
+    if (name === "text") {
+      this.currentShape = ShapeProvider.text;
+      const canvasContainer = document.querySelector<HTMLElement>(".drawing-board");
+
+      if (!canvasContainer) return;
+
+      const textInput = createPersonalElement("input", canvasContainer, {
+        position: "fixed",
+        top: `${evtType.clientY}px`,
+        left: `${evtType.clientX}px`,
+        outline: "none",
+        background: "none",
+        border: "none",
+        "font-size": "30pt",
+        "font-family": "sans-serif",
+      });
+
+      this.actions.is.writing = true;
+
+      window.setTimeout(() => textInput.focus(), 0);
+
+      canvasContainer.appendChild(textInput);
+
+      //On unfocus
+      textInput.addEventListener("blur", () => {
+        if (this.currentShape.type !== SHAPE_TYPE.TEXT) return;
+
+        this.currentShape.text = textInput.value;
+
+        this.canvas.contextStyles(this.currentShape);
+
+        const { width, height } = this.canvas.measureText(textInput.value);
+
+        this.currentShape.coords = {
+          x1: this.cursor.startPos.x,
+          y1: this.cursor.startPos.y,
+          x2: Math.round(this.cursor.startPos.x + width),
+          y2: Math.round(this.cursor.startPos.y + height)
+        }
+
+        this.canvas.fillText(this.currentShape.text, this.currentShape.coords.x1 ?? 0, this.currentShape.coords.y1 ?? 0);
+
+        this.canvas.shapesIndex += 1;
+        this.canvas.addShape(this.currentShape);
+
+        canvasContainer.removeChild(textInput);
+
+        this.actions.is.writing = false;
+
+      })
+
+      //Call blur when hitting enter
+      textInput.addEventListener("keypress", (e: KeyboardEvent) => {
+        if (e.key === "Enter") {
+          textInput.blur();
+        }
+      })
+    }
+  }
+}
