@@ -90,7 +90,7 @@ export class ToolBar {
             const target = e.target; //We know it's an element
             const targetTool = this.findTargetTool(target, this.tools); //Find target tool
             if (!targetTool)
-                return; //Simply return
+                return;
             //IF targetTool is activatable then set it as active aswell
             targetTool.name in this.tools.activatable && (this.active = targetTool);
             this.target = targetTool;

@@ -1,14 +1,8 @@
-import { assert } from "console";
 import { createPersonalElement } from "../utils/common.js";
 import { Cursor } from "./Cursor.js";
 import { DrawingCanvas } from "./DrawingCanvas.js"
 import { FreeDrawShape, LineShape, SHAPE_TYPE, ShapeProvider, Shapes, TextShape } from "./Shape.js";
 import { ToolBar, Tool, TargetTool, ActiveTool } from "./ToolBar.js";
-
-
-type FindByType<Shapes, Type> = Shapes extends { type: Type } ? Shapes : never;
-type ShapeOf<Type extends SHAPE_TYPE> = FindByType<Shapes, Type>;
-type Result = ShapeOf<SHAPE_TYPE.TEXT>;
 
 export class DrawingApp {
   //Elements
@@ -50,46 +44,16 @@ export class DrawingApp {
     this.canvasElement = document.getElementById(canvasId) as HTMLCanvasElement;
     if (!this.canvasElement) throw new Error(`Could not find a canvasElement with id of: ${canvasId}`);
 
-    //Create a new cursor for canvasElement
     this.cursor = new Cursor(this.canvasElement);
-    //Create a new drawing canvas
     this.canvas = new DrawingCanvas(this.canvasElement);
 
     this.canvasElement.addEventListener("mousedown", this.mousedownHandler);
-
-    this.canvasElement.addEventListener("mousemove", (e: TouchEvent | MouseEvent) => {
-      const evtType = (e as TouchEvent).touches ? (e as TouchEvent).touches[0] : (e as MouseEvent);
-
-      this.cursor.currentPos = { x: evtType.clientX - this.canvasElement.offsetLeft, y: evtType.clientY - this.canvasElement.offsetTop }
-
-      this.cursor.isDown ? (this.isDragging = true) : (this.isDragging = false);
-
-      if (this.isDragging && this.currentShape.type === SHAPE_TYPE.FREEDRAW) {
-        (this.actions.should.draw) && (this.actions.is.drawing = true);
-        (this.actions.should.erase) && (this.actions.is.erasing = true);
-
-        this.canvas.contextStyles(this.currentShape);//Set context styles based on current shape
-
-        this.currentShape.xCoords.push(this.cursor.currentPos.x);
-        this.currentShape.yCoords.push(this.cursor.currentPos.y);
-
-        //Create line to current current cursor position
-        this.currentShape.path.lineTo(this.cursor.currentPos.x, this.cursor.currentPos.y);
-        //Stroke the currentShape path
-        this.canvas.stroke(this.currentShape.path);
-      }
-
-      if (this.actions.should.line && this.currentShape.type === SHAPE_TYPE.LINE) {
-        this.canvas.redraw();
-
-        this.actions.is.lining = true;
-
-        this.canvas.drawLine(this.currentShape, this.cursor.startPos.x, this.cursor.startPos.y, this.cursor.currentPos.x, this.cursor.currentPos.y);
-
-      }
-    })
-
+    this.canvasElement.addEventListener("mousemove", this.moveHandler);
     this.canvasElement.addEventListener("mouseup", this.mouseupHandler);
+
+    this.canvasElement.addEventListener("touchstart", this.mousedownHandler);
+    this.canvasElement.addEventListener("touchmove", this.moveHandler);
+    this.canvasElement.addEventListener("touchend", this.mouseupHandler);
 
     //If toolbar was passed to constructor
     if (toolBar) {
@@ -98,35 +62,12 @@ export class DrawingApp {
 
       this.toolBar = new ToolBar(this.toolBarElement, toolBar.tools);
 
-      this.toolBarElement.addEventListener("click", (e: MouseEvent | TouchEvent) => {
-        //Handle the event
-        this.toolBar.handleEvent(e);
-
-        //Store the target
-        this.targetTool = this.toolBar.target;
-
-        if (this.targetTool.name === "clear") this.canvas.clear()
-
-        if (this.targetTool.name === "undo") this.canvas.undo();
-
-        //Redraw the canvas
-        this.canvas.redraw();
-
-      })
-
-      this.toolBarElement.addEventListener("change", (e: Event) => {
-        this.toolBar.handleEvent(e);
-        this.targetTool = this.toolBar.target;
-
-        //Set the width and color so that next shape provided will have those props
-        if (this.targetTool.name === "width") ShapeProvider.shapeWidth = Number(this.targetTool.element.value);
-        if (this.targetTool.name === "color") ShapeProvider.shapeColor = this.targetTool.element.value;
-
-      })
+      //Setup event listeners for toolbar element
+      this.toolBarElement.addEventListener("click", this.clickHandler);
+      this.toolBarElement.addEventListener("change", this.changeHandler);
     }
   }
 
-  //Handle for mousedown/touchstart
   private mousedownHandler = (e: MouseEvent | TouchEvent) => {
     this.cursor.isDown = true;
     this.cursor.style = "crosshair";
@@ -230,7 +171,6 @@ export class DrawingApp {
   }
 
   private mouseupHandler = () => {
-    console.log("ran");
     //Cursor is no longer down so reset to initial state
     this.cursor.reset();
 
@@ -263,4 +203,60 @@ export class DrawingApp {
     this.canvas.redraw()
   }
 
+  private moveHandler = (e: MouseEvent | TouchEvent) => {
+    const evtType = (e as TouchEvent).touches ? (e as TouchEvent).touches[0] : (e as MouseEvent);
+
+    this.cursor.currentPos = { x: evtType.clientX - this.canvasElement.offsetLeft, y: evtType.clientY - this.canvasElement.offsetTop }
+    this.cursor.isDown ? (this.isDragging = true) : (this.isDragging = false);
+
+
+    if (this.isDragging && this.currentShape.type === SHAPE_TYPE.FREEDRAW) {
+      (this.actions.should.draw) && (this.actions.is.drawing = true);
+      (this.actions.should.erase) && (this.actions.is.erasing = true);
+
+      this.canvas.contextStyles(this.currentShape);//Set context styles based on current shape
+
+      this.currentShape.xCoords.push(this.cursor.currentPos.x);
+      this.currentShape.yCoords.push(this.cursor.currentPos.y);
+
+      //Create line to current current cursor position
+      this.currentShape.path.lineTo(this.cursor.currentPos.x, this.cursor.currentPos.y);
+      //Stroke the currentShape path
+      this.canvas.stroke(this.currentShape.path);
+    }
+
+    if (this.actions.should.line && this.currentShape.type === SHAPE_TYPE.LINE) {
+      this.canvas.redraw();
+
+      this.actions.is.lining = true;
+
+      this.canvas.drawLine(this.currentShape, this.cursor.startPos.x, this.cursor.startPos.y, this.cursor.currentPos.x, this.cursor.currentPos.y);
+
+    }
+  }
+
+  private clickHandler = (e: MouseEvent | TouchEvent) => {
+    //Handle the event
+    this.toolBar.handleEvent(e);
+
+    //Store the target
+    this.targetTool = this.toolBar.target;
+
+    if (this.targetTool.name === "clear") this.canvas.clear()
+
+    if (this.targetTool.name === "undo") this.canvas.undo();
+
+    //Redraw the canvas
+    this.canvas.redraw();
+
+  }
+
+  private changeHandler = (e: Event) => {
+    this.toolBar.handleEvent(e);
+    this.targetTool = this.toolBar.target;
+
+    //Set the width and color so that next shape provided will have those props
+    if (this.targetTool.name === "width") ShapeProvider.shapeWidth = Number(this.targetTool.element.value);
+    if (this.targetTool.name === "color") ShapeProvider.shapeColor = this.targetTool.element.value;
+  }
 }
