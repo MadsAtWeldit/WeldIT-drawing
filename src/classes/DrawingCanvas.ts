@@ -1,13 +1,15 @@
 import { Cursor } from "./Cursor.js";
-import { SHAPE_TYPE, Shapes } from "./Shape.js";
+import { LineShape, SHAPE_TYPE, Shapes } from "./Shape.js";
 export class DrawingCanvas {
   private canvas: HTMLCanvasElement;
   private context: CanvasRenderingContext2D;
 
   //All shapes that are to be drawn on canvas
   private shapes: Shapes[] = [];
+
   //Index of selected shape
   private selectedShapeIndex: number | null;
+
   //Shapes index
   private index = -1;
 
@@ -67,8 +69,22 @@ export class DrawingCanvas {
     this.context.stroke(path);
   }
 
-  public fillText(text: string, x: number, y: number){
+  public fillText(text: string, x: number, y: number) {
     this.context.fillText(text, x, y);
+  }
+
+  public drawLine(lineShape: LineShape, startX: number, startY: number, endX: number, endY: number) {
+    this.contextStyles(lineShape);
+
+    this.context.beginPath();
+
+    this.context.moveTo(startX, startY);
+
+    this.context.lineTo(endX, endY);
+
+    this.context.closePath();
+    this.context.stroke();
+
   }
 
   //Set the index

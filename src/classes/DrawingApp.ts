@@ -1,8 +1,14 @@
+import { assert } from "console";
 import { createPersonalElement } from "../utils/common.js";
 import { Cursor } from "./Cursor.js";
 import { DrawingCanvas } from "./DrawingCanvas.js"
 import { FreeDrawShape, LineShape, SHAPE_TYPE, ShapeProvider, Shapes, TextShape } from "./Shape.js";
 import { ToolBar, Tool, TargetTool, ActiveTool } from "./ToolBar.js";
+
+
+type FindByType<Shapes, Type> = Shapes extends { type: Type } ? Shapes : never;
+type ShapeOf<Type extends SHAPE_TYPE> = FindByType<Shapes, Type>;
+type Result = ShapeOf<SHAPE_TYPE.TEXT>;
 
 export class DrawingApp {
   //Elements
@@ -53,31 +59,34 @@ export class DrawingApp {
     this.canvasElement.addEventListener("mousedown", this.mousedownHandler);
 
     this.canvasElement.addEventListener("mousemove", (e: TouchEvent | MouseEvent) => {
-      //Check which type of event it is
       const evtType = (e as TouchEvent).touches ? (e as TouchEvent).touches[0] : (e as MouseEvent);
 
-      //Store the current cursor position
       this.cursor.currentPos = { x: evtType.clientX - this.canvasElement.offsetLeft, y: evtType.clientY - this.canvasElement.offsetTop }
 
-      //If cursor is down then that means we are dragging
       this.cursor.isDown ? (this.isDragging = true) : (this.isDragging = false);
 
-      //If we should draw and we are dragging that means we are drawing
-      if (this.isDragging) {
+      if (this.isDragging && this.currentShape.type === SHAPE_TYPE.FREEDRAW) {
         (this.actions.should.draw) && (this.actions.is.drawing = true);
         (this.actions.should.erase) && (this.actions.is.erasing = true);
 
         this.canvas.contextStyles(this.currentShape);//Set context styles based on current shape
 
-        if (this.currentShape.type === SHAPE_TYPE.FREEDRAW) {
-          this.currentShape.xCoords.push(this.cursor.currentPos.x);
-          this.currentShape.yCoords.push(this.cursor.currentPos.y);
+        this.currentShape.xCoords.push(this.cursor.currentPos.x);
+        this.currentShape.yCoords.push(this.cursor.currentPos.y);
 
-          //Create line to current current cursor position
-          this.currentShape.path.lineTo(this.cursor.currentPos.x, this.cursor.currentPos.y);
-          //Stroke the currentShape path
-          this.canvas.stroke(this.currentShape.path);
-        }
+        //Create line to current current cursor position
+        this.currentShape.path.lineTo(this.cursor.currentPos.x, this.cursor.currentPos.y);
+        //Stroke the currentShape path
+        this.canvas.stroke(this.currentShape.path);
+      }
+
+      if (this.actions.should.line && this.currentShape.type === SHAPE_TYPE.LINE) {
+        this.canvas.redraw();
+
+        this.actions.is.lining = true;
+
+        this.canvas.drawLine(this.currentShape, this.cursor.startPos.x, this.cursor.startPos.y, this.cursor.currentPos.x, this.cursor.currentPos.y);
+
       }
     })
 
@@ -86,6 +95,7 @@ export class DrawingApp {
       this.cursor.reset();
 
       if ((this.actions.is.drawing) || (this.actions.is.erasing)) {
+
         this.actions.should.draw = false;
         this.actions.is.drawing = false;
 
@@ -95,11 +105,22 @@ export class DrawingApp {
         //Save
         this.canvas.shapesIndex += 1;
         this.canvas.addShape(this.currentShape);
-
-        //Redraw the canvas
-        this.canvas.redraw()
-
       }
+
+      if (this.actions.is.lining) {
+        this.actions.should.line = false;
+        this.actions.is.lining = false;
+        (this.currentShape as LineShape).coords.endX = this.cursor.currentPos.x;
+        (this.currentShape as LineShape).coords.endY = this.cursor.currentPos.y;
+
+        (this.currentShape as LineShape).path.lineTo(this.cursor.currentPos.x, this.cursor.currentPos.y);
+
+        this.canvas.shapesIndex += 1;
+        this.canvas.addShape(this.currentShape);
+      }
+
+      //Redraw the canvas
+      this.canvas.redraw()
     })
 
     //If toolbar was passed to constructor
@@ -129,9 +150,9 @@ export class DrawingApp {
         this.toolBar.handleEvent(e);
         this.targetTool = this.toolBar.target;
 
-
-          if (this.targetTool.name === "width") ShapeProvider.shapeWidth = Number(this.targetTool.element.value);
-          if (this.targetTool.name === "color") ShapeProvider.shapeColor = this.targetTool.element.value;
+        //Set the width and color so that next shape provided will have those props
+        if (this.targetTool.name === "width") ShapeProvider.shapeWidth = Number(this.targetTool.element.value);
+        if (this.targetTool.name === "color") ShapeProvider.shapeColor = this.targetTool.element.value;
 
       })
     }
@@ -161,9 +182,7 @@ export class DrawingApp {
       this.currentShape = ShapeProvider.freedraw;
 
       //Set composite operation based on if eraser or pencil
-      name === "eraser" ?
-        (this.currentShape.operation = "destination-out", this.actions.should.erase = true)
-        : (this.currentShape.operation = "source-over", this.actions.should.draw = true);
+      name === "eraser" ? (this.currentShape.operation = "destination-out", this.actions.should.erase = true) : (this.currentShape.operation = "source-over", this.actions.should.draw = true);
 
       //Push cursor position
       this.currentShape.xCoords.push(this.cursor.startPos.x);
@@ -172,6 +191,7 @@ export class DrawingApp {
 
     if (name === "text") {
       this.currentShape = ShapeProvider.text;
+
       const canvasContainer = document.querySelector<HTMLElement>(".drawing-board");
 
       if (!canvasContainer) return;
@@ -227,6 +247,17 @@ export class DrawingApp {
           textInput.blur();
         }
       })
+    }
+
+    if (name === "line") {
+      if (this.actions.is.lining) return;
+
+      this.currentShape = ShapeProvider.line;//Get a line shape
+
+      this.actions.should.line = true;
+
+      this.currentShape.path.moveTo(this.cursor.startPos.x, this.cursor.startPos.y);
+      this.currentShape.coords = { startX: this.cursor.startPos.x, startY: this.cursor.startPos.y };
     }
   }
 }

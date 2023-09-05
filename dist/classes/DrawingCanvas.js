@@ -56,6 +56,14 @@ export class DrawingCanvas {
     fillText(text, x, y) {
         this.context.fillText(text, x, y);
     }
+    drawLine(lineShape, startX, startY, endX, endY) {
+        this.contextStyles(lineShape);
+        this.context.beginPath();
+        this.context.moveTo(startX, startY);
+        this.context.lineTo(endX, endY);
+        this.context.closePath();
+        this.context.stroke();
+    }
     //Set the index
     set shapesIndex(index) {
         this.index = index;
