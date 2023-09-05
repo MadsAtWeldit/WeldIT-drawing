@@ -5,7 +5,7 @@ export class DrawingCanvas {
     //All shapes that are to be drawn on canvas
     shapes = [];
     //Index of selected shape
-    selectedShapeIndex;
+    selectedIndex;
     //Shapes index
     index = -1;
     cursor;
@@ -69,11 +69,19 @@ export class DrawingCanvas {
     get shapesIndex() {
         return this.index;
     }
+    get selectedShapeIndex() {
+        return this.selectedIndex;
+    }
     addShape(shape) {
         this.shapes.push(shape);
     }
     getShapes() {
         return this.shapes;
+    }
+    getSelectedShape() {
+    }
+    shapesLength() {
+        return this.shapes.length;
     }
     measureText(text) {
         return {

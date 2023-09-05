@@ -8,7 +8,7 @@ export class DrawingCanvas {
   private shapes: Shapes[] = [];
 
   //Index of selected shape
-  private selectedShapeIndex: number | null;
+  private selectedIndex: number | null;
 
   //Shapes index
   private index = -1;
@@ -94,12 +94,24 @@ export class DrawingCanvas {
     return this.index;
   }
 
+  public get selectedShapeIndex() {
+    return this.selectedIndex;
+  }
+
   public addShape(shape: Shapes) {
     this.shapes.push(shape);
   }
 
   public getShapes() {
     return this.shapes;
+  }
+
+  public getSelectedShape() {
+    return this.shapes[this.selectedIndex];
+  }
+
+  public shapesLength() {
+    return this.shapes.length;
   }
 
   public measureText(text: string) {

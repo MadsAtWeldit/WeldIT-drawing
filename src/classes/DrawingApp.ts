@@ -84,7 +84,6 @@ export class DrawingApp {
     };
 
 
-    //Get the active tool
     const { name, element } = this.toolBar.active;
 
     if (name === "pencil" || name === "eraser") {
@@ -167,6 +166,14 @@ export class DrawingApp {
 
       this.currentShape.path.moveTo(this.cursor.startPos.x, this.cursor.startPos.y);
       this.currentShape.coords = { startX: this.cursor.startPos.x, startY: this.cursor.startPos.y };
+    }
+    if (name === "moveAndResize") {
+      if (this.canvas.shapesLength() <= 0) return;//IF there are not shapes
+
+      if(this.canvas.selectedShapeIndex){
+        console.log("ya");
+      }
+
     }
   }
 

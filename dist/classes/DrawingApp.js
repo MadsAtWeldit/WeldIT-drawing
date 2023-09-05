@@ -67,7 +67,6 @@ export class DrawingApp {
             x: evtType.clientX - this.canvasElement.offsetLeft,
             y: evtType.clientY - this.canvasElement.offsetTop
         };
-        //Get the active tool
         const { name, element } = this.toolBar.active;
         if (name === "pencil" || name === "eraser") {
             this.currentShape = ShapeProvider.freedraw;
@@ -128,6 +127,13 @@ export class DrawingApp {
             this.actions.should.line = true;
             this.currentShape.path.moveTo(this.cursor.startPos.x, this.cursor.startPos.y);
             this.currentShape.coords = { startX: this.cursor.startPos.x, startY: this.cursor.startPos.y };
+        }
+        if (name === "moveAndResize") {
+            if (this.canvas.shapesLength() <= 0)
+                return; //IF there are not shapes
+            if (this.canvas.selectedShapeIndex) {
+                console.log("ya");
+            }
         }
     };
     mouseupHandler = () => {
