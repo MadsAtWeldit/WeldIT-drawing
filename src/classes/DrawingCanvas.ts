@@ -49,7 +49,6 @@ export class DrawingCanvas {
     });
   }
 
-  //Clear the canvas
   public clear() {
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
@@ -58,13 +57,11 @@ export class DrawingCanvas {
 
   }
 
-  //Undo the drawn shape
   public undo() {
     this.index -= 1;
     this.shapes.pop();
   }
 
-  //Strokes the provided path
   public stroke(path: Path2D) {
     this.context.stroke(path);
   }
@@ -97,12 +94,10 @@ export class DrawingCanvas {
     return this.index;
   }
 
-  //Method for adding shape to shapes array
   public addShape(shape: Shapes) {
     this.shapes.push(shape);
   }
 
-  //Return shapes array
   public getShapes() {
     return this.shapes;
   }
@@ -116,10 +111,10 @@ export class DrawingCanvas {
 
   //Loop and redraw all shapes
   public redraw() {
-    //Clear the rect
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    //Return if there are no shapes
+
     if (this.shapes.length <= 0) return;
+
     this.shapes.forEach((shape) => {
       this.contextStyles(shape);
 
@@ -128,13 +123,11 @@ export class DrawingCanvas {
         return;
       }
 
-      //Stroke the current shapes path
       this.context.stroke(shape.path);
 
     })
   }
 
-  //Update context with styles from current shape
   public contextStyles(shape: Shapes) {
     this.context.globalCompositeOperation = shape.operation;
     this.context.lineCap = "round";

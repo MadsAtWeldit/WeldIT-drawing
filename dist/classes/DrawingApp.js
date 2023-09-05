@@ -62,30 +62,7 @@ export class DrawingApp {
                 this.canvas.drawLine(this.currentShape, this.cursor.startPos.x, this.cursor.startPos.y, this.cursor.currentPos.x, this.cursor.currentPos.y);
             }
         });
-        this.canvasElement.addEventListener("mouseup", () => {
-            //Cursor is no longer down so reset to initial state
-            this.cursor.reset();
-            if ((this.actions.is.drawing) || (this.actions.is.erasing)) {
-                this.actions.should.draw = false;
-                this.actions.is.drawing = false;
-                this.actions.should.erase = false;
-                this.actions.is.erasing = false;
-                //Save
-                this.canvas.shapesIndex += 1;
-                this.canvas.addShape(this.currentShape);
-            }
-            if (this.actions.is.lining) {
-                this.actions.should.line = false;
-                this.actions.is.lining = false;
-                this.currentShape.coords.endX = this.cursor.currentPos.x;
-                this.currentShape.coords.endY = this.cursor.currentPos.y;
-                this.currentShape.path.lineTo(this.cursor.currentPos.x, this.cursor.currentPos.y);
-                this.canvas.shapesIndex += 1;
-                this.canvas.addShape(this.currentShape);
-            }
-            //Redraw the canvas
-            this.canvas.redraw();
-        });
+        this.canvasElement.addEventListener("mouseup", this.mouseupHandler);
         //If toolbar was passed to constructor
         if (toolBar) {
             this.toolBarElement = document.getElementById(toolBar.id);
@@ -190,6 +167,31 @@ export class DrawingApp {
             this.currentShape.path.moveTo(this.cursor.startPos.x, this.cursor.startPos.y);
             this.currentShape.coords = { startX: this.cursor.startPos.x, startY: this.cursor.startPos.y };
         }
+    };
+    mouseupHandler = () => {
+        console.log("ran");
+        //Cursor is no longer down so reset to initial state
+        this.cursor.reset();
+        if ((this.actions.is.drawing) || (this.actions.is.erasing)) {
+            this.actions.should.draw = false;
+            this.actions.is.drawing = false;
+            this.actions.should.erase = false;
+            this.actions.is.erasing = false;
+            //Save
+            this.canvas.shapesIndex += 1;
+            this.canvas.addShape(this.currentShape);
+        }
+        if (this.actions.is.lining) {
+            this.actions.should.line = false;
+            this.actions.is.lining = false;
+            this.currentShape.coords.endX = this.cursor.currentPos.x;
+            this.currentShape.coords.endY = this.cursor.currentPos.y;
+            this.currentShape.path.lineTo(this.cursor.currentPos.x, this.cursor.currentPos.y);
+            this.canvas.shapesIndex += 1;
+            this.canvas.addShape(this.currentShape);
+        }
+        //Redraw the canvas
+        this.canvas.redraw();
     };
 }
 //# sourceMappingURL=DrawingApp.js.map

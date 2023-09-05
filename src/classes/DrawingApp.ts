@@ -52,7 +52,6 @@ export class DrawingApp {
 
     //Create a new cursor for canvasElement
     this.cursor = new Cursor(this.canvasElement);
-
     //Create a new drawing canvas
     this.canvas = new DrawingCanvas(this.canvasElement);
 
@@ -90,38 +89,7 @@ export class DrawingApp {
       }
     })
 
-    this.canvasElement.addEventListener("mouseup", () => {
-      //Cursor is no longer down so reset to initial state
-      this.cursor.reset();
-
-      if ((this.actions.is.drawing) || (this.actions.is.erasing)) {
-
-        this.actions.should.draw = false;
-        this.actions.is.drawing = false;
-
-        this.actions.should.erase = false;
-        this.actions.is.erasing = false;
-
-        //Save
-        this.canvas.shapesIndex += 1;
-        this.canvas.addShape(this.currentShape);
-      }
-
-      if (this.actions.is.lining) {
-        this.actions.should.line = false;
-        this.actions.is.lining = false;
-        (this.currentShape as LineShape).coords.endX = this.cursor.currentPos.x;
-        (this.currentShape as LineShape).coords.endY = this.cursor.currentPos.y;
-
-        (this.currentShape as LineShape).path.lineTo(this.cursor.currentPos.x, this.cursor.currentPos.y);
-
-        this.canvas.shapesIndex += 1;
-        this.canvas.addShape(this.currentShape);
-      }
-
-      //Redraw the canvas
-      this.canvas.redraw()
-    })
+    this.canvasElement.addEventListener("mouseup", this.mouseupHandler);
 
     //If toolbar was passed to constructor
     if (toolBar) {
@@ -260,4 +228,39 @@ export class DrawingApp {
       this.currentShape.coords = { startX: this.cursor.startPos.x, startY: this.cursor.startPos.y };
     }
   }
+
+  private mouseupHandler = () => {
+    console.log("ran");
+    //Cursor is no longer down so reset to initial state
+    this.cursor.reset();
+
+    if ((this.actions.is.drawing) || (this.actions.is.erasing)) {
+
+      this.actions.should.draw = false;
+      this.actions.is.drawing = false;
+
+      this.actions.should.erase = false;
+      this.actions.is.erasing = false;
+
+      //Save
+      this.canvas.shapesIndex += 1;
+      this.canvas.addShape(this.currentShape);
+    }
+
+    if (this.actions.is.lining) {
+      this.actions.should.line = false;
+      this.actions.is.lining = false;
+      (this.currentShape as LineShape).coords.endX = this.cursor.currentPos.x;
+      (this.currentShape as LineShape).coords.endY = this.cursor.currentPos.y;
+
+      (this.currentShape as LineShape).path.lineTo(this.cursor.currentPos.x, this.cursor.currentPos.y);
+
+      this.canvas.shapesIndex += 1;
+      this.canvas.addShape(this.currentShape);
+    }
+
+    //Redraw the canvas
+    this.canvas.redraw()
+  }
+
 }
